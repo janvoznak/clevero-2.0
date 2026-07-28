@@ -1,6 +1,6 @@
 /** Datový model modulu Aktuality (entita `news`) — dle specifikace. */
 
-export type LangCode = 'cs' | 'en' | 'de'
+export type LangCode = 'cs' | 'en' | 'de' | 'pl'
 
 export interface Lang {
   code: LangCode
@@ -8,10 +8,14 @@ export interface Lang {
   flag: string
 }
 
+/** Zdrojový jazyk obsahu (z něj se překládá). */
+export const SOURCE_LANG: LangCode = 'cs'
+
 export const LANGS: Lang[] = [
   { code: 'cs', label: 'Čeština', flag: '🇨🇿' },
   { code: 'en', label: 'English', flag: '🇬🇧' },
   { code: 'de', label: 'Deutsch', flag: '🇩🇪' },
+  { code: 'pl', label: 'Polski', flag: '🇵🇱' },
 ]
 
 /** Vícejazyčná (ML) pole — hodnota per jazyk. */

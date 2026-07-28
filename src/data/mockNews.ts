@@ -1,4 +1,4 @@
-import type { NewsItem, GalleryImage, PublishState } from './types'
+import type { NewsItem, GalleryImage, PublishState, LangCode, ML } from './types'
 
 /** Reálné obrázky (lokálně v public/images). Prototyp — obsah je zástupný. */
 const IMAGE_COUNT = 18
@@ -15,9 +15,28 @@ function makeGallery(count: number, offset = 0): GalleryImage[] {
   }))
 }
 
-const empty = { cs: '', en: '', de: '' }
+/** Vstupní (raw) ML — v mock datech stačí uvést jen některé jazyky; zbytek doplní toML. */
+type MLInput = Partial<Record<LangCode, string>>
+type RawNews = Omit<
+  NewsItem,
+  'title' | 'summary' | 'text' | 'metaTitle' | 'metaDescription' | 'metaKeywords'
+> & {
+  title: MLInput
+  summary: MLInput
+  text: MLInput
+  metaTitle: MLInput
+  metaDescription: MLInput
+  metaKeywords: MLInput
+}
 
-export const MOCK_NEWS: NewsItem[] = [
+/** Doplní všechny jazyky (chybějící = prázdný řetězec). */
+function toML(m: MLInput): ML {
+  return { cs: '', en: '', de: '', pl: '', ...m }
+}
+
+const empty: MLInput = { cs: '', en: '', de: '' }
+
+const RAW: RawNews[] = [
   {
     id: 'n-2041',
     title: {
@@ -128,6 +147,17 @@ export const MOCK_NEWS: NewsItem[] = [
     attachments: [],
   },
 ]
+
+/** Normalizace raw dat na plný datový model (doplní všechny jazyky). */
+export const MOCK_NEWS: NewsItem[] = RAW.map((r) => ({
+  ...r,
+  title: toML(r.title),
+  summary: toML(r.summary),
+  text: toML(r.text),
+  metaTitle: toML(r.metaTitle),
+  metaDescription: toML(r.metaDescription),
+  metaKeywords: toML(r.metaKeywords),
+}))
 
 /** Odvození stavu publikace z časového okna OD–DO vůči „dnešku" prototypu. */
 export function publishState(item: NewsItem, now = new Date('2026-07-28T12:00:00')): PublishState {

@@ -209,9 +209,12 @@ Plná šířka `px-8 py-6`. Skladba shora dolů:
 
 ### Edit/Detail obrazovka (`<Modul>Edit.vue`) — vzor dle `NewsEdit.vue`
 Dvousloupcový layout `xl:grid-cols-[minmax(0,1fr)_360px]`, plná šířka `px-8`.
-- **Sticky hlavička**: zpět, cesta+nadpis, přepínač **jazykových mutací** (Reka `Tabs`), `Zrušit` + `Uložit` (`AppButton`).
-- **Levý sloupec**: obsahové `FormSection` (základní pole, galerie, přílohy, SEO…).
-- **Pravý rail (sticky)**: karty „Publikace" (stav + datumy), „Jazykové mutace" (přehled vyplněnosti), „Obsah" (souhrny). Sem patří metadata a nastavení, ne hlavní obsah.
+- **Sticky hlavička**: zpět, cesta+nadpis, přepínač **jazykových mutací** (Reka `Tabs`, **pilulkový** styl), `Zrušit` + `Uložit` (`AppButton`).
+- **Levý sloupec = obsahové sekce v záložkách** (Reka `Tabs` + `TabsContent`): Základní informace / Fotogalerie / Přílohy / Marketing (SEO)… v jedné kartě. Zkracuje scrollování a zaostřuje pozornost.
+  - ⚠️ **Dvě roviny záložek se MUSÍ vizuálně lišit**, aby nevznikla záměna: **jazyk = pilulky** v hlavičce, **sekce = podtržené záložky** (`border-b-2`, aktivní `border-brand-500`). Nikdy obojí stejným stylem.
+  - Jazyk je globální (přepíná napříč všemi sekcemi), sekce je lokální (co je vidět). Jsou to ortogonální osy — proto jeden ovladač nahoře + záložky v kartě.
+  - Krátký hint + field-tag dej na začátek každého panelu (ne velký nadpis — ten supluje záložka).
+- **Pravý rail (sticky)**: karty „Publikace" (stav + datumy), „Jazykové mutace" (přehled vyplněnosti), „Obsah" (souhrny). Zůstává vidět nad rámec záložek — sem patří metadata a přehled úplnosti, ne hlavní obsah. `FormSection` se používá zde.
 
 ---
 
@@ -264,14 +267,24 @@ Tyto věci **záměrně nejsou** plně funkční a u nových modulů se řeší 
 - **Stránkování** — Reka komponenta je funkční, ale dataset je simulovaný (řádky se reálně nestránkují).
 - **Náhled na web** — mrtvý odkaz (`#`).
 - **Mazání/ukládání** — jen lokální stav, žádné API.
+- **AI prvky** — žádná reálná AI (viz níže).
 
 Když přidáváš prototypový prvek, **okomentuj to v kódu** („prototyp — …"), ať je jasné, co je zástupné.
+
+### 11a. AI prvky (prototyp — bez reálné AI)
+
+AI má klientům usnadnit práci; v prototypu je ale vždy jen **UI + předstíraný stav** (`ref` + `setTimeout`, jako SEO auto-generování). Žádné volání modelu, žádné klíče. Zavedené vzory:
+
+- **Generování textu** — v `RichTextEditor` tlačítko „✨ Napsat s AI" (Reka `Popover`): prompt + `Vygenerovat` (`AppButton`). Po simulovaném běhu vloží zástupný text. Protože je v editoru, funguje ve všech modulech s richtextem.
+- **Překlad na klik** — v railu „Jazykové mutace" tlačítko „Přeložit z CZ přes AI": ze zdrojového jazyka (`SOURCE_LANG`) doplní všechny cizí mutace všech ML polí. V prototypu zkopíruje zdroj + potvrdí toastem.
+- **Vizuál AI akcí**: značková oranžová + ikona `sparkles`, stav „Generuji…/Překládám…" s `animate-pulse`. Disabled, dokud není co zpracovat (např. prázdná CZ verze).
 
 ---
 
 ## 12. Datový model — konvence
 
-- Sdílené typy do `data/types.ts` (`LangCode`, `Lang`, `LANGS`, `ML`).
+- Sdílené typy do `data/types.ts` (`LangCode`, `Lang`, `LANGS`, `SOURCE_LANG`, `ML`).
+- **Jazyky: CZ (zdroj) + EN, DE, PL.** ML pole = `Record<LangCode,string>` (všechny jazyky přítomné). V mock datech stačí uvést jen některé — zbytek doplní normalizace (`toML` v `mockNews.ts`), takže literály nemusí vypisovat prázdné jazyky.
 - Per modul `data/mock<Modul>.ts`: pole `MOCK_<MODUL>`, odvozovací helpery (stav, obrázek) a `STATE_META`.
 - Entita = interface s ML poli jako `ML` a kolekcemi (galerie, přílohy) jako pole objektů s `id`.
 
@@ -291,7 +304,7 @@ Když přidáváš prototypový prvek, **okomentuj to v kódu** („prototyp —
 - [ ] Žádné hex barvy ani ad-hoc tlačítka v šablonách — vše přes tokeny a `AppButton`.
 - [ ] Každý interaktivní prvek, pro který Reka má primitiv, ho používá.
 - [ ] List: hlavička + filtr (bez fulltextu) + tabulka + stránkování + prázdný stav.
-- [ ] Edit: sticky hlavička + jazykové `Tabs` + dvousloupcový layout + pravý rail.
+- [ ] Edit: sticky hlavička + jazykové `Tabs` (pilulky) + **sekce v podtržených záložkách** + dvousloupcový layout + pravý rail. Obě roviny záložek vizuálně odlišené.
 - [ ] ML pole se editují per mutace a mají indikátor vyplněnosti.
 - [ ] Field-tagy u polí odpovídají názvům ze specifikace.
 - [ ] Mazání přes potvrzovací `Dialog`.

@@ -1,15 +1,15 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { TabsRoot, TabsList, TabsTrigger } from 'reka-ui'
+import { TabsRoot, TabsList, TabsTrigger, TabsContent } from 'reka-ui'
 import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import FormSection from '@/components/admin/FormSection.vue'
 import RichTextEditor from '@/components/admin/RichTextEditor.vue'
 import GalleryManager from '@/components/admin/GalleryManager.vue'
 import AttachmentsManager from '@/components/admin/AttachmentsManager.vue'
-import { LANGS } from '@/data/types'
-import type { LangCode, NewsItem } from '@/data/types'
+import { LANGS, SOURCE_LANG } from '@/data/types'
+import type { LangCode, NewsItem, ML } from '@/data/types'
 import { MOCK_NEWS, publishState, STATE_META } from '@/data/mockNews'
 
 const props = defineProps<{ id?: string }>()
@@ -18,7 +18,7 @@ const router = useRouter()
 const isEdit = computed(() => !!props.id)
 const source = computed(() => MOCK_NEWS.find((n) => n.id === props.id))
 
-const empty = () => ({ cs: '', en: '', de: '' })
+const empty = (): ML => ({ cs: '', en: '', de: '', pl: '' })
 function clone(): NewsItem {
   const s = source.value
   if (s) return JSON.parse(JSON.stringify(s))
@@ -41,6 +41,15 @@ function clone(): NewsItem {
 
 const form = reactive<NewsItem>(clone())
 const activeLang = ref<LangCode>('cs')
+
+/** Sekce detailu jako záložky (jiná vizuální rovina než jazykové mutace). */
+const activeSection = ref('basic')
+const sections = [
+  { value: 'basic', label: 'Základní informace', icon: 'news' },
+  { value: 'gallery', label: 'Fotogalerie', icon: 'gallery' },
+  { value: 'attachments', label: 'Přílohy', icon: 'paperclip' },
+  { value: 'seo', label: 'Marketing (SEO)', icon: 'search' },
+]
 
 /** Indikátor vyplněnosti jazyka (podle nadpisu). */
 function langFilled(code: LangCode): boolean {
@@ -78,6 +87,39 @@ function save() {
 
 const metaTitleLen = computed(() => form.metaTitle[activeLang.value].length)
 const metaDescLen = computed(() => form.metaDescription[activeLang.value].length)
+
+/* ---------- AI překlad (prototyp — žádná reálná AI) ----------
+   Přeloží obsah ze zdrojového jazyka (CZ) do všech cizích mutací (EN/DE/PL).
+   V prototypu jen zkopíruje zdrojový text a předstírá překlad. */
+const targetLangs = LANGS.filter((l) => l.code !== SOURCE_LANG)
+const translating = ref(false)
+const toast = ref('')
+const mlFields: (keyof NewsItem)[] = [
+  'title',
+  'summary',
+  'text',
+  'metaTitle',
+  'metaDescription',
+  'metaKeywords',
+]
+
+/** Má zdroj (CZ) vůbec co překládat? */
+const sourceReady = computed(() => form.title[SOURCE_LANG].trim().length > 0)
+
+function translateAll() {
+  if (translating.value || !sourceReady.value) return
+  translating.value = true
+  window.setTimeout(() => {
+    for (const field of mlFields) {
+      const val = form[field] as ML
+      const src = val[SOURCE_LANG]
+      for (const t of targetLangs) if (src) val[t.code] = src
+    }
+    translating.value = false
+    toast.value = `Přeloženo z CZ do ${targetLangs.map((l) => l.code.toUpperCase()).join(', ')}`
+    window.setTimeout(() => (toast.value = ''), 3000)
+  }, 1500)
+}
 </script>
 
 <template>
@@ -161,16 +203,33 @@ const metaDescLen = computed(() => form.metaDescription[activeLang.value].length
 
     <!-- Two-column body -->
     <div class="grid grid-cols-1 gap-6 px-8 py-6 xl:grid-cols-[minmax(0,1fr)_360px]">
-      <!-- LEVÝ sloupec: obsah -->
-      <div class="min-w-0 space-y-5">
-        <!-- Základní informace -->
-        <FormSection
-          title="Základní informace"
-          icon="news"
-          hint="Nadpis, perex a text existují samostatně v každé jazykové mutaci."
-          tag="ML"
-        >
-          <div class="space-y-4">
+      <!-- LEVÝ sloupec: obsah v záložkách sekcí (Reka Tabs, podtržený styl) -->
+      <div class="min-w-0">
+        <div class="rounded-lg border border-steel-200 bg-white">
+          <TabsRoot v-model="activeSection">
+            <TabsList
+              class="flex flex-wrap gap-1.5 overflow-x-auto border-b border-steel-200 bg-steel-50/60 px-3 pt-2"
+              aria-label="Sekce aktuality"
+            >
+              <TabsTrigger
+                v-for="s in sections"
+                :key="s.value"
+                :value="s.value"
+                class="-mb-px inline-flex shrink-0 items-center gap-2 rounded-t-md border-b-2 border-transparent px-4 py-2.5 text-[13px] font-600 text-steel-500 outline-none transition-colors hover:bg-steel-100 hover:text-graphite-800 data-[state=active]:border-brand-500 data-[state=active]:bg-brand-50 data-[state=active]:text-brand-700"
+              >
+                <Icon :name="s.icon" :size="16" />
+                {{ s.label }}
+              </TabsTrigger>
+            </TabsList>
+
+            <div class="p-5">
+              <!-- Sekce: Základní informace -->
+              <TabsContent value="basic" class="outline-none">
+                <p class="mb-4 flex items-center gap-2 text-[12.5px] text-steel-500">
+                  Nadpis, perex a text existují samostatně v každé jazykové mutaci.
+                  <span class="field-tag rounded bg-steel-100 px-1.5 py-0.5">ML</span>
+                </p>
+                <div class="space-y-4">
             <div>
               <label class="mb-1.5 flex items-center justify-between">
                 <span class="text-[13px] font-600 text-graphite-800">
@@ -222,37 +281,34 @@ const metaDescLen = computed(() => form.metaDescription[activeLang.value].length
                 />
               </div>
             </div>
-          </div>
-        </FormSection>
+                </div>
+              </TabsContent>
 
-        <!-- Fotogalerie -->
-        <FormSection
-          title="Fotogalerie a hlavní obrázek"
-          icon="gallery"
-          hint="Jednotná galerie pro celou aktualitu. První obrázek = hlavní."
-          tag="news-gallery"
-        >
-          <GalleryManager v-model="form.gallery" />
-        </FormSection>
+              <!-- Sekce: Fotogalerie -->
+              <TabsContent value="gallery" class="outline-none">
+                <p class="mb-4 flex items-center gap-2 text-[12.5px] text-steel-500">
+                  Jednotná galerie pro celou aktualitu. První obrázek = hlavní.
+                  <span class="field-tag rounded bg-steel-100 px-1.5 py-0.5">news-gallery</span>
+                </p>
+                <GalleryManager v-model="form.gallery" />
+              </TabsContent>
 
-        <!-- Přílohy -->
-        <FormSection
-          title="Přílohy"
-          icon="paperclip"
-          hint="Přílohy mohou být specifické pro jednotlivé jazykové mutace."
-          tag="news-attachments · ML"
-        >
-          <AttachmentsManager v-model="form.attachments" :lang="activeLang" />
-        </FormSection>
+              <!-- Sekce: Přílohy -->
+              <TabsContent value="attachments" class="outline-none">
+                <p class="mb-4 flex items-center gap-2 text-[12.5px] text-steel-500">
+                  Přílohy mohou být specifické pro jednotlivé jazykové mutace.
+                  <span class="field-tag rounded bg-steel-100 px-1.5 py-0.5">news-attachments · ML</span>
+                </p>
+                <AttachmentsManager v-model="form.attachments" :lang="activeLang" />
+              </TabsContent>
 
-        <!-- Marketing / SEO -->
-        <FormSection
-          title="Marketing (SEO)"
-          icon="search"
-          hint="Meta údaje pro vyhledávače a sociální sítě — samostatně pro každý jazyk."
-          tag="ML"
-        >
-          <div class="space-y-4">
+              <!-- Sekce: Marketing (SEO) -->
+              <TabsContent value="seo" class="outline-none">
+                <p class="mb-4 flex items-center gap-2 text-[12.5px] text-steel-500">
+                  Meta údaje pro vyhledávače a sociální sítě — samostatně pro každý jazyk.
+                  <span class="field-tag rounded bg-steel-100 px-1.5 py-0.5">ML</span>
+                </p>
+                <div class="space-y-4">
             <div class="flex items-center justify-between rounded-md border border-brand-500/20 bg-brand-50 px-4 py-3">
               <div class="flex items-center gap-2.5">
                 <Icon name="sparkles" :size="18" class="text-brand-500" />
@@ -351,8 +407,11 @@ const metaDescLen = computed(() => form.metaDescription[activeLang.value].length
                 </p>
               </div>
             </div>
-          </div>
-        </FormSection>
+                </div>
+              </TabsContent>
+            </div>
+          </TabsRoot>
+        </div>
       </div>
 
       <!-- PRAVÝ rail: publikace + přehled -->
@@ -423,6 +482,25 @@ const metaDescLen = computed(() => form.metaDescription[activeLang.value].length
               </span>
             </li>
           </ul>
+
+          <!-- AI překlad (prototyp) -->
+          <div class="mt-4 border-t border-steel-100 pt-4">
+            <AppButton
+              variant="primary"
+              size="sm"
+              class="w-full"
+              :disabled="translating || !sourceReady"
+              @click="translateAll"
+            >
+              <Icon name="sparkles" :size="15" :class="translating && 'animate-pulse'" />
+              {{ translating ? 'Překládám…' : 'Přeložit z CZ přes AI' }}
+            </AppButton>
+            <p class="mt-2 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
+              <Icon name="sparkles" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
+              <span v-if="sourceReady">Vyplní mutace EN, DE, PL ze zdrojové české verze.</span>
+              <span v-else>Nejdřív vyplňte českou verzi — z ní se překládá.</span>
+            </p>
+          </div>
         </FormSection>
 
         <!-- Obsah přehled -->
@@ -446,5 +524,21 @@ const metaDescLen = computed(() => form.metaDescription[activeLang.value].length
         </FormSection>
       </aside>
     </div>
+
+    <!-- Toast (potvrzení AI akce) -->
+    <Transition
+      enter-active-class="transition duration-200"
+      enter-from-class="opacity-0 translate-y-2"
+      leave-active-class="transition duration-150"
+      leave-to-class="opacity-0"
+    >
+      <div
+        v-if="toast"
+        class="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2.5 rounded-lg bg-graphite-900 px-4 py-3 text-[13px] font-500 text-white shadow-2xl"
+      >
+        <Icon name="sparkles" :size="16" class="text-brand-400" />
+        {{ toast }}
+      </div>
+    </Transition>
   </div>
 </template>

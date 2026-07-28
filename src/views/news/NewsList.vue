@@ -51,6 +51,7 @@ const langOptions = [
   { value: 'cs', label: 'Čeština' },
   { value: 'en', label: 'English' },
   { value: 'de', label: 'Deutsch' },
+  { value: 'pl', label: 'Polski' },
 ]
 const sortOptions = [
   { value: 'newest', label: 'Nejnovější' },
