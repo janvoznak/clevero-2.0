@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import {
   DropdownMenuRoot,
@@ -116,12 +116,21 @@ function groupActive(g: GroupEntry): boolean {
   return g.children.some(isActive)
 }
 
-/** Naráz může být otevřené jen JEDNO zanoření (accordion single).
- *  Výchozí = skupina s aktivní položkou, jinak Obsah. */
-const firstActiveGroup = nav.find(
-  (e): e is GroupEntry => e.kind === 'group' && e.children.some(isActive),
+/** Klíč skupiny obsahující aktivní stránku (jinak '' = nic otevřené). */
+function activeGroupKey(): string {
+  const g = nav.find((e): e is GroupEntry => e.kind === 'group' && e.children.some(isActive))
+  return g?.key ?? ''
+}
+
+/** Naráz otevřené jen JEDNO zanoření (accordion single).
+ *  Otevřená je skupina s aktivní stránkou; u samostatných modulů nic. */
+const openGroup = ref<string>(activeGroupKey())
+watch(
+  () => route.path,
+  () => {
+    openGroup.value = activeGroupKey()
+  },
 )
-const openGroup = ref<string>(firstActiveGroup?.key ?? 'obsah')
 
 /* Weby dostupné pod tímto účtem (prototyp — multi-tenant). */
 const workspaces = [

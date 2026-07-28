@@ -226,6 +226,7 @@ Plná šířka `px-8 py-6`. Skladba shora dolů:
 
 ### Edit/Detail obrazovka (`<Modul>Edit.vue`) — vzor dle `NewsEdit.vue`
 Dvousloupcový layout `xl:grid-cols-[minmax(0,1fr)_360px]`, plná šířka `px-8`.
+- ⚠️ **Vícejazyčnost je POVINNÁ pro každý obsahový modul** (Aktuality, Kalendář akcí, Blog, Stránky…). Texty určené pro web (název, shrnutí, popis, SEO) jsou vždy `ML` (CZ/EN/DE/PL) — **nikdy nedělej obsahový modul jednojazyčně.** Nejazykové údaje (datum, budova, typ, cena, obrázek) `ML` nejsou. Stejný vzor jako Aktuality: jazykový přepínač `Tabs` v hlavičce + karta „Jazykové mutace" v railu + „Přeložit z CZ přes AI". V seznamu/kalendáři se zobrazuje CZ (`.cs`). Mock data: píšeš jen CZ, `ML` doplní normalizace (`ml()`/`toML()`).
 - **Sticky hlavička**: zpět, cesta+nadpis, přepínač **jazykových mutací** (Reka `Tabs`, **pilulkový** styl), `Zrušit` + `Uložit` (`AppButton`).
 - **Levý sloupec = obsahové sekce v záložkách** (Reka `Tabs` + `TabsContent`): Základní informace / Fotogalerie / Přílohy / Marketing (SEO)… v jedné kartě. Zkracuje scrollování a zaostřuje pozornost.
   - ⚠️ **Dvě roviny záložek se MUSÍ vizuálně lišit**, aby nevznikla záměna: **jazyk = pilulky** v hlavičce, **sekce = podtržené záložky** na jemném pruhu (`bg-steel-50/60`). Nikdy obojí stejným stylem.
@@ -328,6 +329,7 @@ AI má klientům usnadnit práci; v prototypu je ale vždy jen **UI + předstír
 - [ ] Každý interaktivní prvek, pro který Reka má primitiv, ho používá.
 - [ ] List: hlavička + filtr (bez fulltextu) + tabulka + stránkování + prázdný stav.
 - [ ] Edit: sticky hlavička + jazykové `Tabs` (pilulky) + **sekce v podtržených záložkách** + dvousloupcový layout + pravý rail. Obě roviny záložek vizuálně odlišené.
+- [ ] **Obsahový modul je vícejazyčný (ML)** — texty pro web v CZ/EN/DE/PL, jazykové `Tabs` + AI překlad; nejazykové údaje ML nejsou.
 - [ ] ML pole se editují per mutace a mají indikátor vyplněnosti.
 - [ ] Field-tagy u polí odpovídají názvům ze specifikace.
 - [ ] Mazání přes potvrzovací `Dialog`.
