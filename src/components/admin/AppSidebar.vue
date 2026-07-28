@@ -25,29 +25,27 @@ interface NavLink {
   to: string
   match?: string
 }
-interface NavGroup {
+interface LinkEntry extends NavLink {
+  kind: 'link'
+  icon: string
+}
+interface GroupEntry {
+  kind: 'group'
   key: string
   label: string
   icon: string
   children: NavLink[]
 }
+type NavEntry = LinkEntry | GroupEntry
 
-/* Samostatné položky (bez zanoření). */
-const dashboard: NavLink & { icon: string } = { label: 'Dashboard', icon: 'dashboard', to: '/admin/dashboard' }
-const help: NavLink & { icon: string } = { label: 'Nápověda', icon: 'help', to: '/admin/help' }
-
-/* Rozbalovací skupiny (jedno zanoření). Zatím funkční jen Aktuality. */
-const groups: NavGroup[] = [
+/* Jednotný seznam navigace v požadovaném pořadí (hlavní moduly + skupiny).
+   Zatím funkční jen Aktuality; ostatní jsou placeholder. */
+const nav: NavEntry[] = [
+  { kind: 'link', label: 'Dashboard', icon: 'dashboard', to: '/admin/dashboard' },
+  { kind: 'link', label: 'Kalendář akcí', icon: 'calendar', to: '/admin/events' },
+  { kind: 'link', label: 'Vstupenky', icon: 'ticket', to: '/admin/tickets' },
   {
-    key: 'produkty',
-    label: 'Produkty',
-    icon: 'box',
-    children: [
-      { label: 'Kategorie', to: '/admin/product-categories' },
-      { label: 'Produkty', to: '/admin/products' },
-    ],
-  },
-  {
+    kind: 'group',
     key: 'obsah',
     label: 'Obsah',
     icon: 'layers',
@@ -57,33 +55,73 @@ const groups: NavGroup[] = [
       { label: 'Stránky', to: '/admin/pages' },
       { label: 'Pop-up', to: '/admin/popups' },
       { label: 'FAQ', to: '/admin/faq' },
+      { label: 'Galerie', to: '/admin/galleries' },
       { label: 'Slider', to: '/admin/slider' },
       { label: 'Navigace', to: '/admin/navigation' },
       { label: 'Kontakty', to: '/admin/contacts' },
       { label: 'Patička', to: '/admin/footer' },
     ],
   },
+  { kind: 'link', label: 'Vzdělávací programy', icon: 'education', to: '/admin/education' },
+  { kind: 'link', label: 'Dotační projekty', icon: 'grant', to: '/admin/grants' },
   {
+    kind: 'group',
+    key: 'produkty',
+    label: 'Produkty',
+    icon: 'box',
+    children: [
+      { label: 'Kategorie', to: '/admin/product-categories' },
+      { label: 'Produkty', to: '/admin/products' },
+    ],
+  },
+  {
+    kind: 'group',
+    key: 'kariera',
+    label: 'Kariéra',
+    icon: 'briefcase',
+    children: [
+      { label: 'Uchazeči', to: '/admin/careers/applicants' },
+      { label: 'Pozice', to: '/admin/careers/positions' },
+    ],
+  },
+  {
+    kind: 'group',
+    key: 'integrace',
+    label: 'Integrace',
+    icon: 'integration',
+    children: [
+      { label: 'Colosseum', to: '/admin/integrations/colosseum' },
+      { label: 'Ecomail', to: '/admin/integrations/ecomail' },
+    ],
+  },
+  {
+    kind: 'group',
     key: 'nastaveni',
     label: 'Nastavení',
     icon: 'settings',
     children: [{ label: 'Uživatelé', to: '/admin/users' }],
   },
+  { kind: 'link', label: 'Nápověda', icon: 'help', to: '/admin/help' },
 ]
 
 /** Moduly uvnitř skupin řadíme abecedně (česky). */
-groups.forEach((g) => g.children.sort((a, b) => a.label.localeCompare(b.label, 'cs')))
+nav.forEach((e) => {
+  if (e.kind === 'group') e.children.sort((a, b) => a.label.localeCompare(b.label, 'cs'))
+})
 
 function isActive(link: NavLink): boolean {
   return route.path.startsWith(link.match ?? link.to)
 }
-function groupActive(g: NavGroup): boolean {
+function groupActive(g: GroupEntry): boolean {
   return g.children.some(isActive)
 }
 
 /** Naráz může být otevřené jen JEDNO zanoření (accordion single).
  *  Výchozí = skupina s aktivní položkou, jinak Obsah. */
-const openGroup = ref<string>(groups.find(groupActive)?.key ?? 'obsah')
+const firstActiveGroup = nav.find(
+  (e): e is GroupEntry => e.kind === 'group' && e.children.some(isActive),
+)
+const openGroup = ref<string>(firstActiveGroup?.key ?? 'obsah')
 
 /* Weby dostupné pod tímto účtem (prototyp — multi-tenant). */
 const workspaces = [
@@ -163,60 +201,53 @@ const linkBase =
       </DropdownMenuRoot>
     </div>
 
-    <!-- Nav — strom s jedním zanořením (Reka Accordion) -->
-    <nav class="scroll-thin flex-1 space-y-1 overflow-y-auto px-3 py-4">
-      <!-- Dashboard (samostatně) -->
-      <RouterLink
-        :to="dashboard.to"
-        :class="[linkBase, isActive(dashboard) ? 'bg-white/15 text-white' : 'text-white/80 hover:bg-white/10 hover:text-white']"
-      >
-        <span v-if="isActive(dashboard)" class="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r bg-white" />
-        <Icon :name="dashboard.icon" :size="18" :class="isActive(dashboard) ? 'text-white' : 'text-white/70 group-hover:text-white'" />
-        {{ dashboard.label }}
-      </RouterLink>
-
-      <!-- Rozbalovací skupiny -->
+    <!-- Nav — strom s jedním zanořením (Reka Accordion), single-open -->
+    <nav class="scroll-thin flex-1 overflow-y-auto px-3 py-4">
       <AccordionRoot v-model="openGroup" type="single" collapsible class="space-y-1">
-        <AccordionItem v-for="g in groups" :key="g.key" :value="g.key">
-          <AccordionHeader as="div">
-            <AccordionTrigger
-              class="group flex w-full items-center gap-3 rounded-md px-2.5 py-2 text-[13.5px] font-600 outline-none transition-colors hover:bg-white/10"
-              :class="groupActive(g) ? 'text-white' : 'text-white/85 hover:text-white'"
-            >
-              <Icon :name="g.icon" :size="18" class="text-white/70 group-hover:text-white" />
-              <span class="flex-1 text-left">{{ g.label }}</span>
-              <Icon
-                name="chevronDown"
-                :size="15"
-                class="text-white/50 transition-transform duration-200 group-data-[state=open]:rotate-180"
-              />
-            </AccordionTrigger>
-          </AccordionHeader>
-          <AccordionContent>
-            <ul class="my-0.5 ml-[19px] space-y-0.5 border-l border-white/10 pl-2">
-              <li v-for="c in g.children" :key="c.label">
-                <RouterLink
-                  :to="c.to"
-                  class="group relative flex items-center rounded-md py-1.5 pl-3 pr-2.5 text-[13px] font-500 transition-colors"
-                  :class="isActive(c) ? 'bg-white/15 font-600 text-white' : 'text-white/70 hover:bg-white/10 hover:text-white'"
-                >
-                  {{ c.label }}
-                </RouterLink>
-              </li>
-            </ul>
-          </AccordionContent>
-        </AccordionItem>
-      </AccordionRoot>
+        <template v-for="entry in nav" :key="entry.kind === 'group' ? entry.key : entry.label">
+          <!-- Hlavní modul (bez zanoření) -->
+          <RouterLink
+            v-if="entry.kind === 'link'"
+            :to="entry.to"
+            :class="[linkBase, isActive(entry) ? 'bg-white/15 text-white' : 'text-white/80 hover:bg-white/10 hover:text-white']"
+          >
+            <span v-if="isActive(entry)" class="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r bg-white" />
+            <Icon :name="entry.icon" :size="18" :class="isActive(entry) ? 'text-white' : 'text-white/70 group-hover:text-white'" />
+            {{ entry.label }}
+          </RouterLink>
 
-      <!-- Nápověda (samostatně) -->
-      <RouterLink
-        :to="help.to"
-        :class="[linkBase, isActive(help) ? 'bg-white/15 text-white' : 'text-white/80 hover:bg-white/10 hover:text-white']"
-      >
-        <span v-if="isActive(help)" class="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r bg-white" />
-        <Icon :name="help.icon" :size="18" :class="isActive(help) ? 'text-white' : 'text-white/70 group-hover:text-white'" />
-        {{ help.label }}
-      </RouterLink>
+          <!-- Rozbalovací skupina -->
+          <AccordionItem v-else :value="entry.key">
+            <AccordionHeader as="div">
+              <AccordionTrigger
+                class="group flex w-full items-center gap-3 rounded-md px-2.5 py-2 text-[13.5px] font-600 outline-none transition-colors hover:bg-white/10"
+                :class="groupActive(entry) ? 'text-white' : 'text-white/85 hover:text-white'"
+              >
+                <Icon :name="entry.icon" :size="18" class="text-white/70 group-hover:text-white" />
+                <span class="flex-1 text-left">{{ entry.label }}</span>
+                <Icon
+                  name="chevronDown"
+                  :size="15"
+                  class="text-white/50 transition-transform duration-200 group-data-[state=open]:rotate-180"
+                />
+              </AccordionTrigger>
+            </AccordionHeader>
+            <AccordionContent>
+              <ul class="my-0.5 ml-[19px] space-y-0.5 border-l border-white/10 pl-2">
+                <li v-for="c in entry.children" :key="c.label">
+                  <RouterLink
+                    :to="c.to"
+                    class="group relative flex items-center rounded-md py-1.5 pl-3 pr-2.5 text-[13px] font-500 transition-colors"
+                    :class="isActive(c) ? 'bg-white/15 font-600 text-white' : 'text-white/70 hover:bg-white/10 hover:text-white'"
+                  >
+                    {{ c.label }}
+                  </RouterLink>
+                </li>
+              </ul>
+            </AccordionContent>
+          </AccordionItem>
+        </template>
+      </AccordionRoot>
     </nav>
 
     <!-- Rychlé vytvoření nového záznamu -->
