@@ -1,4 +1,38 @@
-import type { NewsItem, GalleryImage, PublishState, LangCode, ML } from './types'
+import type { NewsItem, GalleryImage, PublishState, LangCode, ML, Tag } from './types'
+
+/** Základní paleta barev štítků — uživatel z ní vybírá při vytvoření nového. */
+export const TAG_PALETTE = [
+  '#ee703d', // oranžová (brand)
+  '#d64545', // červená
+  '#d98a15', // jantarová
+  '#15916a', // zelená
+  '#0e8a8a', // tyrkysová
+  '#3b6fb0', // modrá
+  '#5b5bd6', // indigo
+  '#7b5ea7', // fialová
+  '#c2568c', // růžová
+  '#64748b', // šedá
+] as const
+
+/** Předdefinovaný seznam štítků (uživatel může přidat i vlastní). */
+export const PREDEFINED_TAGS: Tag[] = [
+  { label: 'Akce', color: '#ee703d' },
+  { label: 'Prohlídky', color: '#15916a' },
+  { label: 'Festival', color: '#d98a15' },
+  { label: 'Výstava', color: '#7b5ea7' },
+  { label: 'Pro rodiny', color: '#3b6fb0' },
+  { label: 'Sezónní', color: '#0e8a8a' },
+  { label: 'Tisková zpráva', color: '#64748b' },
+]
+
+/** Barva štítku — z předdefinovaných, jinak fallback z palety (dle názvu). */
+export function tagColor(label: string): string {
+  const found = PREDEFINED_TAGS.find((t) => t.label.toLowerCase() === label.toLowerCase())
+  if (found) return found.color
+  let h = 0
+  for (let i = 0; i < label.length; i++) h = (h * 31 + label.charCodeAt(i)) >>> 0
+  return TAG_PALETTE[h % TAG_PALETTE.length]
+}
 
 /** Reálné obrázky (lokálně v public/images). Prototyp — obsah je zástupný. */
 const IMAGE_COUNT = 18
@@ -66,6 +100,7 @@ const RAW: RawNews[] = [
       { id: 'a1', name: 'tiskova-zprava-bolt-tower.pdf', size: '248 kB', ext: 'pdf', lang: 'cs' },
       { id: 'a2', name: 'oteviraci-doba-leto.pdf', size: '96 kB', ext: 'pdf', lang: 'cs' },
     ],
+    tags: ['Prohlídky', 'Sezónní', 'Tisková zpráva'],
   },
   {
     id: 'n-2038',
@@ -85,6 +120,7 @@ const RAW: RawNews[] = [
     ogImage: null,
     gallery: makeGallery(4, 2),
     attachments: [{ id: 'a3', name: 'program-gong.pdf', size: '512 kB', ext: 'pdf', lang: 'cs' }],
+    tags: ['Festival', 'Akce'],
   },
   {
     id: 'n-2035',
@@ -100,6 +136,7 @@ const RAW: RawNews[] = [
     ogImage: null,
     gallery: makeGallery(3, 1),
     attachments: [],
+    tags: ['Prohlídky', 'Akce'],
   },
   {
     id: 'n-2030',
@@ -115,6 +152,7 @@ const RAW: RawNews[] = [
     ogImage: null,
     gallery: makeGallery(5, 3),
     attachments: [],
+    tags: ['Výstava', 'Pro rodiny'],
   },
   {
     id: 'n-2024',
@@ -130,6 +168,7 @@ const RAW: RawNews[] = [
     ogImage: null,
     gallery: [],
     attachments: [],
+    tags: ['Akce', 'Sezónní'],
   },
   {
     id: 'n-2019',
@@ -145,6 +184,7 @@ const RAW: RawNews[] = [
     ogImage: null,
     gallery: makeGallery(2, 4),
     attachments: [],
+    tags: ['Akce', 'Prohlídky'],
   },
 ]
 

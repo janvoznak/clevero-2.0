@@ -27,7 +27,8 @@ import {
 import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
-import { MOCK_NEWS, publishState, STATE_META } from '@/data/mockNews'
+import TagChip from '@/components/ui/TagChip.vue'
+import { MOCK_NEWS, publishState, STATE_META, tagColor } from '@/data/mockNews'
 import type { NewsItem, LangCode } from '@/data/types'
 
 const router = useRouter()
@@ -332,15 +333,10 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
                   <span class="block truncate text-[14px] font-600 text-graphite-900 group-hover:text-brand-600">
                     {{ n.title.cs || 'Bez názvu' }}
                   </span>
-                  <span class="mt-0.5 flex items-center gap-2 font-mono text-[10.5px] text-steel-400">
-                    <span>{{ n.id }}</span>
-                    <span v-if="n.gallery.length" class="flex items-center gap-1">
-                      <Icon name="image" :size="11" /> {{ n.gallery.length }}
-                    </span>
-                    <span v-if="n.attachments.length" class="flex items-center gap-1">
-                      <Icon name="paperclip" :size="11" /> {{ n.attachments.length }}
-                    </span>
+                  <span v-if="n.tags.length" class="mt-1 flex flex-wrap items-center gap-1.5">
+                    <TagChip v-for="t in n.tags" :key="t" :label="t" :color="tagColor(t)" />
                   </span>
+                  <span v-else class="mt-0.5 block text-[11px] text-steel-400">Bez štítků</span>
                 </span>
               </button>
             </td>

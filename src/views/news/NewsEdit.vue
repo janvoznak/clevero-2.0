@@ -8,9 +8,10 @@ import FormSection from '@/components/admin/FormSection.vue'
 import RichTextEditor from '@/components/admin/RichTextEditor.vue'
 import GalleryManager from '@/components/admin/GalleryManager.vue'
 import AttachmentsManager from '@/components/admin/AttachmentsManager.vue'
+import TagPicker from '@/components/admin/TagPicker.vue'
 import { LANGS, SOURCE_LANG } from '@/data/types'
 import type { LangCode, NewsItem, ML } from '@/data/types'
-import { MOCK_NEWS, publishState, STATE_META } from '@/data/mockNews'
+import { MOCK_NEWS, publishState, STATE_META, PREDEFINED_TAGS } from '@/data/mockNews'
 
 const props = defineProps<{ id?: string }>()
 const router = useRouter()
@@ -36,6 +37,7 @@ function clone(): NewsItem {
     ogImage: null,
     gallery: [],
     attachments: [],
+    tags: [],
   }
 }
 
@@ -458,6 +460,11 @@ function translateAll() {
               Viditelnost na webu řídí okno OD–DO. Prázdné DO = neomezeně.
             </p>
           </div>
+        </FormSection>
+
+        <!-- Štítky -->
+        <FormSection title="Štítky" icon="filter" tag="news-tags">
+          <TagPicker v-model="form.tags" :options="PREDEFINED_TAGS" />
         </FormSection>
 
         <!-- Jazykové mutace přehled -->

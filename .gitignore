@@ -10,3 +10,6 @@ dist-ssr
 !.vscode/extensions.json
 .vercel
 .env*
+
+# TS incremental build cache
+*.tsbuildinfo

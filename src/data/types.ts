@@ -54,6 +54,14 @@ export interface NewsItem {
   ogImage: string | null
   gallery: GalleryImage[]
   attachments: Attachment[]
+  /** Štítky (průřezové, nezávislé na jazyce) — z předdefinovaných nebo vlastní. */
+  tags: string[]
+}
+
+/** Předdefinovaný štítek s barvou (barva = hex, kvůli jednoduchosti mimo Tailwind shade). */
+export interface Tag {
+  label: string
+  color: string
 }
 
 export type PublishState = 'active' | 'scheduled' | 'expired' | 'draft'

@@ -25,6 +25,20 @@ Viz i sekce [Co je jen prototyp](#co-je-jen-prototyp).
 
 ---
 
+## 0b. Komponentová jednotnost — jeden prvek = jedna komponenta
+
+> **Každý opakující se UI prvek je jedna sdílená Vue komponenta (vizuálně navázaná na Reka UI). Nikdy se nestyluje ad-hoc podruhé.**
+
+Ostrý CMS se bude skládat z Vue komponent nad Reka UI — a prototyp má tuto strukturu **předjímat**, aby byl vizuál i chování jednotné napříč moduly už teď.
+
+- Objeví-li se prvek podruhé (tlačítko, select, chip, odznak, karta, dialog, pole…), **použij existující komponentu**, nebo ji vytvoř do `components/ui/` (univerzální) / `components/admin/` (administrace). **Zákaz kopírovat a znovu stylovat** stejný prvek jinými třídami.
+- Vizuál a varianty řídí komponenta (props), ne místo použití. Změna vzhledu prvku = jedna změna v komponentě → propíše se všude.
+- Než začneš psát nový blok tříd, zeptej se: *„Není tohle prvek, který má být komponenta?"* Když ano → komponenta.
+- Sdílené primitivy zatím: `AppButton`, `AppSelect`, `Icon`, `TagChip`, `TagPicker`, `FormSection`, `GalleryManager`, `AttachmentsManager`, `RichTextEditor` (viz [sekce 5](#5-sdílené-komponenty-api)). Seznam roste — přidávej, nekopíruj.
+- **Kandidáti k vytažení do komponenty** (dnes ještě inline, sjednotit při dalším výskytu): stavový odznak (`StatusBadge`), datumový rozsah OD–DO, prázdný stav (`EmptyState`).
+
+---
+
 ## 1. Tech stack
 
 | Vrstva | Volba | Pozn. |
@@ -186,7 +200,10 @@ Každá logická skupina polí v editaci = jedna `FormSection`. `tag` zobrazí m
 Znovupoužitelné pro jakýkoli obsahový modul s galerií / přílohami (`v-model`). Galerie řeší drag&drop řazení + hlavní obrázek (hvězda). Přílohy jsou per-jazyk.
 
 ### `admin/RichTextEditor.vue`
-Placeholder WYSIWYG (`v-model`). Zastupuje CKEditor — viz [prototyp](#co-je-jen-prototyp).
+Placeholder WYSIWYG (`v-model`). Zastupuje CKEditor — viz [prototyp](#co-je-jen-prototyp). Obsahuje i AI „Napsat s AI".
+
+### `admin/TagPicker.vue` + `ui/TagChip.vue`
+Výběr štítků (`v-model="string[]"`, prop `options: Tag[]`) — hledání v předdefinovaných + vytvoření nového. `TagChip` = zobrazení jednoho štítku (barva + label, volitelně `removable`). Viz [konvence štítků](#7-konvence-ui-prvků).
 
 ---
 
@@ -211,7 +228,8 @@ Plná šířka `px-8 py-6`. Skladba shora dolů:
 Dvousloupcový layout `xl:grid-cols-[minmax(0,1fr)_360px]`, plná šířka `px-8`.
 - **Sticky hlavička**: zpět, cesta+nadpis, přepínač **jazykových mutací** (Reka `Tabs`, **pilulkový** styl), `Zrušit` + `Uložit` (`AppButton`).
 - **Levý sloupec = obsahové sekce v záložkách** (Reka `Tabs` + `TabsContent`): Základní informace / Fotogalerie / Přílohy / Marketing (SEO)… v jedné kartě. Zkracuje scrollování a zaostřuje pozornost.
-  - ⚠️ **Dvě roviny záložek se MUSÍ vizuálně lišit**, aby nevznikla záměna: **jazyk = pilulky** v hlavičce, **sekce = podtržené záložky** (`border-b-2`, aktivní `border-brand-500`). Nikdy obojí stejným stylem.
+  - ⚠️ **Dvě roviny záložek se MUSÍ vizuálně lišit**, aby nevznikla záměna: **jazyk = pilulky** v hlavičce, **sekce = podtržené záložky** na jemném pruhu (`bg-steel-50/60`). Nikdy obojí stejným stylem.
+  - Aktivní záložka sekce musí být **dostatečně viditelná**: podbarvení `bg-brand-50` + `text-brand-700` + spodní linka `border-b-2 border-brand-500` (samotné podtržení je málo — snadno se přehlédne).
   - Jazyk je globální (přepíná napříč všemi sekcemi), sekce je lokální (co je vidět). Jsou to ortogonální osy — proto jeden ovladač nahoře + záložky v kartě.
   - Krátký hint + field-tag dej na začátek každého panelu (ne velký nadpis — ten supluje záložka).
 - **Pravý rail (sticky)**: karty „Publikace" (stav + datumy), „Jazykové mutace" (přehled vyplněnosti), „Obsah" (souhrny). Zůstává vidět nad rámec záložek — sem patří metadata a přehled úplnosti, ne hlavní obsah. `FormSection` se používá zde.
@@ -221,7 +239,11 @@ Dvousloupcový layout `xl:grid-cols-[minmax(0,1fr)_360px]`, plná šířka `px-8
 ## 7. Konvence UI prvků
 
 - **Stavové odznaky**: pilulka `bg-{color}/10 text-{color}-600` + barevná tečka. Stav se **odvozuje** z dat (u obsahu z časového okna OD–DO), definice v `mock<Modul>.ts` (`STATE_META`). Barvy: forge=aktivní, amber=naplánováno, steel=ukončeno/koncept.
-- **Field-tagy**: u každého pole/sekce zobrazuj mono štítek s názvem pole ze specifikace (`news-title · CS`). Slouží jako most mezi UI a technickou specifikací.
+- **Field-tagy (záměrně ponechané, NEODSTRAŇOVAT)**: u každého pole/sekce mono štítek s názvem pole ze specifikace (`news-title · CS`), plus nad H1 technická cesta (`news` + `/admin/news/list`). Vypadají „vývojářsky", ale jsou tam schválně jako **most mezi UI prototypem a pozdější implementací** — vývojář hned vidí, které pole/entita/route co je. I když působí neproklientsky, **nemažte je** (bylo to vědomé rozhodnutí). Až se z prototypu bude stavět ostrý CMS, teprve tehdy se skryjí/nahradí.
+- **Toast**: potvrzení asynchronní akce (AI překlad apod.) → krátký tmavý toast dole uprostřed (`fixed bottom-6`), sám zmizí po ~3 s. Ne pro triviální akce.
+- **Štítky (tags)**: průřezová kategorizace (ne per-jazyk), pole `tags: string[]` na entitě. Výběr přes `TagPicker` (Reka `Popover`: hledání v předdefinovaných + „Vytvořit nový" **s volbou barvy z palety `TAG_PALETTE` — ~10 barev**). Zobrazení přes `TagChip` = **plný barevný label** (bílý text, hranatý `rounded-md`) v barvě štítku. Předdefinovaný seznam, `TAG_PALETTE` a `tagColor()` v `mock<Modul>.ts`; barvy jsou hex.
+  - ⚠️ **Štítek musí vypadat jinak než stavový odznak** (jinak matoucí): stav = jemná pilulka (`rounded-full`, tint + tečka), štítek = plný barevný hranatý label. Nikdy oba stejně.
+  - V seznamu ukazuj štítky pod nadpisem; ve formuláři kartou v pravém railu.
 - **ML (vícejazyčná) pole**: hodnota per jazyk přes typ `ML = Record<LangCode,string>`. Editují se přes aktivní `Tabs` mutaci (`form.title[activeLang]`). U mutací zobrazuj tečku vyplněnosti (forge = vyplněno).
 - **Prázdné stavy**: vždy ikona + nadpis + jedna věta co dělat („Vytvořte první…"). Nikdy prázdná plocha.
 - **Datumy**: formátuj přes `toLocaleDateString('cs-CZ', …)`, čas mono a menší.
@@ -301,6 +323,7 @@ AI má klientům usnadnit práci; v prototypu je ale vždy jen **UI + předstír
 7. **Kontrola**: `npx vue-tsc -b` bez chyb → dev server → projít list i edit v prohlížeči → čistá konzole.
 
 ### Checklist před „hotovo"
+- [ ] **Jeden prvek = jedna komponenta** — žádný opakující se prvek není nakopírovaný/přestylovaný ad-hoc (viz [princip 0b](#0b-komponentová-jednotnost--jeden-prvek--jedna-komponenta)).
 - [ ] Žádné hex barvy ani ad-hoc tlačítka v šablonách — vše přes tokeny a `AppButton`.
 - [ ] Každý interaktivní prvek, pro který Reka má primitiv, ho používá.
 - [ ] List: hlavička + filtr (bez fulltextu) + tabulka + stránkování + prázdný stav.
