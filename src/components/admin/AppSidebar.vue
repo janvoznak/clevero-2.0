@@ -9,54 +9,81 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
+  AccordionRoot,
+  AccordionItem,
+  AccordionHeader,
+  AccordionTrigger,
+  AccordionContent,
 } from 'reka-ui'
 import Icon from '@/components/ui/Icon.vue'
+import NewRecordDialog from '@/components/admin/NewRecordDialog.vue'
 
 const route = useRoute()
 
-interface NavItem {
+interface NavLink {
   label: string
-  icon: string
-  to?: string
+  to: string
   match?: string
-  soon?: boolean
 }
 interface NavGroup {
+  key: string
   label: string
-  items: NavItem[]
+  icon: string
+  children: NavLink[]
 }
 
+/* Samostatné položky (bez zanoření). */
+const dashboard: NavLink & { icon: string } = { label: 'Dashboard', icon: 'dashboard', to: '/admin/dashboard' }
+const help: NavLink & { icon: string } = { label: 'Nápověda', icon: 'help', to: '/admin/help' }
+
+/* Rozbalovací skupiny (jedno zanoření). Zatím funkční jen Aktuality. */
 const groups: NavGroup[] = [
   {
-    label: 'Přehled',
-    items: [{ label: 'Dashboard', icon: 'dashboard', to: '/admin/dashboard' }],
+    key: 'produkty',
+    label: 'Produkty',
+    icon: 'box',
+    children: [
+      { label: 'Kategorie', to: '/admin/product-categories' },
+      { label: 'Produkty', to: '/admin/products' },
+    ],
   },
   {
+    key: 'obsah',
     label: 'Obsah',
-    items: [
-      { label: 'Aktuality', icon: 'news', to: '/admin/news/list', match: '/admin/news' },
-      { label: 'Blog', icon: 'blog', to: '/admin/blog' },
-      { label: 'Stránky', icon: 'page', to: '/admin/pages' },
-      { label: 'FAQ', icon: 'faq', to: '/admin/faq' },
-      { label: 'Galerie', icon: 'gallery', to: '/admin/galleries' },
-      { label: 'Reference', icon: 'reference', to: '/admin/references' },
+    icon: 'layers',
+    children: [
+      { label: 'Blog', to: '/admin/blog' },
+      { label: 'Aktuality', to: '/admin/news/list', match: '/admin/news' },
+      { label: 'Stránky', to: '/admin/pages' },
+      { label: 'Pop-up', to: '/admin/popups' },
+      { label: 'FAQ', to: '/admin/faq' },
+      { label: 'Slider', to: '/admin/slider' },
+      { label: 'Navigace', to: '/admin/navigation' },
+      { label: 'Kontakty', to: '/admin/contacts' },
+      { label: 'Patička', to: '/admin/footer' },
     ],
   },
   {
-    label: 'Systém',
-    items: [
-      { label: 'Média', icon: 'media', to: '/admin/media' },
-      { label: 'Nastavení', icon: 'settings', to: '/admin/settings' },
-    ],
+    key: 'nastaveni',
+    label: 'Nastavení',
+    icon: 'settings',
+    children: [{ label: 'Uživatelé', to: '/admin/users' }],
   },
 ]
 
-function isActive(item: NavItem): boolean {
-  const path = item.match ?? item.to ?? ''
-  return route.path.startsWith(path)
+/** Moduly uvnitř skupin řadíme abecedně (česky). */
+groups.forEach((g) => g.children.sort((a, b) => a.label.localeCompare(b.label, 'cs')))
+
+function isActive(link: NavLink): boolean {
+  return route.path.startsWith(link.match ?? link.to)
+}
+function groupActive(g: NavGroup): boolean {
+  return g.children.some(isActive)
 }
 
-const collapsed = ref(false)
+/** Naráz může být otevřené jen JEDNO zanoření (accordion single).
+ *  Výchozí = skupina s aktivní položkou, jinak Obsah. */
+const openGroup = ref<string>(groups.find(groupActive)?.key ?? 'obsah')
 
 /* Weby dostupné pod tímto účtem (prototyp — multi-tenant). */
 const workspaces = [
@@ -65,23 +92,19 @@ const workspaces = [
   { id: 'u6', name: 'Svět techniky', domain: 'stcostrava.cz' },
 ]
 const activeWorkspace = ref(workspaces[0])
+
+const linkBase =
+  'group relative flex items-center gap-3 rounded-md px-2.5 py-2 text-[13.5px] font-500 outline-none transition-colors'
 </script>
 
 <template>
   <aside
-    class="flex h-full flex-col text-white transition-[width] duration-200"
-    :class="collapsed ? 'w-[72px]' : 'w-[256px]'"
+    class="flex h-full w-[256px] flex-col text-white"
     style="background: linear-gradient(180deg, var(--color-sidebar-top) 0%, var(--color-sidebar-bottom) 100%)"
   >
     <!-- Brand — bílé logo přímo na oranžové (bez plotny) -->
-    <div class="flex h-[64px] items-center border-b border-white/10" :class="collapsed ? 'justify-center px-2' : 'px-5'">
-      <img
-        v-if="!collapsed"
-        src="/clevero-logo-white.png"
-        alt="Clevero platforma"
-        class="h-[50px] w-auto max-w-full"
-      />
-      <img v-else src="/clevero-mark-white.png" alt="Clevero" class="h-10 w-10" />
+    <div class="flex h-[64px] items-center border-b border-white/10 px-5">
+      <img src="/clevero-logo-white.png" alt="Clevero platforma" class="h-[50px] w-auto max-w-full" />
     </div>
 
     <!-- Workspace / klientský web — Reka DropdownMenu -->
@@ -89,7 +112,6 @@ const activeWorkspace = ref(workspaces[0])
       <DropdownMenuRoot>
         <DropdownMenuTrigger as-child>
           <button
-            v-if="!collapsed"
             class="flex w-full items-center gap-2.5 rounded-lg bg-black/15 px-2.5 py-2 text-left outline-none transition-colors hover:bg-black/25 data-[state=open]:bg-black/25"
           >
             <span class="grid h-7 w-7 shrink-0 place-items-center rounded bg-white/15 text-white">
@@ -100,13 +122,6 @@ const activeWorkspace = ref(workspaces[0])
               <span class="block truncate font-mono text-[10px] text-white/60">{{ activeWorkspace.domain }}</span>
             </span>
             <Icon name="chevronDown" :size="14" class="shrink-0 text-white/60" />
-          </button>
-          <button
-            v-else
-            :title="activeWorkspace.name"
-            class="grid h-8 w-8 place-items-center rounded bg-white/15 text-white outline-none transition-colors hover:bg-white/25"
-          >
-            <Icon name="globe" :size="16" />
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuPortal>
@@ -148,47 +163,65 @@ const activeWorkspace = ref(workspaces[0])
       </DropdownMenuRoot>
     </div>
 
-    <!-- Nav -->
-    <nav class="scroll-thin flex-1 overflow-y-auto px-3 py-4">
-      <div v-for="group in groups" :key="group.label" class="mb-5">
-        <div
-          v-if="!collapsed"
-          class="mb-1.5 px-2 font-mono text-[10px] font-500 uppercase tracking-[0.14em] text-white/45"
-        >
-          {{ group.label }}
-        </div>
-        <ul class="space-y-0.5">
-          <li v-for="item in group.items" :key="item.label">
-            <RouterLink
-              :to="item.to ?? '#'"
-              :title="collapsed ? item.label : undefined"
-              class="group relative flex items-center gap-3 rounded-md px-2.5 py-2 text-[13.5px] font-500 transition-colors"
-              :class="[
-                isActive(item) ? 'bg-white/15 text-white' : 'text-white/75 hover:bg-white/10 hover:text-white',
-                collapsed && 'justify-center px-0',
-              ]"
+    <!-- Nav — strom s jedním zanořením (Reka Accordion) -->
+    <nav class="scroll-thin flex-1 space-y-1 overflow-y-auto px-3 py-4">
+      <!-- Dashboard (samostatně) -->
+      <RouterLink
+        :to="dashboard.to"
+        :class="[linkBase, isActive(dashboard) ? 'bg-white/15 text-white' : 'text-white/80 hover:bg-white/10 hover:text-white']"
+      >
+        <span v-if="isActive(dashboard)" class="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r bg-white" />
+        <Icon :name="dashboard.icon" :size="18" :class="isActive(dashboard) ? 'text-white' : 'text-white/70 group-hover:text-white'" />
+        {{ dashboard.label }}
+      </RouterLink>
+
+      <!-- Rozbalovací skupiny -->
+      <AccordionRoot v-model="openGroup" type="single" collapsible class="space-y-1">
+        <AccordionItem v-for="g in groups" :key="g.key" :value="g.key">
+          <AccordionHeader as="div">
+            <AccordionTrigger
+              class="group flex w-full items-center gap-3 rounded-md px-2.5 py-2 text-[13.5px] font-600 outline-none transition-colors hover:bg-white/10"
+              :class="groupActive(g) ? 'text-white' : 'text-white/85 hover:text-white'"
             >
-              <!-- akcentní rail (světlý, aby vynikl na oranžové) -->
-              <span
-                v-if="isActive(item) && !collapsed"
-                class="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r bg-white"
+              <Icon :name="g.icon" :size="18" class="text-white/70 group-hover:text-white" />
+              <span class="flex-1 text-left">{{ g.label }}</span>
+              <Icon
+                name="chevronDown"
+                :size="15"
+                class="text-white/50 transition-transform duration-200 group-data-[state=open]:rotate-180"
               />
-              <Icon :name="item.icon" :size="18" :class="isActive(item) ? 'text-white' : 'text-white/70 group-hover:text-white'" />
-              <span v-if="!collapsed" class="truncate">{{ item.label }}</span>
-            </RouterLink>
-          </li>
-        </ul>
-      </div>
+            </AccordionTrigger>
+          </AccordionHeader>
+          <AccordionContent>
+            <ul class="my-0.5 ml-[19px] space-y-0.5 border-l border-white/10 pl-2">
+              <li v-for="c in g.children" :key="c.label">
+                <RouterLink
+                  :to="c.to"
+                  class="group relative flex items-center rounded-md py-1.5 pl-3 pr-2.5 text-[13px] font-500 transition-colors"
+                  :class="isActive(c) ? 'bg-white/15 font-600 text-white' : 'text-white/70 hover:bg-white/10 hover:text-white'"
+                >
+                  {{ c.label }}
+                </RouterLink>
+              </li>
+            </ul>
+          </AccordionContent>
+        </AccordionItem>
+      </AccordionRoot>
+
+      <!-- Nápověda (samostatně) -->
+      <RouterLink
+        :to="help.to"
+        :class="[linkBase, isActive(help) ? 'bg-white/15 text-white' : 'text-white/80 hover:bg-white/10 hover:text-white']"
+      >
+        <span v-if="isActive(help)" class="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r bg-white" />
+        <Icon :name="help.icon" :size="18" :class="isActive(help) ? 'text-white' : 'text-white/70 group-hover:text-white'" />
+        {{ help.label }}
+      </RouterLink>
     </nav>
 
-    <!-- Collapse toggle -->
-    <button
-      class="flex h-11 items-center gap-3 border-t border-white/10 px-4 text-[12.5px] text-white/65 transition-colors hover:text-white"
-      :class="collapsed && 'justify-center px-0'"
-      @click="collapsed = !collapsed"
-    >
-      <Icon :name="collapsed ? 'chevronRight' : 'chevronLeft'" :size="18" />
-      <span v-if="!collapsed">Sbalit panel</span>
-    </button>
+    <!-- Rychlé vytvoření nového záznamu -->
+    <div class="border-t border-white/10 p-3">
+      <NewRecordDialog />
+    </div>
   </aside>
 </template>
