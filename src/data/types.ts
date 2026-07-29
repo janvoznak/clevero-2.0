@@ -41,6 +41,8 @@ export interface Attachment {
 
 export interface NewsItem {
   id: string
+  /** Autor aktuality (redaktor). */
+  author: string
   /** Nadpis (ML) — v seznamu zobrazujeme CZ. */
   title: ML
   summary: ML

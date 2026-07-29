@@ -28,7 +28,8 @@ import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import TagChip from '@/components/ui/TagChip.vue'
-import { MOCK_NEWS, publishState, STATE_META, tagColor } from '@/data/mockNews'
+import { MOCK_NEWS, publishState, tagColor } from '@/data/mockNews'
+import { LANGS } from '@/data/types'
 import type { NewsItem, LangCode } from '@/data/types'
 
 const router = useRouter()
@@ -139,6 +140,15 @@ function fmt(dt: string | null): string {
 function fmtTime(dt: string | null): string {
   if (!dt) return ''
   return new Date(dt).toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })
+}
+
+function initials(name: string): string {
+  return name
+    .split(' ')
+    .map((w) => w[0] ?? '')
+    .slice(0, 2)
+    .join('')
+    .toUpperCase()
 }
 
 function goNew() {
@@ -295,8 +305,9 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
               </CheckboxRoot>
             </th>
             <th class="px-2 py-3 font-600">Název aktuality</th>
+            <th class="px-2 py-3 font-600">Autor</th>
             <th class="px-2 py-3 font-600">Publikace OD – DO</th>
-            <th class="px-2 py-3 font-600">Stav</th>
+            <th class="px-2 py-3 font-600">Jazykové mutace</th>
             <th class="w-32 px-4 py-3 text-right font-600">Akce</th>
           </tr>
         </thead>
@@ -341,6 +352,14 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
               </button>
             </td>
             <td class="px-2 py-3 align-middle">
+              <div class="flex items-center gap-2">
+                <span class="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-steel-100 text-[10.5px] font-700 text-steel-600">
+                  {{ initials(n.author) }}
+                </span>
+                <span class="text-[13px] text-graphite-700">{{ n.author }}</span>
+              </div>
+            </td>
+            <td class="px-2 py-3 align-middle">
               <div class="flex items-center gap-2 text-[13px] text-graphite-700">
                 <span class="tabular-nums">{{ fmt(n.dateFrom) }}</span>
                 <span class="text-steel-300">→</span>
@@ -351,13 +370,17 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
               </div>
             </td>
             <td class="px-2 py-3 align-middle">
-              <span
-                class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-600"
-                :class="[STATE_META[publishState(n)].bg, STATE_META[publishState(n)].text]"
-              >
-                <span class="h-1.5 w-1.5 rounded-full" :class="STATE_META[publishState(n)].dot" />
-                {{ STATE_META[publishState(n)].label }}
-              </span>
+              <div class="flex flex-wrap items-center gap-1">
+                <span
+                  v-for="l in LANGS"
+                  :key="l.code"
+                  :title="n.title[l.code].trim() ? `${l.label} — zveřejněno` : `${l.label} — chybí překlad`"
+                  class="rounded px-1.5 py-0.5 text-[10.5px] font-700 uppercase tabular-nums"
+                  :class="n.title[l.code].trim() ? 'bg-forge-500/10 text-forge-600' : 'bg-steel-100 text-steel-400'"
+                >
+                  {{ l.code }}
+                </span>
+              </div>
             </td>
             <td class="px-4 py-3 align-middle">
               <TooltipProvider :delay-duration="250">
@@ -418,7 +441,7 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
 
           <!-- Empty state -->
           <tr v-if="visible.length === 0">
-            <td colspan="5" class="px-4 py-16 text-center">
+            <td colspan="6" class="px-4 py-16 text-center">
               <div class="mx-auto grid h-12 w-12 place-items-center rounded-xl bg-steel-100 text-steel-400">
                 <Icon name="news" :size="24" />
               </div>

@@ -25,6 +25,7 @@ function clone(): NewsItem {
   if (s) return JSON.parse(JSON.stringify(s))
   return {
     id: 'nová',
+    author: 'Jan Voznak',
     title: empty(),
     summary: empty(),
     text: empty(),
@@ -459,6 +460,21 @@ function translateAll() {
               <Icon name="calendar" :size="13" class="mt-0.5 shrink-0 text-steel-400" />
               Viditelnost na webu řídí okno OD–DO. Prázdné DO = neomezeně.
             </p>
+          </div>
+        </FormSection>
+
+        <!-- Autor -->
+        <FormSection title="Autor" icon="settings" tag="news-author">
+          <div class="flex items-center gap-2.5">
+            <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-graphite-800 text-[12px] font-700 text-white">
+              {{ (form.author.split(' ').map((w) => w[0] ?? '').slice(0, 2).join('') || '?').toUpperCase() }}
+            </span>
+            <input
+              v-model="form.author"
+              type="text"
+              placeholder="Jméno autora"
+              class="h-9 w-full rounded-md border border-steel-200 px-3 text-[13px] text-graphite-800 focus:border-brand-500 focus:outline-none"
+            />
           </div>
         </FormSection>
 

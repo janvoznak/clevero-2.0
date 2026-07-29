@@ -73,6 +73,7 @@ const empty: MLInput = { cs: '', en: '', de: '' }
 const RAW: RawNews[] = [
   {
     id: 'n-2041',
+    author: 'Jana Svobodová',
     title: {
       cs: 'Bolt Tower otevírá letní vyhlídkovou sezónu',
       en: 'Bolt Tower opens the summer viewing season',
@@ -104,6 +105,7 @@ const RAW: RawNews[] = [
   },
   {
     id: 'n-2038',
+    author: 'Petr Dvořák',
     title: {
       cs: 'Colours of Ostrava 2026 — program v Gongu',
       en: 'Colours of Ostrava 2026 — programme at the Gong',
@@ -124,6 +126,7 @@ const RAW: RawNews[] = [
   },
   {
     id: 'n-2035',
+    author: 'Jana Svobodová',
     title: { cs: 'Noční prohlídky Dolu Hlubina', en: 'Night tours of the Hlubina Mine', de: '' },
     summary: { cs: 'Zážitkové prohlídky bývalého černouhelného dolu při svitu lamp.', en: '', de: '' },
     text: { cs: '', en: '', de: '' },
@@ -140,6 +143,7 @@ const RAW: RawNews[] = [
   },
   {
     id: 'n-2030',
+    author: 'Martin Kučera',
     title: { cs: 'Velký svět techniky — nová interaktivní expozice', en: '', de: '' },
     summary: { cs: 'Science and technology centrum U6 rozšiřuje expozici o robotiku.', en: '', de: '' },
     text: { cs: '', en: '', de: '' },
@@ -156,6 +160,7 @@ const RAW: RawNews[] = [
   },
   {
     id: 'n-2024',
+    author: 'Petr Dvořák',
     title: { cs: 'Adventní trhy v areálu — připravujeme', en: '', de: '' },
     summary: { cs: 'Rozpracovaný koncept vánočních trhů mezi vysokými pecemi.', en: '', de: '' },
     text: { cs: '', en: '', de: '' },
@@ -172,6 +177,7 @@ const RAW: RawNews[] = [
   },
   {
     id: 'n-2019',
+    author: 'Martin Kučera',
     title: { cs: 'Den otevřených dveří energetické ústředny', en: '', de: '' },
     summary: { cs: 'Komentované prohlídky strojovny a dmychadel.', en: '', de: '' },
     text: { cs: '', en: '', de: '' },
