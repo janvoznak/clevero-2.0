@@ -96,16 +96,6 @@ function translateAll() {
   }, 1500)
 }
 
-/* ---------- Živý náhled polohy (9 poloh mřížky) ---------- */
-const previewAlign = computed(() => {
-  const p = form.position
-  const v = p.startsWith('top') ? 'items-start' : p.startsWith('bottom') ? 'items-end' : 'items-center'
-  const h = p.endsWith('left') ? 'justify-start' : p.endsWith('right') ? 'justify-end' : 'justify-center'
-  return `${v} ${h}`
-})
-function stripHtml(html: string): string {
-  return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
-}
 </script>
 
 <template>
@@ -407,24 +397,19 @@ function stripHtml(html: string): string {
           </div>
         </FormSection>
 
-        <!-- Náhled -->
-        <FormSection title="Náhled" icon="eye" hint="Orientační rozvržení na obrazovce">
-          <div class="flex w-full rounded-lg border border-steel-200 bg-steel-100 p-2" :class="previewAlign" style="aspect-ratio: 16 / 10">
-            <div
-              class="flex w-1/2 flex-col overflow-hidden rounded bg-white shadow-md"
-              :class="form.popupFrame ? 'ring-1 ring-brand-500/50' : ''"
-            >
-              <img v-if="form.image" :src="form.image" alt="" class="h-12 w-full object-cover" />
-              <div class="min-w-0 p-2">
-                <p class="truncate text-[11px] font-700 text-graphite-900">
-                  {{ form.title[activeLang] || 'Nadpis okna' }}
-                </p>
-                <p class="mt-0.5 line-clamp-2 text-[9.5px] leading-snug text-steel-500">
-                  {{ stripHtml(form.text[activeLang]) || 'Text pop-up okna…' }}
-                </p>
-              </div>
-            </div>
-          </div>
+        <!-- Náhled na webu (prototyp — mrtvý odkaz) -->
+        <FormSection title="Náhled" icon="eye">
+          <a
+            href="#"
+            target="_blank"
+            class="flex w-full items-center justify-center gap-2 rounded-md border border-steel-200 bg-white px-4 py-2.5 text-[13px] font-600 text-graphite-700 outline-none transition-colors hover:bg-steel-50 hover:text-graphite-900 focus-visible:ring-4 focus-visible:ring-brand-500/15"
+            @click.prevent
+          >
+            <Icon name="eye" :size="16" /> Náhled na webu
+          </a>
+          <p class="mt-2 text-[11.5px] leading-relaxed text-steel-500">
+            Otevře náhled pop-up okna na webu v novém okně.
+          </p>
         </FormSection>
 
         <!-- Jazykové mutace -->
