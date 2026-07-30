@@ -53,7 +53,7 @@ const nav: NavEntry[] = [
       { label: 'Blog', to: '/admin/blog' },
       { label: 'Aktuality', to: '/admin/news/list', match: '/admin/news' },
       { label: 'Stránky', to: '/admin/pages' },
-      { label: 'Pop-up', to: '/admin/popups' },
+      { label: 'Pop-up', to: '/admin/popups/list', match: '/admin/popups' },
       { label: 'FAQ', to: '/admin/faq' },
       { label: 'Galerie', to: '/admin/galleries' },
       { label: 'Slider', to: '/admin/slider' },
