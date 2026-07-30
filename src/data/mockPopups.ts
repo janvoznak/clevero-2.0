@@ -5,10 +5,8 @@ import type { ML, LangCode } from './types'
    Dle specifikace: jednoduchý (netabovaný) vícejazyčný formulář.
    ============================================================ */
 
-/** 11 přednastavených poloh na obrazovce: 3×3 mřížka + dvě lišty přes celou šířku. */
+/** 9 poloh na obrazovce — 3×3 mřížka (výběr jedné pozice). */
 export type PopupPosition =
-  | 'top-bar'
-  | 'bottom-bar'
   | 'top-left'
   | 'top-center'
   | 'top-right'
@@ -19,19 +17,17 @@ export type PopupPosition =
   | 'bottom-center'
   | 'bottom-right'
 
-/** Popisky poloh (textové labely nebyly ve specifikaci — odvozeno z mřížky). */
+/** Popisky 9 poloh (dle zadání). */
 export const POPUP_POSITION_LABELS: Record<PopupPosition, string> = {
-  'top-bar': 'Horní lišta (přes celou šířku)',
-  'bottom-bar': 'Dolní lišta (přes celou šířku)',
-  'top-left': 'Vlevo nahoře',
+  'top-left': 'Nahoře vlevo',
   'top-center': 'Nahoře uprostřed',
-  'top-right': 'Vpravo nahoře',
+  'top-right': 'Nahoře vpravo',
   'middle-left': 'Vlevo uprostřed',
   center: 'Uprostřed',
   'middle-right': 'Vpravo uprostřed',
-  'bottom-left': 'Vlevo dole',
+  'bottom-left': 'Dole vlevo',
   'bottom-center': 'Dole uprostřed',
-  'bottom-right': 'Vpravo dole',
+  'bottom-right': 'Dole vpravo',
 }
 
 /** Jednotka šířky okna — přepínač `tmp_value_or_percent`. */
@@ -148,7 +144,7 @@ const RAW: RawPopup[] = [
     titleUrl: '/aktuality/nocni-prohlidky-hlubina',
     text: { cs: '<p>Zážitkové prohlídky při svitu lamp. Kapacita omezena.</p>' },
     image: '/images/g8.jpg',
-    position: 'top-bar',
+    position: 'top-center',
     widthUnit: 'percent',
     width: 600,
     widthPercent: 100,
@@ -167,7 +163,7 @@ const RAW: RawPopup[] = [
     titleUrl: '',
     text: { cs: '<p>Sledujte program vánočních trhů mezi vysokými pecemi.</p>' },
     image: null,
-    position: 'bottom-bar',
+    position: 'bottom-center',
     widthUnit: 'percent',
     width: 600,
     widthPercent: 100,

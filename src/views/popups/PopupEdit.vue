@@ -8,6 +8,7 @@ import AppSwitch from '@/components/ui/AppSwitch.vue'
 import FormSection from '@/components/admin/FormSection.vue'
 import RichTextEditor from '@/components/admin/RichTextEditor.vue'
 import PopupPositionPicker from '@/components/admin/popup/PopupPositionPicker.vue'
+import PopupSizePreview from '@/components/admin/popup/PopupSizePreview.vue'
 import { LANGS, SOURCE_LANG } from '@/data/types'
 import type { LangCode, ML } from '@/data/types'
 import { MOCK_POPUPS, popupState, POPUP_STATE_META } from '@/data/mockPopups'
@@ -95,12 +96,9 @@ function translateAll() {
   }, 1500)
 }
 
-/* ---------- Živý náhled polohy ---------- */
-const previewIsBar = computed(() => form.position === 'top-bar' || form.position === 'bottom-bar')
+/* ---------- Živý náhled polohy (9 poloh mřížky) ---------- */
 const previewAlign = computed(() => {
   const p = form.position
-  if (p === 'top-bar') return 'items-start'
-  if (p === 'bottom-bar') return 'items-end'
   const v = p.startsWith('top') ? 'items-start' : p.startsWith('bottom') ? 'items-end' : 'items-center'
   const h = p.endsWith('left') ? 'justify-start' : p.endsWith('right') ? 'justify-end' : 'justify-center'
   return `${v} ${h}`
@@ -325,6 +323,23 @@ function stripHtml(html: string): string {
               </div>
             </div>
 
+            <!-- Vizuální nastavení velikosti (resize) — obousměrně svázané s poli výše -->
+            <div>
+              <p class="mb-2 flex items-center gap-2 text-[12.5px] text-steel-500">
+                Náhled velikosti okna
+                <span class="field-tag">popup-width / popup-height</span>
+              </p>
+              <PopupSizePreview
+                v-model:width="form.width"
+                v-model:width-percent="form.widthPercent"
+                v-model:height="form.height"
+                :unit="form.widthUnit"
+                :frame="form.popupFrame"
+                :title="form.title[activeLang]"
+                :image="form.image"
+              />
+            </div>
+
             <div class="flex items-center justify-between rounded-md bg-steel-50 px-3 py-2.5">
               <AppSwitch v-model="form.popupFrame" label="Zobrazit rámeček pop-up okna" aria-label="Zobrazit rámeček pop-up okna" />
               <span class="field-tag">popup-popupFrame</span>
@@ -398,10 +413,10 @@ function stripHtml(html: string): string {
         <FormSection title="Náhled" icon="eye" hint="Orientační rozvržení na obrazovce">
           <div class="flex w-full rounded-lg border border-steel-200 bg-steel-100 p-2" :class="previewAlign" style="aspect-ratio: 16 / 10">
             <div
-              class="flex flex-col overflow-hidden rounded bg-white shadow-md"
-              :class="[previewIsBar ? 'w-full' : 'w-1/2', form.popupFrame ? 'ring-1 ring-brand-500/50' : '']"
+              class="flex w-1/2 flex-col overflow-hidden rounded bg-white shadow-md"
+              :class="form.popupFrame ? 'ring-1 ring-brand-500/50' : ''"
             >
-              <img v-if="form.image && !previewIsBar" :src="form.image" alt="" class="h-12 w-full object-cover" />
+              <img v-if="form.image" :src="form.image" alt="" class="h-12 w-full object-cover" />
               <div class="min-w-0 p-2">
                 <p class="truncate text-[11px] font-700 text-graphite-900">
                   {{ form.title[activeLang] || 'Nadpis okna' }}
