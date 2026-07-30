@@ -11,7 +11,7 @@ import AttachmentsManager from '@/components/admin/AttachmentsManager.vue'
 import TagPicker from '@/components/admin/TagPicker.vue'
 import { LANGS, SOURCE_LANG } from '@/data/types'
 import type { LangCode, NewsItem, ML } from '@/data/types'
-import { MOCK_NEWS, publishState, STATE_META, PREDEFINED_TAGS } from '@/data/mockNews'
+import { MOCK_NEWS, publishState, STATE_META, PREDEFINED_TAGS, PREDEFINED_CATEGORIES } from '@/data/mockNews'
 
 const props = defineProps<{ id?: string }>()
 const router = useRouter()
@@ -39,6 +39,7 @@ function clone(): NewsItem {
     gallery: [],
     attachments: [],
     tags: [],
+    categories: [],
   }
 }
 
@@ -481,6 +482,17 @@ function translateAll() {
         <!-- Štítky -->
         <FormSection title="Štítky" icon="filter" tag="news-tags">
           <TagPicker v-model="form.tags" :options="PREDEFINED_TAGS" />
+        </FormSection>
+
+        <!-- Kategorie (stejné UI/UX jako štítky — sdílený TagPicker) -->
+        <FormSection title="Kategorie" icon="layers" tag="news-categories">
+          <TagPicker
+            v-model="form.categories"
+            :options="PREDEFINED_CATEGORIES"
+            add-label="Přidat kategorii"
+            empty-label="Zatím žádné kategorie."
+            color-label="Barva kategorie"
+          />
         </FormSection>
 
         <!-- Jazykové mutace přehled -->
