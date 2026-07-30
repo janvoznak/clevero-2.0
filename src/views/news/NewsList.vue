@@ -28,7 +28,7 @@ import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import TagChip from '@/components/ui/TagChip.vue'
-import { MOCK_NEWS, publishState, tagColor } from '@/data/mockNews'
+import { MOCK_NEWS, publishState, tagColor, categoryColor } from '@/data/mockNews'
 import { LANGS } from '@/data/types'
 import type { NewsItem, LangCode } from '@/data/types'
 
@@ -306,6 +306,7 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
             </th>
             <th class="px-2 py-3 font-600">Název aktuality</th>
             <th class="px-2 py-3 font-600">Autor</th>
+            <th class="px-2 py-3 font-600">Kategorie</th>
             <th class="px-2 py-3 font-600">Publikace OD – DO</th>
             <th class="px-2 py-3 font-600">Jazykové mutace</th>
             <th class="w-32 px-4 py-3 text-right font-600">Akce</th>
@@ -358,6 +359,17 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
                 </span>
                 <span class="text-[13px] text-graphite-700">{{ n.author }}</span>
               </div>
+            </td>
+            <td class="px-2 py-3 align-middle">
+              <div v-if="n.categories.length" class="flex max-w-[220px] flex-wrap items-center gap-1.5">
+                <TagChip
+                  v-for="c in n.categories"
+                  :key="c"
+                  :label="c"
+                  :color="categoryColor(c)"
+                />
+              </div>
+              <span v-else class="text-[11px] text-steel-400">Bez kategorií</span>
             </td>
             <td class="px-2 py-3 align-middle">
               <div class="flex items-center gap-2 text-[13px] text-graphite-700">
@@ -441,7 +453,7 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
 
           <!-- Empty state -->
           <tr v-if="visible.length === 0">
-            <td colspan="6" class="px-4 py-16 text-center">
+            <td colspan="7" class="px-4 py-16 text-center">
               <div class="mx-auto grid h-12 w-12 place-items-center rounded-xl bg-steel-100 text-steel-400">
                 <Icon name="news" :size="24" />
               </div>

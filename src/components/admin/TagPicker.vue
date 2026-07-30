@@ -6,8 +6,24 @@ import TagChip from '@/components/ui/TagChip.vue'
 import type { Tag } from '@/data/types'
 import { TAG_PALETTE } from '@/data/mockNews'
 
-const props = defineProps<{ options: Tag[] }>()
-/** Vybrané štítky (labely). */
+/** Popisky lze přizpůsobit, aby stejná komponenta obsloužila štítky i kategorie
+    (stejné UI/UX, jen jiné texty). Defaulty odpovídají štítkům. */
+const props = withDefaults(
+  defineProps<{
+    options: Tag[]
+    addLabel?: string
+    emptyLabel?: string
+    colorLabel?: string
+    searchPlaceholder?: string
+  }>(),
+  {
+    addLabel: 'Přidat štítek',
+    emptyLabel: 'Zatím žádné štítky.',
+    colorLabel: 'Barva štítku',
+    searchPlaceholder: 'Hledat nebo vytvořit…',
+  },
+)
+/** Vybrané položky (labely). */
 const model = defineModel<string[]>({ default: () => [] })
 
 function colorFor(label: string, all: Tag[]): string {
@@ -68,7 +84,7 @@ function remove(label: string) {
         @remove="remove(label)"
       />
     </div>
-    <p v-else class="mb-2.5 text-[12px] text-steel-400">Zatím žádné štítky.</p>
+    <p v-else class="mb-2.5 text-[12px] text-steel-400">{{ emptyLabel }}</p>
 
     <!-- Přidat štítek -->
     <PopoverRoot v-model:open="open">
@@ -77,7 +93,7 @@ function remove(label: string) {
           type="button"
           class="inline-flex items-center gap-1.5 rounded-md border border-dashed border-steel-300 px-3 py-1.5 text-[12.5px] font-500 text-graphite-700 outline-none transition-colors hover:border-brand-400 hover:bg-brand-50/40 hover:text-brand-600 data-[state=open]:border-brand-500 data-[state=open]:text-brand-600"
         >
-          <Icon name="plus" :size="15" /> Přidat štítek
+          <Icon name="plus" :size="15" /> {{ addLabel }}
         </button>
       </PopoverTrigger>
       <PopoverPortal>
@@ -91,7 +107,7 @@ function remove(label: string) {
             <input
               v-model="search"
               type="text"
-              placeholder="Hledat nebo vytvořit…"
+              :placeholder="searchPlaceholder"
               class="h-8 w-full rounded-md border border-steel-200 pl-8 pr-2 text-[13px] focus:border-brand-500 focus:outline-none"
               @keydown.enter.prevent="canCreate && createTag()"
             />
@@ -120,7 +136,7 @@ function remove(label: string) {
             </p>
 
             <div v-if="canCreate" class="mt-1 border-t border-steel-100 pt-2">
-              <p class="mb-1.5 px-1 text-[11px] font-500 text-steel-500">Barva štítku</p>
+              <p class="mb-1.5 px-1 text-[11px] font-500 text-steel-500">{{ colorLabel }}</p>
               <div class="mb-2 flex flex-wrap gap-1.5 px-1">
                 <button
                   v-for="c in TAG_PALETTE"
