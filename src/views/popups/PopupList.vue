@@ -215,11 +215,11 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
                 </CheckboxIndicator>
               </CheckboxRoot>
             </th>
-            <th class="w-24 px-2 py-3 font-600">Zobrazovat</th>
-            <th class="w-32 px-2 py-3 font-600">Vytvořeno</th>
             <th class="px-2 py-3 font-600">Název (nadpis)</th>
+            <th class="w-32 px-2 py-3 font-600">Vytvořeno</th>
             <th class="px-2 py-3 font-600">Od</th>
             <th class="px-2 py-3 font-600">Do</th>
+            <th class="w-24 px-2 py-3 font-600">Zobrazovat</th>
             <th class="w-16 px-3 py-3 text-right font-600">Akce</th>
           </tr>
         </thead>
@@ -240,17 +240,6 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
                   <Icon name="check" :size="12" />
                 </CheckboxIndicator>
               </CheckboxRoot>
-            </td>
-            <td class="px-2 py-3 align-middle">
-              <AppSwitch
-                :model-value="p.enabled"
-                :aria-label="`Zobrazovat ${p.title.cs}`"
-                @update:model-value="(v) => toggleEnabled(p, v)"
-              />
-            </td>
-            <td class="px-2 py-3 align-middle">
-              <div class="text-[13px] text-graphite-700 tabular-nums">{{ fmt(p.createdAt) }}</div>
-              <div class="font-mono text-[10.5px] text-steel-400">{{ fmtTime(p.createdAt) }}</div>
             </td>
             <td class="px-2 py-3 align-middle">
               <button class="flex items-center gap-3 text-left" @click="goEdit(p.id)">
@@ -276,6 +265,10 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
               </button>
             </td>
             <td class="px-2 py-3 align-middle">
+              <div class="text-[13px] text-graphite-700 tabular-nums">{{ fmt(p.createdAt) }}</div>
+              <div class="font-mono text-[10.5px] text-steel-400">{{ fmtTime(p.createdAt) }}</div>
+            </td>
+            <td class="px-2 py-3 align-middle">
               <div class="text-[13px] text-graphite-700 tabular-nums">{{ fmt(p.from) }}</div>
               <div v-if="p.from" class="font-mono text-[10.5px] text-steel-400">{{ fmtTime(p.from) }}</div>
             </td>
@@ -284,6 +277,13 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
                 {{ fmt(p.to) }}
               </div>
               <div v-if="p.to" class="font-mono text-[10.5px] text-steel-400">{{ fmtTime(p.to) }}</div>
+            </td>
+            <td class="px-2 py-3 align-middle">
+              <AppSwitch
+                :model-value="p.enabled"
+                :aria-label="`Zobrazovat ${p.title.cs}`"
+                @update:model-value="(v) => toggleEnabled(p, v)"
+              />
             </td>
             <td class="px-3 py-3 align-middle">
               <div class="flex justify-end">
