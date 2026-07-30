@@ -200,6 +200,14 @@ function translateAll() {
 
             <div>
               <label class="mb-1.5 flex items-center justify-between">
+                <span class="text-[13px] font-600 text-graphite-800">Text</span>
+                <span class="field-tag">popup-text · {{ activeLang.toUpperCase() }}</span>
+              </label>
+              <RichTextEditor v-model="form.text[activeLang]" />
+            </div>
+
+            <div>
+              <label class="mb-1.5 flex items-center justify-between">
                 <span class="text-[13px] font-600 text-graphite-800">Cíl odkazu</span>
                 <span class="field-tag">popup-title_url</span>
               </label>
@@ -216,14 +224,6 @@ function translateAll() {
                 <AppSwitch v-model="form.newWindow" label="Otevřít odkaz v novém okně" aria-label="Otevřít odkaz v novém okně" />
                 <span class="field-tag ml-1">popup-new_window</span>
               </div>
-            </div>
-
-            <div>
-              <label class="mb-1.5 flex items-center justify-between">
-                <span class="text-[13px] font-600 text-graphite-800">Text</span>
-                <span class="field-tag">popup-text · {{ activeLang.toUpperCase() }}</span>
-              </label>
-              <RichTextEditor v-model="form.text[activeLang]" />
             </div>
           </div>
         </FormSection>
