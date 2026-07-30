@@ -82,11 +82,9 @@ const sizeLabel = computed(() => {
       <span class="text-[11.5px] text-steel-500">skutečná velikost 1:1</span>
     </div>
 
-    <!-- Náhledová plocha: box v reálné velikosti; při přetečení se odroluje -->
-    <div
-      class="scroll-thin overflow-auto rounded-lg border border-steel-200 bg-steel-100 p-4"
-      style="max-height: 480px"
-    >
+    <!-- Náhledová plocha: box v reálné velikosti; výška neomezená (roste s oknem),
+         jen vodorovně se odroluje, aby široké okno nerozbilo layout stránky -->
+    <div class="scroll-thin overflow-x-auto rounded-lg border border-steel-200 bg-steel-100 p-4">
       <div
         class="relative flex select-none flex-col overflow-hidden rounded bg-white shadow-md"
         :class="[frame ? 'ring-1 ring-brand-500/60' : '', dragging ? 'outline outline-2 outline-brand-500' : '']"
