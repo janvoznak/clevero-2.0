@@ -23,7 +23,7 @@ import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppSwitch from '@/components/ui/AppSwitch.vue'
 import RowActionsMenu from '@/components/admin/RowActionsMenu.vue'
-import { MOCK_POPUPS, popupState, POPUP_STATE_META, POPUP_POSITION_LABELS } from '@/data/mockPopups'
+import { MOCK_POPUPS, popupState, POPUP_STATE_META } from '@/data/mockPopups'
 import type { PopupItem } from '@/data/mockPopups'
 
 const router = useRouter()
@@ -201,7 +201,7 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
 
     <!-- Table -->
     <div class="overflow-hidden rounded-lg border border-steel-200 bg-white">
-      <table class="w-full table-fixed border-collapse text-left">
+      <table class="w-full border-collapse text-left">
         <thead>
           <tr class="border-b border-steel-200 bg-steel-50 text-[11px] uppercase tracking-wider text-steel-500">
             <th class="w-11 px-4 py-3">
@@ -215,12 +215,12 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
                 </CheckboxIndicator>
               </CheckboxRoot>
             </th>
-            <th class="w-[25%] px-2 py-3 font-600">Název (nadpis)</th>
-            <th class="w-[15%] px-2 py-3 font-600">Vytvořeno</th>
-            <th class="w-[15%] px-2 py-3 font-600">Od</th>
-            <th class="w-[15%] px-2 py-3 font-600">Do</th>
-            <th class="w-[15%] px-2 py-3 font-600">Zobrazovat</th>
-            <th class="w-[15%] px-2 py-3 font-600">Akce</th>
+            <th class="px-2 py-3 font-600">Název (nadpis)</th>
+            <th class="px-2 py-3 font-600">Vytvořeno</th>
+            <th class="px-2 py-3 font-600">Od</th>
+            <th class="px-2 py-3 font-600">Do</th>
+            <th class="px-2 py-3 font-600">Zobrazovat</th>
+            <th class="w-16 px-3 py-3 text-right font-600">Akce</th>
           </tr>
         </thead>
         <tbody>
@@ -259,7 +259,6 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
                       <span class="h-1.5 w-1.5 rounded-full" :class="POPUP_STATE_META[popupState(p)].dot" />
                       {{ POPUP_STATE_META[popupState(p)].label }}
                     </span>
-                    <span class="font-mono text-[10.5px] text-steel-400">{{ POPUP_POSITION_LABELS[p.position] }}</span>
                   </span>
                 </span>
               </button>
@@ -285,8 +284,8 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
                 @update:model-value="(v) => toggleEnabled(p, v)"
               />
             </td>
-            <td class="px-2 py-3 align-middle">
-              <div class="flex">
+            <td class="px-3 py-3 align-middle">
+              <div class="flex justify-end">
                 <RowActionsMenu
                   :actions="rowActions"
                   label="Akce s pop-up oknem"
