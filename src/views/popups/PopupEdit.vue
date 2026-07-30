@@ -335,8 +335,6 @@ function stripHtml(html: string): string {
                 v-model:height="form.height"
                 :unit="form.widthUnit"
                 :frame="form.popupFrame"
-                :title="form.title[activeLang]"
-                :image="form.image"
               />
             </div>
 
