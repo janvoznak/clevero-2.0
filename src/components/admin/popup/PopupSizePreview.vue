@@ -19,10 +19,8 @@ const props = withDefaults(
   defineProps<{
     unit: WidthUnit
     frame?: boolean
-    title?: string
-    image?: string | null
   }>(),
-  { frame: true, title: '', image: null },
+  { frame: true },
 )
 
 /** Referenční šířka viewportu pro % režim (100 % = tolik reálných px). */
@@ -85,16 +83,13 @@ const sizeLabel = computed(() => {
     <!-- Náhledová plocha: box v reálné velikosti; výška neomezená (roste s oknem),
          jen vodorovně se odroluje, aby široké okno nerozbilo layout stránky -->
     <div class="scroll-thin overflow-x-auto rounded-lg border border-steel-200 bg-steel-100 p-4">
+      <!-- Ilustrační okno (jen pro nastavení velikosti — bez reálného obsahu) -->
       <div
-        class="relative flex select-none flex-col overflow-hidden rounded bg-white shadow-md"
+        class="relative grid select-none place-items-center overflow-hidden rounded bg-white shadow-md"
         :class="[frame ? 'ring-1 ring-brand-500/60' : '', dragging ? 'outline outline-2 outline-brand-500' : '']"
         :style="{ width: boxW + 'px', height: boxH + 'px' }"
       >
-        <img v-if="image" :src="image" alt="" class="h-2/5 w-full shrink-0 object-cover" />
-        <div class="min-w-0 flex-1 p-3">
-          <p class="truncate text-[14px] font-700 text-graphite-900">{{ title || 'Nadpis okna' }}</p>
-          <p class="mt-1 text-[12px] leading-snug text-steel-500">Obsah pop-up okna…</p>
-        </div>
+        <Icon name="popup" :size="30" class="text-steel-200" />
 
         <!-- Resize handle (pravý dolní roh) -->
         <button
