@@ -1,0 +1,40 @@
+<script setup lang="ts">
+/**
+ * Jednotný přepínač (toggle) nad Reka `Switch`.
+ * Znovupoužitelný pro každé on/off nastavení (zobrazovat, nové okno, rámeček…).
+ * Bez `label` = jen přepínač (např. v buňce tabulky); s `label` = řádek popisek + přepínač.
+ */
+import { SwitchRoot, SwitchThumb } from 'reka-ui'
+
+const model = defineModel<boolean>({ default: false })
+withDefaults(
+  defineProps<{
+    label?: string
+    hint?: string
+    ariaLabel?: string
+  }>(),
+  {},
+)
+</script>
+
+<template>
+  <component
+    :is="label ? 'label' : 'span'"
+    class="inline-flex items-center gap-3"
+    :class="label && 'cursor-pointer'"
+  >
+    <SwitchRoot
+      v-model="model"
+      :aria-label="ariaLabel ?? label"
+      class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full bg-steel-300 outline-none transition-colors data-[state=checked]:bg-brand-500 focus-visible:ring-4 focus-visible:ring-brand-500/15"
+    >
+      <SwitchThumb
+        class="pointer-events-none block h-4 w-4 translate-x-0.5 rounded-full bg-white shadow-sm transition-transform will-change-transform data-[state=checked]:translate-x-[18px]"
+      />
+    </SwitchRoot>
+    <span v-if="label" class="min-w-0">
+      <span class="block text-[13px] font-500 text-graphite-800">{{ label }}</span>
+      <span v-if="hint" class="block text-[11.5px] leading-snug text-steel-500">{{ hint }}</span>
+    </span>
+  </component>
+</template>
