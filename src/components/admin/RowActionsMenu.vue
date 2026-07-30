@@ -34,9 +34,9 @@ defineEmits<{ select: [key: string] }>()
       <button
         type="button"
         :aria-label="label"
-        class="grid h-8 w-8 place-items-center rounded-md text-steel-400 outline-none transition-colors hover:bg-steel-100 hover:text-graphite-800 data-[state=open]:bg-steel-100 data-[state=open]:text-graphite-800"
+        class="grid h-8 w-8 place-items-center rounded-md border border-steel-200 bg-white text-graphite-700 outline-none transition-colors hover:border-steel-300 hover:bg-steel-100 hover:text-graphite-900 data-[state=open]:border-brand-500 data-[state=open]:bg-brand-50 data-[state=open]:text-brand-600"
       >
-        <Icon name="more" :size="18" />
+        <Icon name="more" :size="20" />
       </button>
     </DropdownMenuTrigger>
     <DropdownMenuPortal>
