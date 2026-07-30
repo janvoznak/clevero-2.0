@@ -218,7 +218,7 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
             <th class="px-2 py-3 font-600">Název (nadpis)</th>
             <th class="w-32 px-2 py-3 font-600">Vytvořeno</th>
             <th class="px-2 py-3 font-600">Od</th>
-            <th class="px-2 py-3 font-600">Do</th>
+            <th class="w-full px-2 py-3 font-600">Do</th>
             <th class="w-24 px-2 py-3 font-600">Zobrazovat</th>
             <th class="w-16 px-3 py-3 text-right font-600">Akce</th>
           </tr>
@@ -272,7 +272,7 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
               <div class="text-[13px] text-graphite-700 tabular-nums">{{ fmt(p.from) }}</div>
               <div v-if="p.from" class="font-mono text-[10.5px] text-steel-400">{{ fmtTime(p.from) }}</div>
             </td>
-            <td class="px-2 py-3 align-middle">
+            <td class="w-full px-2 py-3 align-middle">
               <div class="text-[13px] tabular-nums" :class="p.to ? 'text-graphite-700' : 'text-steel-400'">
                 {{ fmt(p.to) }}
               </div>
