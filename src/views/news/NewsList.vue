@@ -12,11 +12,6 @@ import {
   DialogTitle,
   DialogDescription,
   DialogClose,
-  TooltipProvider,
-  TooltipRoot,
-  TooltipTrigger,
-  TooltipPortal,
-  TooltipContent,
   PaginationRoot,
   PaginationList,
   PaginationListItem,
@@ -28,6 +23,7 @@ import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import TagChip from '@/components/ui/TagChip.vue'
+import RowActionsMenu from '@/components/admin/RowActionsMenu.vue'
 import { MOCK_NEWS, publishState, tagColor, categoryColor } from '@/data/mockNews'
 import { LANGS } from '@/data/types'
 import type { NewsItem, LangCode } from '@/data/types'
@@ -156,6 +152,18 @@ function goNew() {
 }
 function goEdit(id: string) {
   router.push({ name: 'news-edit', params: { id } })
+}
+
+/* ---------- Akce nad řádkem (kontextové menu ⋮) ---------- */
+const rowActions = [
+  { key: 'preview', label: 'Náhled aktuality na webu', icon: 'eye' },
+  { key: 'edit', label: 'Editovat aktualitu', icon: 'edit' },
+  { key: 'delete', label: 'Smazat aktualitu', icon: 'trash', danger: true },
+]
+function onRowAction(key: string, n: NewsItem) {
+  if (key === 'edit') goEdit(n.id)
+  else if (key === 'delete') deleteTarget.value = n
+  // 'preview' — prototyp: náhled na webu je mrtvý odkaz, nic se neděje
 }
 
 /* ---------- Stránkování (Reka Pagination) ----------
@@ -395,59 +403,13 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
               </div>
             </td>
             <td class="px-4 py-3 align-middle">
-              <TooltipProvider :delay-duration="250">
-                <div class="flex items-center justify-end gap-1">
-                  <TooltipRoot>
-                    <TooltipTrigger as-child>
-                      <a
-                        href="#"
-                        target="_blank"
-                        class="grid h-8 w-8 place-items-center rounded-md text-steel-400 transition-colors hover:bg-steel-100 hover:text-graphite-800"
-                        @click.prevent
-                      >
-                        <Icon name="eye" :size="17" />
-                      </a>
-                    </TooltipTrigger>
-                    <TooltipPortal>
-                      <TooltipContent side="top" class="rounded bg-graphite-900 px-2 py-1 text-[11.5px] text-white">
-                        Náhled na webu
-                      </TooltipContent>
-                    </TooltipPortal>
-                  </TooltipRoot>
-
-                  <TooltipRoot>
-                    <TooltipTrigger as-child>
-                      <button
-                        class="grid h-8 w-8 place-items-center rounded-md text-steel-400 transition-colors hover:bg-steel-100 hover:text-graphite-800"
-                        @click="goEdit(n.id)"
-                      >
-                        <Icon name="edit" :size="16" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipPortal>
-                      <TooltipContent side="top" class="rounded bg-graphite-900 px-2 py-1 text-[11.5px] text-white">
-                        Editovat
-                      </TooltipContent>
-                    </TooltipPortal>
-                  </TooltipRoot>
-
-                  <TooltipRoot>
-                    <TooltipTrigger as-child>
-                      <button
-                        class="grid h-8 w-8 place-items-center rounded-md text-steel-400 transition-colors hover:bg-danger-500/10 hover:text-danger-500"
-                        @click="deleteTarget = n"
-                      >
-                        <Icon name="trash" :size="16" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipPortal>
-                      <TooltipContent side="top" class="rounded bg-graphite-900 px-2 py-1 text-[11.5px] text-white">
-                        Smazat
-                      </TooltipContent>
-                    </TooltipPortal>
-                  </TooltipRoot>
-                </div>
-              </TooltipProvider>
+              <div class="flex justify-end">
+                <RowActionsMenu
+                  :actions="rowActions"
+                  label="Akce s aktualitou"
+                  @select="(key) => onRowAction(key, n)"
+                />
+              </div>
             </td>
           </tr>
 

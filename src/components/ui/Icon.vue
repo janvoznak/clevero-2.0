@@ -32,6 +32,7 @@ const paths: Record<string, string> = {
   check: 'M20 6L9 17l-5-5',
   filter: 'M3 5h18l-7 8v6l-4-2v-4z',
   grip: 'M9 6h.01M9 12h.01M9 18h.01M15 6h.01M15 12h.01M15 18h.01',
+  more: 'M12 6h.01M12 12h.01M12 18h.01',
   bell: 'M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0',
   save: 'M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2zM17 21v-8H7v8M7 3v5h8',
   globe: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18',
