@@ -317,7 +317,7 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
             <th class="px-2 py-3 font-600">Kategorie</th>
             <th class="px-2 py-3 font-600">Publikace OD – DO</th>
             <th class="px-2 py-3 font-600">Jazykové mutace</th>
-            <th class="w-32 px-4 py-3 text-right font-600">Akce</th>
+            <th class="w-16 px-3 py-3 text-right font-600">Akce</th>
           </tr>
         </thead>
         <tbody>
@@ -402,7 +402,7 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
                 </span>
               </div>
             </td>
-            <td class="px-4 py-3 align-middle">
+            <td class="px-3 py-3 align-middle">
               <div class="flex justify-end">
                 <RowActionsMenu
                   :actions="rowActions"
