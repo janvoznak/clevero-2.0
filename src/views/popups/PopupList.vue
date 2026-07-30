@@ -23,7 +23,7 @@ import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppSwitch from '@/components/ui/AppSwitch.vue'
 import RowActionsMenu from '@/components/admin/RowActionsMenu.vue'
-import { MOCK_POPUPS, popupState, POPUP_STATE_META, POPUP_POSITION_LABELS } from '@/data/mockPopups'
+import { MOCK_POPUPS, popupState, POPUP_STATE_META } from '@/data/mockPopups'
 import type { PopupItem } from '@/data/mockPopups'
 
 const router = useRouter()
@@ -259,7 +259,6 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
                       <span class="h-1.5 w-1.5 rounded-full" :class="POPUP_STATE_META[popupState(p)].dot" />
                       {{ POPUP_STATE_META[popupState(p)].label }}
                     </span>
-                    <span class="font-mono text-[10.5px] text-steel-400">{{ POPUP_POSITION_LABELS[p.position] }}</span>
                   </span>
                 </span>
               </button>
