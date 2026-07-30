@@ -1,10 +1,11 @@
 <script setup lang="ts">
 /**
- * Resizovatelný náhled velikosti pop-up okna.
+ * Náhled velikosti pop-up okna ve SKUTEČNÉ velikosti (1:1 px).
+ * Box se vykresluje v reálných rozměrech okna — když je větší než náhledová
+ * plocha, plocha se odroluje (skutečná velikost má přednost před „vejít se").
  * Obousměrná synchronizace s poli Šířka/Výška:
- *  - tažení za pravý dolní roh → průběžně aktualizuje hodnoty (width / widthPercent, height),
- *  - změna hodnot v polích → náhled se překreslí (rozměry náhledu jsou odvozené z modelu).
- * Jediný zdroj pravdy jsou hodnoty modelu; tažení jen zapisuje px do modelu.
+ *  - tažení za pravý dolní roh → průběžně píše px do modelu,
+ *  - změna hodnot v polích → box se překreslí (rozměry jsou odvozené z modelu).
  */
 import { computed, ref } from 'vue'
 import Icon from '@/components/ui/Icon.vue'
@@ -24,26 +25,22 @@ const props = withDefaults(
   { frame: true, title: '', image: null },
 )
 
-/* Náhledové plátno = referenční „obrazovka". Rozměry okna se do něj promítají v měřítku. */
-const SCALE = 0.36
-const CANVAS_W = 432
-const CANVAS_H = 274
-const REF_W = Math.round(CANVAS_W / SCALE) // referenční šířka viewportu (px) pro % režim
+/** Referenční šířka viewportu pro % režim (100 % = tolik reálných px). */
+const REF_W = 1200
 const MIN_W = 160
 const MIN_H = 90
+const MAX_W = 1920
+const MAX_H = 1400
 
 function clamp(v: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, v))
 }
 
-/** Efektivní šířka okna v px (z px hodnoty nebo z % referenčního viewportu). */
-const activeWidthPx = computed(() =>
+/** Skutečná šířka okna v px (z px hodnoty nebo z % referenčního viewportu). */
+const boxW = computed(() =>
   props.unit === 'px' ? width.value : Math.round((widthPercent.value / 100) * REF_W),
 )
-
-/** Rozměry náhledového boxu (px na plátně) — odvozené z modelu. */
-const renderedW = computed(() => clamp(activeWidthPx.value * SCALE, MIN_W * SCALE, CANVAS_W))
-const renderedH = computed(() => clamp(height.value * SCALE, MIN_H * SCALE, CANVAS_H))
+const boxH = computed(() => height.value)
 
 const dragging = ref(false)
 
@@ -51,15 +48,14 @@ function startResize(e: PointerEvent) {
   e.preventDefault()
   const startX = e.clientX
   const startY = e.clientY
-  const startRW = renderedW.value
-  const startRH = renderedH.value
+  const startW = boxW.value
+  const startH = boxH.value
   dragging.value = true
 
   function move(ev: PointerEvent) {
-    const nrw = clamp(startRW + (ev.clientX - startX), MIN_W * SCALE, CANVAS_W)
-    const nrh = clamp(startRH + (ev.clientY - startY), MIN_H * SCALE, CANVAS_H)
-    const wpx = Math.round(nrw / SCALE)
-    const hpx = Math.round(nrh / SCALE)
+    // 1:1 — posun kurzoru v px = změna velikosti okna v px
+    const wpx = clamp(startW + (ev.clientX - startX), MIN_W, MAX_W)
+    const hpx = clamp(startH + (ev.clientY - startY), MIN_H, MAX_H)
     if (props.unit === 'px') width.value = wpx
     else widthPercent.value = clamp(Math.round((wpx / REF_W) * 100), 1, 100)
     height.value = hpx
@@ -74,48 +70,46 @@ function startResize(e: PointerEvent) {
 }
 
 const sizeLabel = computed(() => {
-  const w = props.unit === 'px' ? `${width.value} px` : `${widthPercent.value} %`
+  const w = props.unit === 'px' ? `${width.value} px` : `${widthPercent.value} % (≈ ${boxW.value} px)`
   return `${w} × ${height.value} px`
 })
 </script>
 
 <template>
   <div>
-    <div
-      class="relative overflow-hidden rounded-lg border border-steel-200 bg-steel-100"
-      :style="{ width: CANVAS_W + 'px', height: CANVAS_H + 'px', maxWidth: '100%' }"
-    >
-      <!-- jemný rastr „obrazovky" -->
-      <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle,rgba(0,0,0,0.06)_1px,transparent_1px)] [background-size:16px_16px]" />
+    <div class="mb-2 flex items-center gap-2">
+      <span class="rounded bg-graphite-900 px-2 py-1 font-mono text-[11px] text-white tabular-nums">{{ sizeLabel }}</span>
+      <span class="text-[11.5px] text-steel-500">skutečná velikost 1:1</span>
+    </div>
 
-      <!-- Náhled okna (kotva vlevo nahoře, resize za pravý dolní roh) -->
+    <!-- Náhledová plocha: box v reálné velikosti; při přetečení se odroluje -->
+    <div
+      class="scroll-thin overflow-auto rounded-lg border border-steel-200 bg-steel-100 p-4"
+      style="max-height: 480px"
+    >
       <div
-        class="absolute left-3 top-3 flex select-none flex-col overflow-hidden rounded bg-white shadow-md"
-        :class="[frame ? 'ring-1 ring-brand-500/50' : '', dragging ? 'outline outline-2 outline-brand-500' : '']"
-        :style="{ width: renderedW + 'px', height: renderedH + 'px' }"
+        class="relative flex select-none flex-col overflow-hidden rounded bg-white shadow-md"
+        :class="[frame ? 'ring-1 ring-brand-500/60' : '', dragging ? 'outline outline-2 outline-brand-500' : '']"
+        :style="{ width: boxW + 'px', height: boxH + 'px' }"
       >
-        <img v-if="image" :src="image" alt="" class="h-1/2 w-full shrink-0 object-cover" />
-        <div class="min-w-0 flex-1 p-2">
-          <p class="truncate text-[11px] font-700 text-graphite-900">{{ title || 'Nadpis okna' }}</p>
-          <p class="mt-0.5 text-[9.5px] leading-snug text-steel-500">Obsah pop-up okna…</p>
+        <img v-if="image" :src="image" alt="" class="h-2/5 w-full shrink-0 object-cover" />
+        <div class="min-w-0 flex-1 p-3">
+          <p class="truncate text-[14px] font-700 text-graphite-900">{{ title || 'Nadpis okna' }}</p>
+          <p class="mt-1 text-[12px] leading-snug text-steel-500">Obsah pop-up okna…</p>
         </div>
 
-        <!-- Resize handle -->
+        <!-- Resize handle (pravý dolní roh) -->
         <button
           type="button"
-          class="absolute bottom-0 right-0 grid h-5 w-5 cursor-se-resize touch-none place-items-center rounded-tl-md bg-brand-500 text-white shadow-sm outline-none hover:bg-brand-600 focus-visible:ring-2 focus-visible:ring-brand-500/40"
+          class="absolute bottom-0 right-0 grid h-6 w-6 cursor-se-resize touch-none place-items-center rounded-tl-md bg-brand-500 text-white shadow-sm outline-none hover:bg-brand-600 focus-visible:ring-2 focus-visible:ring-brand-500/40"
           aria-label="Změnit velikost tažením"
           @pointerdown="startResize"
         >
-          <Icon name="resize" :size="11" />
+          <Icon name="resize" :size="13" />
         </button>
       </div>
-
-      <!-- Rozměrový štítek -->
-      <span class="absolute bottom-2 left-3 rounded bg-graphite-900/80 px-1.5 py-0.5 font-mono text-[10px] text-white tabular-nums">
-        {{ sizeLabel }}
-      </span>
     </div>
+
     <p class="mt-1.5 flex items-center gap-1.5 text-[11.5px] text-steel-500">
       <Icon name="cursor" :size="13" class="text-steel-400" />
       Táhněte za pravý dolní roh — hodnoty šířky a výšky se aktualizují automaticky.
