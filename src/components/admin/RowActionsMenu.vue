@@ -1,0 +1,63 @@
+<script setup lang="ts">
+import {
+  DropdownMenuRoot,
+  DropdownMenuTrigger,
+  DropdownMenuPortal,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from 'reka-ui'
+import Icon from '@/components/ui/Icon.vue'
+
+/** Jedna položka kontextového menu akcí nad řádkem tabulky. */
+interface RowAction {
+  key: string
+  label: string
+  icon: string
+  /** Destruktivní položka (mazání) — červené zvýraznění. */
+  danger?: boolean
+}
+
+withDefaults(
+  defineProps<{
+    actions: RowAction[]
+    /** Přístupný popisek spouštěče. */
+    label?: string
+  }>(),
+  { label: 'Akce' },
+)
+defineEmits<{ select: [key: string] }>()
+</script>
+
+<template>
+  <DropdownMenuRoot>
+    <DropdownMenuTrigger as-child>
+      <button
+        type="button"
+        :aria-label="label"
+        class="grid h-8 w-8 place-items-center rounded-md text-steel-400 outline-none transition-colors hover:bg-steel-100 hover:text-graphite-800 data-[state=open]:bg-steel-100 data-[state=open]:text-graphite-800"
+      >
+        <Icon name="more" :size="18" />
+      </button>
+    </DropdownMenuTrigger>
+    <DropdownMenuPortal>
+      <DropdownMenuContent
+        align="end"
+        :side-offset="4"
+        class="z-50 min-w-52 rounded-lg border border-steel-200 bg-white p-1.5 shadow-2xl"
+      >
+        <DropdownMenuItem
+          v-for="a in actions"
+          :key="a.key"
+          class="flex cursor-pointer items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] outline-none transition-colors"
+          :class="a.danger
+            ? 'text-danger-600 data-[highlighted]:bg-danger-500/10'
+            : 'text-graphite-700 data-[highlighted]:bg-steel-100'"
+          @select="$emit('select', a.key)"
+        >
+          <Icon :name="a.icon" :size="16" :class="a.danger ? 'text-danger-500' : 'text-steel-500'" />
+          {{ a.label }}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenuPortal>
+  </DropdownMenuRoot>
+</template>
