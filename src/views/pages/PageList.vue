@@ -244,6 +244,9 @@ function confirmDeleteOne() {
 function goNew() {
   router.push({ name: 'page-new' })
 }
+function goNewInSection(section: PageSection) {
+  router.push({ name: 'page-new', query: { section } })
+}
 function goEdit(id: string) {
   router.push({ name: 'page-edit', params: { id } })
 }
@@ -392,26 +395,31 @@ function onRowAction(key: string, p: PageItem) {
             <!-- Hlavička sekce -->
             <tr v-if="item.kind === 'section'" class="border-b border-steel-200 bg-steel-50">
               <td colspan="5" class="p-0">
-                <button
-                  type="button"
-                  class="flex w-full flex-wrap items-center gap-2 px-4 py-2.5 text-left outline-none transition-colors hover:bg-steel-100 focus-visible:bg-steel-100"
-                  :aria-expanded="!collapsedSections.has(item.section.key)"
-                  @click="toggleSection(item.section.key)"
-                >
-                  <Icon
-                    :name="collapsedSections.has(item.section.key) ? 'chevronRight' : 'chevronDown'"
-                    :size="15"
-                    class="shrink-0 text-steel-500"
-                  />
-                  <span class="grid h-6 w-6 place-items-center rounded border border-steel-200 bg-white text-steel-500">
-                    <Icon :name="item.section.icon" :size="14" />
-                  </span>
-                  <span class="font-display text-[13px] font-700 tracking-tight text-graphite-900">{{ item.section.label }}</span>
-                  <span class="rounded-full bg-steel-200 px-1.5 py-0.5 font-mono text-[10.5px] text-steel-600">{{ item.count }}</span>
-                  <span class="hidden text-[12px] text-steel-500 sm:inline">· {{ item.section.desc }}</span>
-                  <span v-if="item.count === 0" class="text-[12px] italic text-steel-400">— žádné stránky</span>
-                  <span v-else-if="collapsedSections.has(item.section.key)" class="text-[12px] text-steel-400">— sbaleno</span>
-                </button>
+                <div class="flex items-center justify-between gap-3 pr-3">
+                  <button
+                    type="button"
+                    class="flex flex-1 flex-wrap items-center gap-2 px-4 py-2.5 text-left outline-none transition-colors hover:bg-steel-100 focus-visible:bg-steel-100"
+                    :aria-expanded="!collapsedSections.has(item.section.key)"
+                    @click="toggleSection(item.section.key)"
+                  >
+                    <Icon
+                      :name="collapsedSections.has(item.section.key) ? 'chevronRight' : 'chevronDown'"
+                      :size="15"
+                      class="shrink-0 text-steel-500"
+                    />
+                    <span class="grid h-6 w-6 place-items-center rounded border border-steel-200 bg-white text-steel-500">
+                      <Icon :name="item.section.icon" :size="14" />
+                    </span>
+                    <span class="font-display text-[13px] font-700 tracking-tight text-graphite-900">{{ item.section.label }}</span>
+                    <span class="rounded-full bg-steel-200 px-1.5 py-0.5 font-mono text-[10.5px] text-steel-600">{{ item.count }}</span>
+                    <span class="hidden text-[12px] text-steel-500 sm:inline">· {{ item.section.desc }}</span>
+                    <span v-if="item.count === 0" class="text-[12px] italic text-steel-400">— žádné stránky</span>
+                    <span v-else-if="collapsedSections.has(item.section.key)" class="text-[12px] text-steel-400">— sbaleno</span>
+                  </button>
+                  <AppButton variant="secondary" size="sm" class="shrink-0" @click="goNewInSection(item.section.key)">
+                    <Icon name="plus" :size="15" /> Nová stránka
+                  </AppButton>
+                </div>
               </td>
             </tr>
 
