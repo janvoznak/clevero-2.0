@@ -24,6 +24,7 @@ import AppButton from '@/components/ui/AppButton.vue'
 import AppSwitch from '@/components/ui/AppSwitch.vue'
 import RowActionsMenu from '@/components/admin/RowActionsMenu.vue'
 import { MOCK_POPUPS, popupState, POPUP_STATE_META } from '@/data/mockPopups'
+import { LANGS } from '@/data/types'
 import type { PopupItem } from '@/data/mockPopups'
 
 const router = useRouter()
@@ -220,6 +221,7 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
             <th class="px-2 py-3 font-600">Od</th>
             <th class="px-2 py-3 font-600">Do</th>
             <th class="px-2 py-3 font-600">Zobrazovat</th>
+            <th class="px-2 py-3 font-600">Jazykové mutace</th>
             <th class="w-16 px-3 py-3 text-right font-600">Akce</th>
           </tr>
         </thead>
@@ -284,6 +286,19 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
                 @update:model-value="(v) => toggleEnabled(p, v)"
               />
             </td>
+            <td class="px-2 py-3 align-middle">
+              <div class="flex flex-wrap items-center gap-1">
+                <span
+                  v-for="l in LANGS"
+                  :key="l.code"
+                  :title="p.title[l.code].trim() ? `${l.label} — vyplněno` : `${l.label} — chybí překlad`"
+                  class="rounded px-1.5 py-0.5 text-[10.5px] font-700 uppercase tabular-nums"
+                  :class="p.title[l.code].trim() ? 'bg-forge-500/10 text-forge-600' : 'bg-steel-100 text-steel-400'"
+                >
+                  {{ l.code }}
+                </span>
+              </div>
+            </td>
             <td class="px-3 py-3 align-middle">
               <div class="flex justify-end">
                 <RowActionsMenu
@@ -297,7 +312,7 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
 
           <!-- Empty state -->
           <tr v-if="visible.length === 0">
-            <td colspan="7" class="px-4 py-16 text-center">
+            <td colspan="8" class="px-4 py-16 text-center">
               <div class="mx-auto grid h-12 w-12 place-items-center rounded-xl bg-steel-100 text-steel-400">
                 <Icon name="popup" :size="24" />
               </div>
