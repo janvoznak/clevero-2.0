@@ -27,7 +27,6 @@ import {
   treeRows,
   hasChildren,
   ancestorDisabled,
-  slugPath,
   type PageItem,
   type TreeRow,
 } from '@/data/mockPages'
@@ -38,42 +37,35 @@ const router = useRouter()
 const rows = ref<PageItem[]>([...MOCK_PAGES])
 const collapsed = ref<Set<string>>(new Set())
 
-/* ---------- Filtry (bez fulltextu — kryje globální search) ---------- */
+/* ---------- Filtry: Stav + fulltextové hledání ---------- */
 const filterStatus = ref('all')
-const filterForm = ref('all')
+const search = ref('')
 const statusOptions = [
   { value: 'all', label: 'Všechny stavy' },
   { value: 'active', label: 'Aktivní' },
   { value: 'inactive', label: 'Neaktivní' },
 ]
-const formOptions = [
-  { value: 'all', label: 'Formulář: vše' },
-  { value: 'with', label: 'S formulářem' },
-  { value: 'without', label: 'Bez formuláře' },
-]
-const hasFilters = computed(() => filterStatus.value !== 'all' || filterForm.value !== 'all')
+const hasFilters = computed(() => filterStatus.value !== 'all' || search.value.trim() !== '')
 function clearFilters() {
   filterStatus.value = 'all'
-  filterForm.value = 'all'
-}
-function hasForm(p: PageItem): boolean {
-  return !!p.dynamicFormId || p.inquiryFormType !== 'none' || p.contactForm !== 'none'
+  search.value = ''
 }
 
-/* Při aktivním filtru zobrazíme plochý filtrovaný seznam; jinak strom. */
+/* Při aktivním filtru/hledání zobrazíme plochý filtrovaný seznam; jinak strom. */
 const visibleRows = computed<TreeRow[]>(() => {
   if (!hasFilters.value) return treeRows(rows.value, collapsed.value)
+  const q = search.value.trim().toLowerCase()
   return rows.value
     .filter((p) => {
       const mS =
         filterStatus.value === 'all' ||
         (filterStatus.value === 'active' && p.enabled) ||
         (filterStatus.value === 'inactive' && !p.enabled)
-      const mF =
-        filterForm.value === 'all' ||
-        (filterForm.value === 'with' && hasForm(p)) ||
-        (filterForm.value === 'without' && !hasForm(p))
-      return mS && mF
+      const mQ =
+        !q ||
+        LANGS.some((l) => p.title[l.code].toLowerCase().includes(q)) ||
+        p.slug.cs.toLowerCase().includes(q)
+      return mS && mQ
     })
     .sort((a, b) => a.title.cs.localeCompare(b.title.cs, 'cs'))
     .map((page) => ({ page, depth: 0, hasKids: false }))
@@ -209,9 +201,17 @@ function footerLabel(p: PageItem): string {
           <label class="mb-1 block field-tag">Stav</label>
           <AppSelect v-model="filterStatus" :options="statusOptions" />
         </div>
-        <div>
-          <label class="mb-1 block field-tag">Formulář</label>
-          <AppSelect v-model="filterForm" :options="formOptions" />
+        <div class="min-w-[260px] flex-1 sm:max-w-sm">
+          <label class="mb-1 block field-tag">Vyhledat stránku</label>
+          <div class="relative">
+            <Icon name="search" :size="15" class="absolute left-3 top-1/2 -translate-y-1/2 text-steel-400" />
+            <input
+              v-model="search"
+              type="text"
+              placeholder="Hledat podle názvu nebo slugu…"
+              class="h-9 w-full rounded-md border border-steel-200 pl-9 pr-3 text-[13px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none"
+            />
+          </div>
         </div>
         <button
           v-if="hasFilters"
@@ -292,8 +292,8 @@ function footerLabel(p: PageItem): string {
               </CheckboxRoot>
             </th>
             <th class="px-2 py-3 font-600">Název stránky</th>
-            <th class="px-2 py-3 font-600">URL slug</th>
             <th class="px-2 py-3 font-600">Umístění</th>
+            <th class="px-2 py-3 font-600">Jazykové mutace</th>
             <th class="w-24 px-2 py-3 font-600">Stav</th>
             <th class="w-16 px-3 py-3 text-right font-600">Akce</th>
           </tr>
@@ -338,20 +338,7 @@ function footerLabel(p: PageItem): string {
                     </span>
                   </span>
                 </button>
-                <!-- Jazykové mutace (indikace) -->
-                <span class="ml-1 hidden shrink-0 items-center gap-1 md:flex">
-                  <span
-                    v-for="l in LANGS"
-                    :key="l.code"
-                    :title="p.title[l.code].trim() ? `${l.label} — vyplněno` : `${l.label} — chybí`"
-                    class="h-1.5 w-1.5 rounded-full"
-                    :class="p.title[l.code].trim() ? 'bg-forge-500' : 'bg-steel-200'"
-                  />
-                </span>
               </div>
-            </td>
-            <td class="px-2 py-3 align-middle">
-              <span class="font-mono text-[11.5px] text-steel-500">{{ slugPath(rows, p) }}</span>
             </td>
             <td class="px-2 py-3 align-middle">
               <div class="flex flex-wrap items-center gap-1">
@@ -365,6 +352,19 @@ function footerLabel(p: PageItem): string {
                   <Icon name="home" :size="11" /> HP
                 </span>
                 <span v-if="!p.allowMenu && p.allowFooter === '0' && !p.allowHp" class="text-[11px] text-steel-400">—</span>
+              </div>
+            </td>
+            <td class="px-2 py-3 align-middle">
+              <div class="flex flex-wrap items-center gap-1">
+                <span
+                  v-for="l in LANGS"
+                  :key="l.code"
+                  :title="p.title[l.code].trim() ? `${l.label} — vyplněno` : `${l.label} — chybí překlad`"
+                  class="rounded px-1.5 py-0.5 text-[10.5px] font-700 uppercase tabular-nums"
+                  :class="p.title[l.code].trim() ? 'bg-forge-500/10 text-forge-600' : 'bg-steel-100 text-steel-400'"
+                >
+                  {{ l.code }}
+                </span>
               </div>
             </td>
             <td class="px-2 py-3 align-middle">
