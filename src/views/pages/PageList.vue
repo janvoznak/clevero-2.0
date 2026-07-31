@@ -251,9 +251,6 @@ const activeSection = ref<PageSection>('menu')
 function selectSection(key: PageSection) {
   activeSection.value = key
 }
-const activeSectionLabel = computed(
-  () => PAGE_SECTIONS.find((s) => s.key === activeSection.value)?.label ?? '',
-)
 function goNewInSection(section: PageSection) {
   router.push({ name: 'page-new', query: { section } })
 }
@@ -293,7 +290,7 @@ function onRowAction(key: string, p: PageItem) {
       </div>
       <AppButton variant="primary" @click="goNewInSection(activeSection)">
         <Icon name="plus" :size="17" />
-        Nová stránka do „{{ activeSectionLabel }}"
+        Nová stránka
       </AppButton>
     </div>
 
@@ -467,7 +464,8 @@ function onRowAction(key: string, p: PageItem) {
               :draggable="!hasFilters"
               class="group border-b border-steel-100 transition-colors last:border-0 hover:bg-steel-50/60"
               :class="[
-                selected.has(item.row.page.id) && 'bg-brand-50/40',
+                activeSection === item.row.page.section && 'bg-brand-50/40',
+                selected.has(item.row.page.id) && 'bg-brand-50/60',
                 dragId === item.row.page.id && 'opacity-40',
                 dropTarget?.id === item.row.page.id && dropTarget?.pos === 'child' && 'bg-brand-50 ring-2 ring-inset ring-brand-400',
                 dropTarget?.id === item.row.page.id && dropTarget?.pos === 'before' && 'shadow-[inset_0_2px_0_0_var(--color-brand-500)]',
