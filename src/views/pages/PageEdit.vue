@@ -14,10 +14,11 @@ import AppButton from '@/components/ui/AppButton.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import AppSwitch from '@/components/ui/AppSwitch.vue'
 import FormSection from '@/components/admin/FormSection.vue'
-import RichTextEditor from '@/components/admin/RichTextEditor.vue'
+import ContentBuilder from '@/components/admin/ContentBuilder.vue'
 import GalleryManager from '@/components/admin/GalleryManager.vue'
 import AttachmentsManager from '@/components/admin/AttachmentsManager.vue'
 import OpeningHoursEditor from '@/components/admin/OpeningHoursEditor.vue'
+import PageFormBuilder from '@/components/admin/PageFormBuilder.vue'
 import { LANGS, SOURCE_LANG } from '@/data/types'
 import type { LangCode, ML } from '@/data/types'
 import {
@@ -28,12 +29,10 @@ import {
   slugPath,
   parentOptions,
   defaultOpeningHours,
-  DYNAMIC_FORM_OPTIONS,
-  INQUIRY_OPTIONS,
-  CONTACT_OPTIONS,
+  FORM_TEMPLATES,
   COOKIE_CATEGORIES,
 } from '@/data/mockPages'
-import type { PageItem, InquiryFormType, ContactFormType } from '@/data/mockPages'
+import type { PageItem } from '@/data/mockPages'
 
 const props = defineProps<{ id?: string }>()
 const router = useRouter()
@@ -58,11 +57,13 @@ function clone(): PageItem {
     slug: empty(),
     perex: empty(),
     text: empty(),
+    contentBlocks: [],
     allowMenu: false,
     allowFooter: '0',
     allowHp: false,
     priority: 0,
     enabled: true,
+    formTemplateId: '',
     dynamicFormId: '',
     inquiryFormType: 'none',
     contactForm: 'none',
@@ -95,14 +96,6 @@ const sections = [
 const parentValue = computed({
   get: () => form.parentId ?? '',
   set: (v: string) => (form.parentId = v || null),
-})
-const inquiryValue = computed({
-  get: () => form.inquiryFormType,
-  set: (v: string) => (form.inquiryFormType = v as InquiryFormType),
-})
-const contactValue = computed({
-  get: () => form.contactForm,
-  set: (v: string) => (form.contactForm = v as ContactFormType),
 })
 /** Nadřazená stránka jen z téže sekce, do které stránka patří. */
 const parentOpts = computed(() =>
@@ -330,9 +323,9 @@ function translateAll() {
                 <div>
                   <label class="mb-1.5 flex items-center justify-between">
                     <span class="text-[13px] font-600 text-graphite-800">Obsah</span>
-                    <span class="field-tag">page-text · {{ activeLang.toUpperCase() }}</span>
+                    <span class="field-tag">page-content</span>
                   </label>
-                  <RichTextEditor v-model="form.text[activeLang]" />
+                  <ContentBuilder v-model="form.contentBlocks" />
                 </div>
 
                 <!-- Zařazení a viditelnost -->
@@ -357,34 +350,9 @@ function translateAll() {
 
               <!-- TAB 2: Formuláře -->
               <TabsContent value="forms" class="space-y-4 outline-none">
-                <p class="mb-1 flex items-start gap-2 rounded-md bg-steel-50 px-3 py-2 text-[12px] leading-relaxed text-steel-500">
-                  <Icon name="reference" :size="14" class="mt-0.5 shrink-0 text-steel-400" />
-                  Doporučujeme preferovat vazbu na dynamické formuláře před staršími (legacy) variantami.
-                </p>
-                <div>
-                  <label class="mb-1.5 flex items-center justify-between">
-                    <span class="text-[13px] font-600 text-graphite-800">Dynamický formulář</span>
-                    <span class="field-tag">page-dynamicFormEntityId</span>
-                  </label>
-                  <AppSelect v-model="form.dynamicFormId" :options="DYNAMIC_FORM_OPTIONS" />
-                </div>
-                <div class="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <label class="mb-1.5 flex items-center justify-between">
-                      <span class="text-[13px] font-600 text-graphite-800">Poptávkový formulář <span class="text-steel-400">(legacy)</span></span>
-                      <span class="field-tag">page-inquiryFormType</span>
-                    </label>
-                    <AppSelect v-model="inquiryValue" :options="INQUIRY_OPTIONS" />
-                  </div>
-                  <div>
-                    <label class="mb-1.5 flex items-center justify-between">
-                      <span class="text-[13px] font-600 text-graphite-800">Kontaktní formulář <span class="text-steel-400">(legacy)</span></span>
-                      <span class="field-tag">page-contactForm</span>
-                    </label>
-                    <AppSelect v-model="contactValue" :options="CONTACT_OPTIONS" />
-                  </div>
-                </div>
-                <div>
+                <PageFormBuilder v-model="form.formTemplateId" :templates="FORM_TEMPLATES" />
+
+                <div class="border-t border-steel-100 pt-4">
                   <label class="mb-1.5 flex items-center justify-between">
                     <span class="text-[13px] font-600 text-graphite-800">Text u formuláře</span>
                     <span class="field-tag">page-contactFormText · {{ activeLang.toUpperCase() }}</span>

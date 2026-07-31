@@ -41,12 +41,15 @@ export interface PageItem {
   slug: ML
   perex: ML
   text: ML
+  /** Skladba obsahu z bloků (content builder — prototyp). */
+  contentBlocks: ContentBlock[]
   allowMenu: boolean
   allowFooter: FooterCol
   allowHp: boolean
   priority: number
   enabled: boolean
   /* Formuláře */
+  formTemplateId: string
   dynamicFormId: string
   inquiryFormType: InquiryFormType
   contactForm: ContactFormType
@@ -98,6 +101,173 @@ export const COOKIE_CATEGORIES = [
   { value: 'preferences', label: 'Preferenční' },
 ]
 
+/* ---------- Content builder — bloky obsahu (prototyp, vizuální zástupka) ---------- */
+export interface ContentBlock {
+  id: string
+  type: string
+  name: string
+}
+export interface BlockDef {
+  type: string
+  name: string
+}
+export const CONTENT_BLOCK_GROUPS: { category: string; blocks: BlockDef[] }[] = [
+  {
+    category: 'Základní',
+    blocks: [
+      { type: 'heading', name: 'Nadpis' },
+      { type: 'text', name: 'Text' },
+      { type: 'image', name: 'Obrázek' },
+      { type: 'button', name: 'Tlačítko' },
+      { type: 'divider', name: 'Oddělovač' },
+    ],
+  },
+  {
+    category: 'Článek',
+    blocks: [
+      { type: 'perex', name: 'Perex' },
+      { type: 'text-image', name: 'Text s obrázkem' },
+      { type: 'quote', name: 'Citace' },
+    ],
+  },
+  {
+    category: 'Nadpis',
+    blocks: [
+      { type: 'heading', name: 'Nadpis (H1)' },
+      { type: 'subheading', name: 'Mezinadpis (H2)' },
+    ],
+  },
+  {
+    category: 'Tlačítka',
+    blocks: [
+      { type: 'button', name: 'Tlačítko' },
+      { type: 'button-group', name: 'Skupina tlačítek' },
+      { type: 'cta', name: 'CTA banner' },
+    ],
+  },
+  {
+    category: 'Fotky',
+    blocks: [
+      { type: 'image', name: 'Obrázek' },
+      { type: 'gallery', name: 'Galerie' },
+      { type: 'image-wide', name: 'Obrázek na šířku' },
+    ],
+  },
+  {
+    category: 'Profil',
+    blocks: [
+      { type: 'profile', name: 'Profil / tým' },
+      { type: 'reference', name: 'Reference' },
+    ],
+  },
+  {
+    category: 'Kontakt',
+    blocks: [
+      { type: 'contact', name: 'Kontaktní blok' },
+      { type: 'map', name: 'Mapa' },
+      { type: 'hours', name: 'Otevírací doba' },
+    ],
+  },
+  {
+    category: 'Více',
+    blocks: [
+      { type: 'video', name: 'Video' },
+      { type: 'faq', name: 'FAQ / akordeon' },
+    ],
+  },
+]
+
+/* ---------- Formulářové šablony (prototyp — vizuální „content builder") ---------- */
+export type FormFieldType = 'text' | 'email' | 'tel' | 'number' | 'date' | 'textarea' | 'select' | 'checkbox' | 'file'
+export interface FormField {
+  label: string
+  type: FormFieldType
+}
+export interface FormTemplate {
+  id: string
+  name: string
+  desc: string
+  fields: FormField[]
+}
+
+/** Předdefinované formuláře relevantní pro web Dolních Vítkovic. */
+export const FORM_TEMPLATES: FormTemplate[] = [
+  {
+    id: 'ft-kontakt',
+    name: 'Kontaktní formulář',
+    desc: 'Obecný dotaz od návštěvníka webu.',
+    fields: [
+      { label: 'Jméno a příjmení', type: 'text' },
+      { label: 'E-mail', type: 'email' },
+      { label: 'Telefon', type: 'tel' },
+      { label: 'Zpráva', type: 'textarea' },
+    ],
+  },
+  {
+    id: 'ft-prohlidka',
+    name: 'Rezervace prohlídky',
+    desc: 'Objednávka komentované prohlídky areálu.',
+    fields: [
+      { label: 'Jméno a příjmení', type: 'text' },
+      { label: 'E-mail', type: 'email' },
+      { label: 'Telefon', type: 'tel' },
+      { label: 'Termín', type: 'date' },
+      { label: 'Počet osob', type: 'number' },
+      { label: 'Poznámka', type: 'textarea' },
+    ],
+  },
+  {
+    id: 'ft-skoly',
+    name: 'Školní exkurze',
+    desc: 'Objednávka vzdělávacího programu pro školy.',
+    fields: [
+      { label: 'Škola', type: 'text' },
+      { label: 'Kontaktní osoba', type: 'text' },
+      { label: 'E-mail', type: 'email' },
+      { label: 'Telefon', type: 'tel' },
+      { label: 'Stupeň školy', type: 'select' },
+      { label: 'Termín', type: 'date' },
+      { label: 'Počet žáků', type: 'number' },
+      { label: 'Poznámka', type: 'textarea' },
+    ],
+  },
+  {
+    id: 'ft-akce',
+    name: 'Registrace na akci',
+    desc: 'Přihlášení na festival, koncert nebo akci.',
+    fields: [
+      { label: 'Jméno a příjmení', type: 'text' },
+      { label: 'E-mail', type: 'email' },
+      { label: 'Telefon', type: 'tel' },
+      { label: 'Počet vstupenek', type: 'number' },
+      { label: 'Souhlasím s podmínkami', type: 'checkbox' },
+    ],
+  },
+  {
+    id: 'ft-pronajem',
+    name: 'Poptávka pronájmu prostor',
+    desc: 'Firemní akce, konference, teambuilding.',
+    fields: [
+      { label: 'Jméno / firma', type: 'text' },
+      { label: 'E-mail', type: 'email' },
+      { label: 'Telefon', type: 'tel' },
+      { label: 'Typ akce', type: 'select' },
+      { label: 'Předpokládaný termín', type: 'date' },
+      { label: 'Počet hostů', type: 'number' },
+      { label: 'Popis akce', type: 'textarea' },
+    ],
+  },
+  {
+    id: 'ft-newsletter',
+    name: 'Odběr novinek',
+    desc: 'Přihlášení k odběru programu a novinek.',
+    fields: [
+      { label: 'E-mail', type: 'email' },
+      { label: 'Souhlas se zpracováním údajů', type: 'checkbox' },
+    ],
+  },
+]
+
 /* ---------- Stav (odvozený z enabled) ---------- */
 export type PageState = 'active' | 'inactive'
 export const PAGE_STATE_META: Record<PageState, { label: string; dot: string; text: string; bg: string }> = {
@@ -134,11 +304,13 @@ const base = {
   section: 'menu' as PageSection,
   perex: {} as MLInput,
   text: {} as MLInput,
+  contentBlocks: [] as ContentBlock[],
   allowMenu: false,
   allowFooter: '0' as FooterCol,
   allowHp: false,
   priority: 0,
   enabled: true,
+  formTemplateId: '',
   dynamicFormId: '',
   inquiryFormType: 'none' as InquiryFormType,
   contactForm: 'none' as ContactFormType,
@@ -164,6 +336,13 @@ const RAW: RawPage[] = [
     slug: { cs: 'o-nas', en: 'about-us', de: 'ueber-uns' },
     perex: { cs: 'Dolní Vítkovice — národní kulturní památka a živé centrum kultury.' },
     text: { cs: '<p>Areál Dolních Vítkovic patří k unikátním průmyslovým památkám Evropy.</p>' },
+    contentBlocks: [
+      { id: 'cb-onas-1', type: 'heading', name: 'Nadpis' },
+      { id: 'cb-onas-2', type: 'perex', name: 'Perex' },
+      { id: 'cb-onas-3', type: 'text-image', name: 'Text s obrázkem' },
+      { id: 'cb-onas-4', type: 'gallery', name: 'Galerie' },
+      { id: 'cb-onas-5', type: 'cta', name: 'CTA banner' },
+    ],
     allowMenu: true,
     allowFooter: '1',
     priority: 1,
@@ -208,6 +387,7 @@ const RAW: RawPage[] = [
     allowMenu: true,
     allowFooter: '2',
     priority: 2,
+    formTemplateId: 'ft-kontakt',
     contactForm: 'full_contact',
     contactFormText: { cs: 'Ozveme se vám do dvou pracovních dnů.' },
     usedCookies: ['preferences'],
@@ -222,6 +402,7 @@ const RAW: RawPage[] = [
     allowMenu: true,
     allowHp: true,
     priority: 3,
+    formTemplateId: 'ft-skoly',
     dynamicFormId: 'df-general',
   },
   {

@@ -55,6 +55,14 @@ const paths: Record<string, string> = {
   grant: 'M3 6h18v12H3zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6M6.5 9h.01M17.5 15h.01',
   integration: 'M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6M12 3v6M12 15v6M3 12h6M15 12h6',
   help: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6M5.6 5.6l3.2 3.2M15.2 15.2l3.2 3.2M18.4 5.6l-3.2 3.2M8.8 15.2l-3.2 3.2',
+  heading: 'M6 4v16M18 4v16M6 12h12',
+  text: 'M4 6h16M4 12h16M4 18h10',
+  divider: 'M3 12h18M6 8h.01M18 8h.01M6 16h.01M18 16h.01',
+  quote: 'M7 7H4v6h4v-2a4 4 0 0 0-1-4M17 7h-3v6h4v-2a4 4 0 0 0-1-4',
+  user: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8M4 20a8 8 0 0 1 16 0',
+  mail: 'M3 5h18v14H3zM3 6l9 7 9-7',
+  map: 'M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14',
+  video: 'M3 5h18v14H3zM10 9l5 3-5 3z',
 }
 </script>
 
