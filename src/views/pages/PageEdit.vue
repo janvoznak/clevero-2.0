@@ -29,6 +29,7 @@ import {
   PAGE_SECTIONS,
   slugPath,
   parentOptions,
+  hasChildren,
   defaultOpeningHours,
   FORM_TEMPLATES,
   COOKIE_CATEGORIES,
@@ -107,6 +108,8 @@ const parentOpts = computed(() =>
   ),
 )
 const sectionLabel = computed(() => PAGE_SECTIONS.find((s) => s.key === form.section)?.label ?? '')
+/** Stránka s podstránkami je nadřazená → musí zůstat na kořenové úrovni. */
+const isParent = computed(() => isEdit.value && hasChildren(MOCK_PAGES, form.id))
 
 function langFilled(code: LangCode): boolean {
   return form.title[code].trim().length > 0
@@ -360,8 +363,12 @@ function translateAll() {
                       <span class="text-[13px] font-600 text-graphite-800">Nadřazená stránka</span>
                       <span class="field-tag">page-entityParentId</span>
                     </label>
-                    <AppSelect v-model="parentValue" :options="parentOpts" />
-                    <p class="mt-1 text-[11px] text-steel-400">
+                    <AppSelect v-model="parentValue" :options="parentOpts" :disabled="isParent" />
+                    <p v-if="isParent" class="mt-1 flex items-start gap-1.5 text-[11px] leading-relaxed text-steel-500">
+                      <Icon name="reference" :size="13" class="mt-0.5 shrink-0 text-steel-400" />
+                      Tato stránka má podstránky, je tedy nadřazená a zůstává na kořenové úrovni.
+                    </p>
+                    <p v-else class="mt-1 text-[11px] text-steel-400">
                       Na výběr jsou pouze stránky ze sekce <span class="font-600 text-steel-500">{{ sectionLabel }}</span>.
                     </p>
                   </div>

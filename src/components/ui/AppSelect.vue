@@ -18,14 +18,14 @@ export interface SelectOption {
   label: string
 }
 
-defineProps<{ options: SelectOption[]; placeholder?: string }>()
+defineProps<{ options: SelectOption[]; placeholder?: string; disabled?: boolean }>()
 const model = defineModel<string>({ default: '' })
 </script>
 
 <template>
-  <SelectRoot v-model="model">
+  <SelectRoot v-model="model" :disabled="disabled">
     <SelectTrigger
-      class="inline-flex h-9 min-w-[150px] items-center justify-between gap-2 rounded-md border border-steel-200 bg-white px-3 text-[13px] text-graphite-800 outline-none transition-colors hover:border-steel-300 focus:border-brand-500 data-[state=open]:border-brand-500"
+      class="inline-flex h-9 min-w-[150px] items-center justify-between gap-2 rounded-md border border-steel-200 bg-white px-3 text-[13px] text-graphite-800 outline-none transition-colors hover:border-steel-300 focus:border-brand-500 data-[state=open]:border-brand-500 data-[disabled]:cursor-not-allowed data-[disabled]:bg-steel-50 data-[disabled]:text-steel-400"
     >
       <SelectValue :placeholder="placeholder ?? 'Vyberte…'" />
       <SelectIcon class="text-steel-400">
