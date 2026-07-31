@@ -221,3 +221,133 @@ export const MOCK_POPUPS: PopupItem[] = RAW.map((r) => ({
   title: toML(r.title),
   text: toML(r.text),
 }))
+
+/* ---------- Předdefinované šablony (prototyp — rychlý předvyplňovač) ----------
+   Šablona jen předvyplní existující formulářová pole: obsah ve zdrojové CZ
+   + doporučené nastavení (poloha, velikost, okno). Žádná nová logika. */
+export interface PopupTemplate {
+  id: string
+  /** Kategorie šablony (label do chipu). */
+  category: string
+  /** Barva kategorie (hex). */
+  categoryColor: string
+  name: string
+  hint: string
+  /** Hodnoty, kterými se předvyplní formulář. */
+  apply: {
+    title: string
+    text: string
+    titleUrl?: string
+    position?: PopupPosition
+    widthUnit?: WidthUnit
+    width?: number
+    widthPercent?: number
+    height?: number
+    newWindow?: boolean
+    popupFrame?: boolean
+    cookieExpiration?: number
+  }
+}
+
+export const PREDEFINED_TEMPLATES: PopupTemplate[] = [
+  {
+    id: 'tpl-akce',
+    category: 'Akce',
+    categoryColor: '#ee703d',
+    name: 'Pozvánka na koncert / festival',
+    hint: 'Upoutávka na kulturní akci s odkazem na program.',
+    apply: {
+      title: 'Přijďte na koncert v Gongu',
+      text: '<p>Zveme vás na jedinečný hudební zážitek v multifunkční aule Gong. Rezervujte si místa online.</p>',
+      titleUrl: '/akce',
+      position: 'center',
+      widthUnit: 'px',
+      width: 480,
+      widthPercent: 40,
+      height: 420,
+      newWindow: false,
+      popupFrame: true,
+      cookieExpiration: 3,
+    },
+  },
+  {
+    id: 'tpl-oznameni',
+    category: 'Oznámení',
+    categoryColor: '#3b6fb0',
+    name: 'Změna otevírací doby / Uzávěra',
+    hint: 'Provozní oznámení přes horní pruh na celou šířku.',
+    apply: {
+      title: 'Změna otevírací doby',
+      text: '<p>Upozorňujeme návštěvníky na dočasnou změnu otevírací doby areálu. Děkujeme za pochopení.</p>',
+      titleUrl: '',
+      position: 'top-center',
+      widthUnit: 'percent',
+      width: 900,
+      widthPercent: 100,
+      height: 150,
+      newWindow: false,
+      popupFrame: false,
+      cookieExpiration: 1,
+    },
+  },
+  {
+    id: 'tpl-prodej',
+    category: 'Prodej',
+    categoryColor: '#15916a',
+    name: 'Zvýhodněný balíček vstupenek',
+    hint: 'Prodejní nabídka s prokliknutím do e-shopu.',
+    apply: {
+      title: 'Zvýhodněný balíček vstupenek',
+      text: '<p>Kupte si zvýhodněný balíček vstupenek a ušetřete. Nabídka platí jen po omezenou dobu.</p>',
+      titleUrl: '/vstupenky',
+      position: 'bottom-right',
+      widthUnit: 'px',
+      width: 413,
+      widthPercent: 30,
+      height: 360,
+      newWindow: true,
+      popupFrame: true,
+      cookieExpiration: 7,
+    },
+  },
+  {
+    id: 'tpl-edukacni',
+    category: 'Edukační',
+    categoryColor: '#7b5ea7',
+    name: 'Školní výlety a exkurze',
+    hint: 'Nabídka vzdělávacích programů pro školy.',
+    apply: {
+      title: 'Školní výlety a exkurze',
+      text: '<p>Připravili jsme vzdělávací programy pro školy všech stupňů. Objednejte termín pro svou třídu.</p>',
+      titleUrl: '/pro-skoly',
+      position: 'middle-left',
+      widthUnit: 'px',
+      width: 420,
+      widthPercent: 30,
+      height: 380,
+      newWindow: false,
+      popupFrame: true,
+      cookieExpiration: 14,
+    },
+  },
+  {
+    id: 'tpl-sber',
+    category: 'Sběr',
+    categoryColor: '#0e8a8a',
+    name: 'Odběr novinek a programu',
+    hint: 'Sběr e-mailů pro odběr novinek a programu.',
+    apply: {
+      title: 'Odebírejte novinky',
+      text: '<p>Nechte si zasílat program a novinky z Dolních Vítkovic přímo do e-mailu.</p>',
+      titleUrl: '',
+      position: 'bottom-right',
+      widthUnit: 'px',
+      width: 380,
+      widthPercent: 28,
+      height: 300,
+      newWindow: false,
+      popupFrame: true,
+      cookieExpiration: 30,
+    },
+  },
+]
