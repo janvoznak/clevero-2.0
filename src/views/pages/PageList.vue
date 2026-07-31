@@ -254,9 +254,14 @@ function sectionActive(key: PageSection): boolean {
   return activeTarget.value.kind === 'section' && activeTarget.value.section === key
 }
 function rowActive(p: PageItem): boolean {
+  // Jen konkrétní vybraná stránka; při výběru sekce se řádky nepodbarvují (jen záhlaví sekce).
   const t = activeTarget.value
-  return t.kind === 'section' ? t.section === p.section : t.id === p.id
+  return t.kind === 'page' && t.id === p.id
 }
+/** Klíč aktivního cíle — mění se při každém výběru (re-render tlačítka „Nová stránka"). */
+const activeKey = computed(() =>
+  activeTarget.value.kind === 'section' ? `sec:${activeTarget.value.section}` : `page:${activeTarget.value.id}`,
+)
 /** Nová stránka podle cíle: do sekce (kořen), nebo jako podstránka pod vybranou stránkou. */
 function goNewActive() {
   const t = activeTarget.value
@@ -297,7 +302,7 @@ function onRowAction(key: string, p: PageItem) {
           {{ rows.length }} stránek · hierarchická struktura webu · pořadí a zanoření změníte přetažením
         </p>
       </div>
-      <AppButton variant="primary" @click="goNewActive">
+      <AppButton :key="activeKey" variant="primary" class="animate-pop" @click="goNewActive">
         <Icon name="plus" :size="17" />
         Nová stránka
       </AppButton>
@@ -452,8 +457,9 @@ function onRowAction(key: string, p: PageItem) {
             <tr
               v-else
               :draggable="!hasFilters"
-              class="group border-b border-steel-100 transition-colors last:border-0 hover:bg-steel-50/60"
+              class="group border-b border-steel-100 transition-colors last:border-0"
               :class="[
+                !rowActive(item.row.page) && 'hover:bg-steel-50/60',
                 rowActive(item.row.page) && 'bg-brand-100 shadow-[inset_3px_0_0_0_var(--color-brand-500)]',
                 selected.has(item.row.page.id) && 'bg-brand-50/60',
                 dragId === item.row.page.id && 'opacity-40',

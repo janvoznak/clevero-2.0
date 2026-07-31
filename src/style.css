@@ -84,6 +84,21 @@ body {
   text-transform: none;
 }
 
+/* Krátké „pop" upozornění — např. tlačítko reagující na změnu výběru */
+@keyframes pop {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+.animate-pop {
+  animation: pop 0.18s ease-out;
+}
+
 /* Focus ring — brand */
 *:focus-visible {
   outline: 2px solid var(--color-brand-500);
