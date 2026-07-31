@@ -45,9 +45,11 @@ function clone(): PageItem {
   if (s) return JSON.parse(JSON.stringify(s))
   const parentId = typeof route.query.parent === 'string' ? route.query.parent : null
   const parent = parentId ? MOCK_PAGES.find((p) => p.id === parentId) : null
+  const qs = route.query.section
+  const sectionFromQuery = qs === 'menu' || qs === 'other' || qs === 'client' ? qs : null
   return {
     id: 'nová',
-    section: parent?.section ?? 'menu',
+    section: parent?.section ?? sectionFromQuery ?? 'menu',
     parentId,
     title: empty(),
     slug: empty(),
@@ -334,15 +336,7 @@ function translateAll() {
                       <AppSelect v-model="parentValue" :options="parentOpts" />
                     </div>
                     <div class="flex items-center justify-between rounded-md border border-steel-200 bg-white px-3 py-2.5 sm:col-span-2">
-                      <AppSwitch v-model="form.allowMenu" label="Zobrazovat v menu" hint="Zároveň se zobrazí i v navigaci v patičce." aria-label="Zobrazovat v menu" />
-                      <span class="field-tag">page-allowMenu</span>
-                    </div>
-                    <div class="flex items-center justify-between rounded-md border border-steel-200 bg-white px-3 py-2.5">
-                      <AppSwitch v-model="form.allowHp" label="Zobrazovat na HP" aria-label="Zobrazovat na HP" />
-                      <span class="field-tag">page-allowHp</span>
-                    </div>
-                    <div class="flex items-center justify-between rounded-md border border-steel-200 bg-white px-3 py-2.5">
-                      <AppSwitch v-model="form.enabled" label="Zobrazovat (aktivní)" aria-label="Zobrazovat" />
+                      <AppSwitch v-model="form.enabled" label="Zobrazovat (aktivní)" hint="Hlavní vypínač viditelnosti stránky na webu" aria-label="Zobrazovat" />
                       <span class="field-tag">page-enabled</span>
                     </div>
                   </div>
