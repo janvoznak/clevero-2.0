@@ -41,6 +41,8 @@ export interface PageItem {
   slug: ML
   perex: ML
   text: ML
+  /** Skladba obsahu z bloků (content builder — prototyp). */
+  contentBlocks: ContentBlock[]
   allowMenu: boolean
   allowFooter: FooterCol
   allowHp: boolean
@@ -97,6 +99,82 @@ export const COOKIE_CATEGORIES = [
   { value: 'analytics', label: 'Analytické' },
   { value: 'marketing', label: 'Marketingové' },
   { value: 'preferences', label: 'Preferenční' },
+]
+
+/* ---------- Content builder — bloky obsahu (prototyp, vizuální zástupka) ---------- */
+export interface ContentBlock {
+  id: string
+  type: string
+  name: string
+}
+export interface BlockDef {
+  type: string
+  name: string
+}
+export const CONTENT_BLOCK_GROUPS: { category: string; blocks: BlockDef[] }[] = [
+  {
+    category: 'Základní',
+    blocks: [
+      { type: 'heading', name: 'Nadpis' },
+      { type: 'text', name: 'Text' },
+      { type: 'image', name: 'Obrázek' },
+      { type: 'button', name: 'Tlačítko' },
+      { type: 'divider', name: 'Oddělovač' },
+    ],
+  },
+  {
+    category: 'Článek',
+    blocks: [
+      { type: 'perex', name: 'Perex' },
+      { type: 'text-image', name: 'Text s obrázkem' },
+      { type: 'quote', name: 'Citace' },
+    ],
+  },
+  {
+    category: 'Nadpis',
+    blocks: [
+      { type: 'heading', name: 'Nadpis (H1)' },
+      { type: 'subheading', name: 'Mezinadpis (H2)' },
+    ],
+  },
+  {
+    category: 'Tlačítka',
+    blocks: [
+      { type: 'button', name: 'Tlačítko' },
+      { type: 'button-group', name: 'Skupina tlačítek' },
+      { type: 'cta', name: 'CTA banner' },
+    ],
+  },
+  {
+    category: 'Fotky',
+    blocks: [
+      { type: 'image', name: 'Obrázek' },
+      { type: 'gallery', name: 'Galerie' },
+      { type: 'image-wide', name: 'Obrázek na šířku' },
+    ],
+  },
+  {
+    category: 'Profil',
+    blocks: [
+      { type: 'profile', name: 'Profil / tým' },
+      { type: 'reference', name: 'Reference' },
+    ],
+  },
+  {
+    category: 'Kontakt',
+    blocks: [
+      { type: 'contact', name: 'Kontaktní blok' },
+      { type: 'map', name: 'Mapa' },
+      { type: 'hours', name: 'Otevírací doba' },
+    ],
+  },
+  {
+    category: 'Více',
+    blocks: [
+      { type: 'video', name: 'Video' },
+      { type: 'faq', name: 'FAQ / akordeon' },
+    ],
+  },
 ]
 
 /* ---------- Formulářové šablony (prototyp — vizuální „content builder") ---------- */
@@ -226,6 +304,7 @@ const base = {
   section: 'menu' as PageSection,
   perex: {} as MLInput,
   text: {} as MLInput,
+  contentBlocks: [] as ContentBlock[],
   allowMenu: false,
   allowFooter: '0' as FooterCol,
   allowHp: false,
@@ -257,6 +336,13 @@ const RAW: RawPage[] = [
     slug: { cs: 'o-nas', en: 'about-us', de: 'ueber-uns' },
     perex: { cs: 'Dolní Vítkovice — národní kulturní památka a živé centrum kultury.' },
     text: { cs: '<p>Areál Dolních Vítkovic patří k unikátním průmyslovým památkám Evropy.</p>' },
+    contentBlocks: [
+      { id: 'cb-onas-1', type: 'heading', name: 'Nadpis' },
+      { id: 'cb-onas-2', type: 'perex', name: 'Perex' },
+      { id: 'cb-onas-3', type: 'text-image', name: 'Text s obrázkem' },
+      { id: 'cb-onas-4', type: 'gallery', name: 'Galerie' },
+      { id: 'cb-onas-5', type: 'cta', name: 'CTA banner' },
+    ],
     allowMenu: true,
     allowFooter: '1',
     priority: 1,

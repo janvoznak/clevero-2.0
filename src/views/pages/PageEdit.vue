@@ -14,7 +14,7 @@ import AppButton from '@/components/ui/AppButton.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import AppSwitch from '@/components/ui/AppSwitch.vue'
 import FormSection from '@/components/admin/FormSection.vue'
-import RichTextEditor from '@/components/admin/RichTextEditor.vue'
+import ContentBuilder from '@/components/admin/ContentBuilder.vue'
 import GalleryManager from '@/components/admin/GalleryManager.vue'
 import AttachmentsManager from '@/components/admin/AttachmentsManager.vue'
 import OpeningHoursEditor from '@/components/admin/OpeningHoursEditor.vue'
@@ -57,6 +57,7 @@ function clone(): PageItem {
     slug: empty(),
     perex: empty(),
     text: empty(),
+    contentBlocks: [],
     allowMenu: false,
     allowFooter: '0',
     allowHp: false,
@@ -322,9 +323,9 @@ function translateAll() {
                 <div>
                   <label class="mb-1.5 flex items-center justify-between">
                     <span class="text-[13px] font-600 text-graphite-800">Obsah</span>
-                    <span class="field-tag">page-text · {{ activeLang.toUpperCase() }}</span>
+                    <span class="field-tag">page-content</span>
                   </label>
-                  <RichTextEditor v-model="form.text[activeLang]" />
+                  <ContentBuilder v-model="form.contentBlocks" />
                 </div>
 
                 <!-- Zařazení a viditelnost -->
