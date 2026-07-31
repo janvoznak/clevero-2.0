@@ -13,6 +13,18 @@ export const PAGE_SECTIONS: { key: PageSection; label: string; desc: string; ico
   { key: 'client', label: 'Klientská sekce', desc: 'Právní dokumenty', icon: 'file' },
 ]
 
+/** Jeden den otevírací doby. */
+export interface OpeningDay {
+  day: string
+  open: boolean
+  hours: string
+}
+const OPENING_DAYS = ['Po', 'Út', 'St', 'Čt', 'Pá', 'So', 'Ne']
+/** Výchozí otevírací doba (Po–Pá 9:00–17:00, víkend zavřeno). */
+export function defaultOpeningHours(): OpeningDay[] {
+  return OPENING_DAYS.map((day, i) => ({ day, open: i < 5, hours: i < 5 ? '9:00–17:00' : '' }))
+}
+
 /** Sloupec patičky (0 = nezobrazovat). Uloženo jako string kvůli AppSelect. */
 export type FooterCol = '0' | '1' | '2' | '3'
 export type InquiryFormType = 'none' | 'basic' | 'full'
@@ -51,6 +63,8 @@ export interface PageItem {
   /* Měřící kódy & cookies */
   jsCodes: string
   usedCookies: string[]
+  /* Otevírací doba (per den). */
+  openingHours: OpeningDay[]
 }
 
 /* ---------- Číselníky (pro AppSelect / checkboxy) ---------- */
@@ -138,6 +152,7 @@ const base = {
   attachments: [] as Attachment[],
   jsCodes: '',
   usedCookies: [] as string[],
+  openingHours: [] as OpeningDay[],
 }
 
 const RAW: RawPage[] = [
@@ -265,6 +280,7 @@ export const MOCK_PAGES: PageItem[] = RAW.map((r) => ({
   metaDescription: toML(r.metaDescription),
   metaKeywords: toML(r.metaKeywords),
   canonicalUrl: toML(r.canonicalUrl),
+  openingHours: defaultOpeningHours(),
 }))
 
 /* ---------- Odvozovací helpery nad stromem ---------- */

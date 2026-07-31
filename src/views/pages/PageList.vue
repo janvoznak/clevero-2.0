@@ -241,13 +241,27 @@ function confirmDeleteOne() {
 }
 
 /* ---------- Navigace / řádkové akce ---------- */
-/** Aktivní sekce (záložka) — cíl pro horní tlačítko „Nová stránka". */
-const activeSection = ref<PageSection>('menu')
+/** Aktivní cíl pro horní tlačítko „Nová stránka" — buď sekce (kořen), nebo stránka (podstránka). */
+type ActiveTarget = { kind: 'section'; section: PageSection } | { kind: 'page'; id: string }
+const activeTarget = ref<ActiveTarget>({ kind: 'section', section: 'menu' })
 function selectSection(key: PageSection) {
-  activeSection.value = key
+  activeTarget.value = { kind: 'section', section: key }
 }
-function goNewInSection(section: PageSection) {
-  router.push({ name: 'page-new', query: { section } })
+function selectPage(id: string) {
+  activeTarget.value = { kind: 'page', id }
+}
+function sectionActive(key: PageSection): boolean {
+  return activeTarget.value.kind === 'section' && activeTarget.value.section === key
+}
+function rowActive(p: PageItem): boolean {
+  const t = activeTarget.value
+  return (t.kind === 'section' && t.section === p.section) || (t.kind === 'page' && t.id === p.id)
+}
+/** Nová stránka podle aktivního cíle: do sekce (kořen), nebo jako podstránka. */
+function goNewFromTarget() {
+  const t = activeTarget.value
+  if (t.kind === 'section') router.push({ name: 'page-new', query: { section: t.section } })
+  else router.push({ name: 'page-new', query: { parent: t.id } })
 }
 function goEdit(id: string) {
   router.push({ name: 'page-edit', params: { id } })
@@ -283,7 +297,7 @@ function onRowAction(key: string, p: PageItem) {
           {{ rows.length }} stránek · hierarchická struktura webu · pořadí a zanoření změníte přetažením
         </p>
       </div>
-      <AppButton variant="primary" @click="goNewInSection(activeSection)">
+      <AppButton variant="primary" @click="goNewFromTarget">
         <Icon name="plus" :size="17" />
         Nová stránka
       </AppButton>
@@ -399,7 +413,7 @@ function onRowAction(key: string, p: PageItem) {
               <td
                 colspan="5"
                 class="p-0"
-                :class="activeSection === item.section.key ? 'bg-brand-50' : 'bg-steel-50'"
+                :class="sectionActive(item.section.key) ? 'bg-brand-50' : 'bg-steel-50'"
               >
                 <div class="flex items-center gap-1 py-1 pl-2 pr-2">
                   <!-- Sbalit / rozbalit -->
@@ -420,7 +434,7 @@ function onRowAction(key: string, p: PageItem) {
                   >
                     <span
                       class="grid h-6 w-6 place-items-center rounded border bg-white"
-                      :class="activeSection === item.section.key ? 'border-brand-300 text-brand-600' : 'border-steel-200 text-steel-500'"
+                      :class="sectionActive(item.section.key) ? 'border-brand-300 text-brand-600' : 'border-steel-200 text-steel-500'"
                     >
                       <Icon :name="item.section.icon" :size="14" />
                     </span>
@@ -440,7 +454,7 @@ function onRowAction(key: string, p: PageItem) {
               :draggable="!hasFilters"
               class="group border-b border-steel-100 transition-colors last:border-0 hover:bg-steel-50/60"
               :class="[
-                activeSection === item.row.page.section && 'bg-brand-50/40',
+                rowActive(item.row.page) && 'bg-brand-50/40',
                 selected.has(item.row.page.id) && 'bg-brand-50/60',
                 dragId === item.row.page.id && 'opacity-40',
                 dropTarget?.id === item.row.page.id && dropTarget?.pos === 'child' && 'bg-brand-50 ring-2 ring-inset ring-brand-400',
@@ -473,7 +487,7 @@ function onRowAction(key: string, p: PageItem) {
                     <Icon :name="collapsed.has(item.row.page.id) ? 'chevronRight' : 'chevronDown'" :size="15" />
                   </button>
                   <span v-else class="w-5 shrink-0" />
-                  <button class="flex min-w-0 items-center gap-2 text-left" @click="goEdit(item.row.page.id)">
+                  <button class="flex min-w-0 items-center gap-2 text-left" @click="selectPage(item.row.page.id)">
                     <Icon :name="item.row.hasKids ? 'layers' : 'page'" :size="15" class="shrink-0 text-steel-400" />
                     <span class="min-w-0">
                       <span class="block truncate text-[14px] font-600 text-graphite-900 group-hover:text-brand-600">
