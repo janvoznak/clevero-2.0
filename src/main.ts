@@ -9,6 +9,8 @@ import EventsList from './views/events/EventsList.vue'
 import EventDetail from './views/events/EventDetail.vue'
 import PopupList from './views/popups/PopupList.vue'
 import PopupEdit from './views/popups/PopupEdit.vue'
+import PageList from './views/pages/PageList.vue'
+import PageEdit from './views/pages/PageEdit.vue'
 import Placeholder from './views/Placeholder.vue'
 
 const router = createRouter({
@@ -28,6 +30,9 @@ const router = createRouter({
         { path: 'admin/popups/list', name: 'popups-list', component: PopupList },
         { path: 'admin/popups/new', name: 'popup-new', component: PopupEdit },
         { path: 'admin/popups/:id/edit', name: 'popup-edit', component: PopupEdit, props: true },
+        { path: 'admin/pages/list', name: 'pages-list', component: PageList },
+        { path: 'admin/pages/new', name: 'page-new', component: PageEdit },
+        { path: 'admin/pages/:id/edit', name: 'page-edit', component: PageEdit, props: true },
         { path: 'admin/:section+', name: 'placeholder', component: Placeholder },
       ],
     },
