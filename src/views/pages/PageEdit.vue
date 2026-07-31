@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import {
   TabsRoot,
@@ -19,6 +19,7 @@ import GalleryManager from '@/components/admin/GalleryManager.vue'
 import AttachmentsManager from '@/components/admin/AttachmentsManager.vue'
 import OpeningHoursEditor from '@/components/admin/OpeningHoursEditor.vue'
 import PageFormBuilder from '@/components/admin/PageFormBuilder.vue'
+import PageGroupBar from '@/components/admin/PageGroupBar.vue'
 import { LANGS, SOURCE_LANG } from '@/data/types'
 import type { LangCode, ML } from '@/data/types'
 import {
@@ -28,6 +29,7 @@ import {
   PAGE_SECTIONS,
   slugPath,
   parentOptions,
+  hasChildren,
   defaultOpeningHours,
   FORM_TEMPLATES,
   COOKIE_CATEGORIES,
@@ -58,6 +60,7 @@ function clone(): PageItem {
     perex: empty(),
     text: empty(),
     contentBlocks: [],
+    associatedLinks: [],
     allowMenu: false,
     allowFooter: '0',
     allowHp: false,
@@ -105,6 +108,8 @@ const parentOpts = computed(() =>
   ),
 )
 const sectionLabel = computed(() => PAGE_SECTIONS.find((s) => s.key === form.section)?.label ?? '')
+/** Stránka s podstránkami je nadřazená → musí zůstat na kořenové úrovni. */
+const isParent = computed(() => isEdit.value && hasChildren(MOCK_PAGES, form.id))
 
 function langFilled(code: LangCode): boolean {
   return form.title[code].trim().length > 0
@@ -161,6 +166,20 @@ function toggleCookie(value: string, v: boolean | 'indeterminate') {
     form.usedCookies = form.usedCookies.filter((c) => c !== value)
   }
 }
+
+/* ---------- Přepínání mezi přidruženými stránkami ---------- */
+function goPage(id: string) {
+  router.push({ name: 'page-edit', params: { id } })
+}
+/* Router recykluje instanci komponenty — při změně id načteme stránku znovu. */
+watch(
+  () => props.id,
+  () => {
+    Object.assign(form, clone())
+    activeSection.value = 'basic'
+    activeLang.value = 'cs'
+  },
+)
 
 /* ---------- Uložení (prototyp) ---------- */
 const saved = ref(false)
@@ -271,8 +290,16 @@ function translateAll() {
       </div>
     </div>
 
+    <!-- Přidružené stránky (přepínač stránek ve skupině) -->
+    <div v-if="isEdit" class="px-8 pt-6">
+      <PageGroupBar :key="form.id" :current-id="form.id" @navigate="goPage" />
+    </div>
+
     <!-- Two-column body -->
-    <div class="grid grid-cols-1 gap-6 px-8 py-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+    <div
+      class="grid grid-cols-1 gap-6 px-8 py-6 xl:grid-cols-[minmax(0,1fr)_360px]"
+      :class="isEdit ? 'pt-4' : ''"
+    >
       <!-- LEVÝ sloupec: sekce v podtržených tabech -->
       <div class="min-w-0">
         <div class="rounded-lg border border-steel-200 bg-white">
@@ -336,8 +363,12 @@ function translateAll() {
                       <span class="text-[13px] font-600 text-graphite-800">Nadřazená stránka</span>
                       <span class="field-tag">page-entityParentId</span>
                     </label>
-                    <AppSelect v-model="parentValue" :options="parentOpts" />
-                    <p class="mt-1 text-[11px] text-steel-400">
+                    <AppSelect v-model="parentValue" :options="parentOpts" :disabled="isParent" />
+                    <p v-if="isParent" class="mt-1 flex items-start gap-1.5 text-[11px] leading-relaxed text-steel-500">
+                      <Icon name="reference" :size="13" class="mt-0.5 shrink-0 text-steel-400" />
+                      Tato stránka má podstránky, je tedy nadřazená a zůstává na kořenové úrovni.
+                    </p>
+                    <p v-else class="mt-1 text-[11px] text-steel-400">
                       Na výběr jsou pouze stránky ze sekce <span class="font-600 text-steel-500">{{ sectionLabel }}</span>.
                     </p>
                   </div>
