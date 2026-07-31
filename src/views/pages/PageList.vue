@@ -241,19 +241,27 @@ function confirmDeleteOne() {
 }
 
 /* ---------- Navigace / řádkové akce ---------- */
-/** Aktivní sekce — klik na sekci NEBO na kteroukoli stránku v ní aktivuje celou sekci. */
-const activeSection = ref<PageSection>('menu')
+/** Aktivní cíl: sekce (klik na hlavičku) NEBO konkrétní stránka (klik na řádek). */
+type ActiveTarget = { kind: 'section'; section: PageSection } | { kind: 'page'; id: string }
+const activeTarget = ref<ActiveTarget>({ kind: 'section', section: 'menu' })
 function selectSection(key: PageSection) {
-  activeSection.value = key
+  activeTarget.value = { kind: 'section', section: key }
+}
+function selectPage(id: string) {
+  activeTarget.value = { kind: 'page', id }
 }
 function sectionActive(key: PageSection): boolean {
-  return activeSection.value === key
+  return activeTarget.value.kind === 'section' && activeTarget.value.section === key
 }
 function rowActive(p: PageItem): boolean {
-  return activeSection.value === p.section
+  const t = activeTarget.value
+  return t.kind === 'section' ? t.section === p.section : t.id === p.id
 }
+/** Nová stránka podle cíle: do sekce (kořen), nebo jako podstránka pod vybranou stránkou. */
 function goNewActive() {
-  router.push({ name: 'page-new', query: { section: activeSection.value } })
+  const t = activeTarget.value
+  if (t.kind === 'section') router.push({ name: 'page-new', query: { section: t.section } })
+  else router.push({ name: 'page-new', query: { parent: t.id } })
 }
 function goEdit(id: string) {
   router.push({ name: 'page-edit', params: { id } })
@@ -453,7 +461,7 @@ function onRowAction(key: string, p: PageItem) {
                 dropTarget?.id === item.row.page.id && dropTarget?.pos === 'before' && 'shadow-[inset_0_2px_0_0_var(--color-brand-500)]',
                 dropTarget?.id === item.row.page.id && dropTarget?.pos === 'after' && 'shadow-[inset_0_-2px_0_0_var(--color-brand-500)]',
               ]"
-              @click="selectSection(item.row.page.section)"
+              @click="selectPage(item.row.page.id)"
               @dragstart="onRowDragStart(item.row.page.id)"
               @dragover="onRowDragOver($event, item.row.page.id)"
               @dragleave="onRowDragLeave(item.row.page.id)"
@@ -480,7 +488,7 @@ function onRowAction(key: string, p: PageItem) {
                     <Icon :name="collapsed.has(item.row.page.id) ? 'chevronRight' : 'chevronDown'" :size="15" />
                   </button>
                   <span v-else class="w-5 shrink-0" />
-                  <button class="flex min-w-0 items-center gap-2 text-left" @click="goEdit(item.row.page.id)">
+                  <button class="flex min-w-0 items-center gap-2 text-left" @click.stop="goEdit(item.row.page.id)">
                     <Icon :name="item.row.hasKids ? 'layers' : 'page'" :size="15" class="shrink-0 text-steel-400" />
                     <span class="min-w-0">
                       <span class="block truncate text-[14px] font-600 text-graphite-900 group-hover:text-brand-600">
