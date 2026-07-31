@@ -70,6 +70,8 @@ export interface PageItem {
   usedCookies: string[]
   /* Otevírací doba (per den). */
   openingHours: OpeningDay[]
+  /** Zobrazit otevírací dobu na webu? (některé stránky ji nepotřebují) */
+  showOpeningHours: boolean
 }
 
 /* ---------- Číselníky (pro AppSelect / checkboxy) ---------- */
@@ -343,6 +345,7 @@ const base = {
   jsCodes: '',
   usedCookies: [] as string[],
   openingHours: [] as OpeningDay[],
+  showOpeningHours: true,
 }
 
 const RAW: RawPage[] = [
@@ -612,6 +615,7 @@ export function blankPage(overrides: Partial<PageItem> = {}): PageItem {
     jsCodes: '',
     usedCookies: [],
     openingHours: defaultOpeningHours(),
+    showOpeningHours: true,
     ...overrides,
   }
 }

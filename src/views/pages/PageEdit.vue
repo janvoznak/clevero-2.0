@@ -84,6 +84,7 @@ function clone(): PageItem {
     jsCodes: '',
     usedCookies: [],
     openingHours: defaultOpeningHours(),
+    showOpeningHours: true,
   }
 }
 
@@ -627,8 +628,18 @@ function translateAll() {
         </FormSection>
 
         <FormSection title="Otevírací doba" icon="clock" tag="page-openingHours">
-          <p class="mb-3 text-[12.5px] text-steel-500">Nastavte hodiny pro jednotlivé dny, nebo den označte jako zavřený.</p>
-          <OpeningHoursEditor v-model="form.openingHours" />
+          <div class="rounded-md border border-steel-200 bg-steel-50/60 px-3 py-2.5">
+            <AppSwitch
+              v-model="form.showOpeningHours"
+              label="Zobrazit na webu"
+              hint="Některé stránky otevírací dobu nepotřebují — vypnutím se skryje."
+              aria-label="Zobrazit otevírací dobu na webu"
+            />
+          </div>
+          <template v-if="form.showOpeningHours">
+            <p class="mb-3 mt-4 text-[12.5px] text-steel-500">Nastavte hodiny pro jednotlivé dny, nebo den označte jako zavřený.</p>
+            <OpeningHoursEditor v-model="form.openingHours" />
+          </template>
         </FormSection>
 
         <FormSection title="Jazykové mutace" icon="globe" tag="ML">
