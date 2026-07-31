@@ -15,11 +15,6 @@ import {
   RadioGroupRoot,
   RadioGroupItem,
   RadioGroupIndicator,
-  TooltipProvider,
-  TooltipRoot,
-  TooltipTrigger,
-  TooltipPortal,
-  TooltipContent,
 } from 'reka-ui'
 import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
@@ -378,7 +373,6 @@ function onRowAction(key: string, p: PageItem) {
     </Transition>
 
     <!-- Tree table -->
-    <TooltipProvider :delay-duration="250">
     <div class="overflow-hidden rounded-lg border border-steel-200 bg-white">
       <table class="w-full border-collapse text-left">
         <thead>
@@ -436,24 +430,6 @@ function onRowAction(key: string, p: PageItem) {
                     <span v-if="item.count === 0" class="text-[12px] italic text-steel-400">— žádné stránky</span>
                     <span v-else-if="collapsedSections.has(item.section.key)" class="text-[12px] text-steel-400">— sbaleno</span>
                   </button>
-                  <!-- Přidat stránku do sekce (+ ikona s tooltipem) -->
-                  <TooltipRoot>
-                    <TooltipTrigger as-child>
-                      <button
-                        type="button"
-                        class="grid h-8 w-8 shrink-0 place-items-center rounded-md border border-steel-200 bg-white text-steel-500 outline-none transition-colors hover:border-brand-400 hover:text-brand-600"
-                        aria-label="Přidat stránku"
-                        @click="goNewInSection(item.section.key)"
-                      >
-                        <Icon name="plus" :size="16" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipPortal>
-                      <TooltipContent side="top" class="rounded bg-graphite-900 px-2 py-1 text-[11.5px] text-white">
-                        Přidat stránku
-                      </TooltipContent>
-                    </TooltipPortal>
-                  </TooltipRoot>
                 </div>
               </td>
             </tr>
@@ -551,7 +527,6 @@ function onRowAction(key: string, p: PageItem) {
         </tbody>
       </table>
     </div>
-    </TooltipProvider>
 
     <!-- Delete dialog (s ohledem na potomky) -->
     <DialogRoot :open="!!deleteTarget" @update:open="(v) => !v && (deleteTarget = null)">
