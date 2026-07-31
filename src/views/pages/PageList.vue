@@ -28,8 +28,10 @@ import {
   hasChildren,
   ancestorDisabled,
   ancestors,
+  PAGE_SECTIONS,
   type PageItem,
   type TreeRow,
+  type PageSection,
 } from '@/data/mockPages'
 
 const router = useRouter()
@@ -52,9 +54,8 @@ function clearFilters() {
   search.value = ''
 }
 
-/* Při aktivním filtru/hledání zobrazíme plochý filtrovaný seznam; jinak strom. */
-const visibleRows = computed<TreeRow[]>(() => {
-  if (!hasFilters.value) return treeRows(rows.value, collapsed.value)
+/* Plochý filtrovaný seznam (při hledání / filtru stavu). */
+const flatFiltered = computed<TreeRow[]>(() => {
   const q = search.value.trim().toLowerCase()
   return rows.value
     .filter((p) => {
@@ -71,6 +72,26 @@ const visibleRows = computed<TreeRow[]>(() => {
     .sort((a, b) => a.title.cs.localeCompare(b.title.cs, 'cs'))
     .map((page) => ({ page, depth: 0, hasKids: false }))
 })
+
+/* Položky k vykreslení: bez filtru = 3 sekce (hlavička + strom), s filtrem = plochý výpis. */
+type SectionMeta = (typeof PAGE_SECTIONS)[number]
+type DisplayItem = { kind: 'section'; section: SectionMeta; count: number } | { kind: 'row'; row: TreeRow }
+const displayItems = computed<DisplayItem[]>(() => {
+  if (hasFilters.value) return flatFiltered.value.map((row) => ({ kind: 'row', row }))
+  const out: DisplayItem[] = []
+  for (const sec of PAGE_SECTIONS) {
+    const secPages = rows.value.filter((p) => p.section === sec.key)
+    out.push({ kind: 'section', section: sec, count: secPages.length })
+    for (const row of treeRows(secPages, collapsed.value)) out.push({ kind: 'row', row })
+  }
+  return out
+})
+const visibleRowList = computed<TreeRow[]>(() =>
+  displayItems.value.flatMap((i) => (i.kind === 'row' ? [i.row] : [])),
+)
+function sectionOf(id: string): PageSection | undefined {
+  return rows.value.find((p) => p.id === id)?.section
+}
 
 function toggleCollapse(id: string) {
   const next = new Set(collapsed.value)
@@ -107,6 +128,7 @@ function onRowDragStart(id: string) {
 }
 function onRowDragOver(e: DragEvent, targetId: string) {
   if (!dragId.value || dragId.value === targetId || insideSubtree(dragId.value, targetId)) return
+  if (sectionOf(dragId.value) !== sectionOf(targetId)) return // jen v rámci stejné sekce
   e.preventDefault()
   const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
   const y = e.clientY - rect.top
@@ -123,7 +145,7 @@ function onRowDrop() {
   if (!id || !info || id === info.id || insideSubtree(id, info.id)) return
   const dragged = rows.value.find((p) => p.id === id)
   const target = rows.value.find((p) => p.id === info.id)
-  if (!dragged || !target) return
+  if (!dragged || !target || dragged.section !== target.section) return
 
   if (info.pos === 'child') {
     dragged.parentId = target.id
@@ -147,12 +169,12 @@ function onRowDrop() {
 /* ---------- Výběr / hromadné akce ---------- */
 const selected = ref<Set<string>>(new Set())
 const allSelected = computed(
-  () => visibleRows.value.length > 0 && visibleRows.value.every((r) => selected.value.has(r.page.id)),
+  () => visibleRowList.value.length > 0 && visibleRowList.value.every((r) => selected.value.has(r.page.id)),
 )
 function toggleAll(v: boolean | 'indeterminate') {
   const next = new Set(selected.value)
-  if (v === true) visibleRows.value.forEach((r) => next.add(r.page.id))
-  else visibleRows.value.forEach((r) => next.delete(r.page.id))
+  if (v === true) visibleRowList.value.forEach((r) => next.add(r.page.id))
+  else visibleRowList.value.forEach((r) => next.delete(r.page.id))
   selected.value = next
 }
 function toggleOne(id: string, v: boolean | 'indeterminate') {
@@ -283,7 +305,7 @@ function footerLabel(p: PageItem): string {
           <Icon name="x" :size="14" /> Zrušit filtry
         </button>
         <p v-if="hasFilters" class="ml-auto self-center text-[12px] text-steel-400">
-          Filtrovaný výpis (plochý). Zrušením filtrů se vrátíte do stromu.
+          Filtrovaný výpis (plochý). Zrušením filtrů se vrátíte do sekcí.
         </p>
       </div>
     </div>
@@ -361,110 +383,123 @@ function footerLabel(p: PageItem): string {
           </tr>
         </thead>
         <tbody>
-          <tr
-            v-for="{ page: p, depth, hasKids } in visibleRows"
-            :key="p.id"
-            :draggable="!hasFilters"
-            class="group border-b border-steel-100 transition-colors last:border-0 hover:bg-steel-50/60"
-            :class="[
-              selected.has(p.id) && 'bg-brand-50/40',
-              dragId === p.id && 'opacity-40',
-              dropTarget?.id === p.id && dropTarget?.pos === 'child' && 'bg-brand-50 ring-2 ring-inset ring-brand-400',
-              dropTarget?.id === p.id && dropTarget?.pos === 'before' && 'shadow-[inset_0_2px_0_0_var(--color-brand-500)]',
-              dropTarget?.id === p.id && dropTarget?.pos === 'after' && 'shadow-[inset_0_-2px_0_0_var(--color-brand-500)]',
-            ]"
-            @dragstart="onRowDragStart(p.id)"
-            @dragover="onRowDragOver($event, p.id)"
-            @dragleave="onRowDragLeave(p.id)"
-            @drop="onRowDrop"
-            @dragend="resetDnd"
-          >
-            <td class="px-4 py-3 align-middle">
-              <CheckboxRoot
-                :model-value="selected.has(p.id)"
-                class="grid h-4 w-4 place-items-center rounded border border-steel-300 bg-white data-[state=checked]:border-brand-500 data-[state=checked]:bg-brand-500"
-                @update:model-value="(v) => toggleOne(p.id, v)"
-              >
-                <CheckboxIndicator class="text-white"><Icon name="check" :size="12" /></CheckboxIndicator>
-              </CheckboxRoot>
-            </td>
-            <td class="px-2 py-3 align-middle">
-              <div class="flex items-center gap-1.5" :style="{ paddingLeft: depth * 22 + 'px' }">
-                <!-- Drag handle (prototyp — vizuální) -->
-                <Icon name="grip" :size="14" class="shrink-0 cursor-grab text-steel-300" />
-                <!-- Expand / collapse -->
-                <button
-                  v-if="hasKids"
-                  class="grid h-5 w-5 shrink-0 place-items-center rounded text-steel-500 transition-colors hover:bg-steel-100 hover:text-graphite-800"
-                  @click="toggleCollapse(p.id)"
-                >
-                  <Icon :name="collapsed.has(p.id) ? 'chevronRight' : 'chevronDown'" :size="15" />
-                </button>
-                <span v-else class="w-5 shrink-0" />
-                <button class="flex min-w-0 items-center gap-2 text-left" @click="goEdit(p.id)">
-                  <Icon :name="hasKids ? 'layers' : 'page'" :size="15" class="shrink-0 text-steel-400" />
-                  <span class="min-w-0">
-                    <span class="block truncate text-[14px] font-600 text-graphite-900 group-hover:text-brand-600">
-                      {{ p.title.cs || 'Bez názvu' }}
-                    </span>
-                    <span v-if="ancestorDisabled(rows, p.id)" class="text-[10.5px] font-500 text-amber-600">
-                      Skryto — neaktivní rodič
-                    </span>
+          <template v-for="item in displayItems" :key="item.kind === 'section' ? 'sec-' + item.section.key : item.row.page.id">
+            <!-- Hlavička sekce -->
+            <tr v-if="item.kind === 'section'" class="border-b border-steel-200 bg-steel-50">
+              <td colspan="6" class="px-4 py-2.5">
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="grid h-6 w-6 place-items-center rounded border border-steel-200 bg-white text-steel-500">
+                    <Icon :name="item.section.icon" :size="14" />
                   </span>
-                </button>
-              </div>
-            </td>
-            <td class="px-2 py-3 align-middle">
-              <div class="flex flex-wrap items-center gap-1">
-                <span v-if="p.allowMenu" class="inline-flex items-center gap-1 rounded-full bg-steel-100 px-2 py-0.5 text-[10.5px] font-600 text-steel-600">
-                  <Icon name="reference" :size="11" /> Menu
-                </span>
-                <span v-if="p.allowFooter !== '0'" class="inline-flex items-center gap-1 rounded-full bg-steel-100 px-2 py-0.5 text-[10.5px] font-600 text-steel-600">
-                  <Icon name="layout" :size="11" /> {{ footerLabel(p) }}
-                </span>
-                <span v-if="p.allowHp" class="inline-flex items-center gap-1 rounded-full bg-steel-100 px-2 py-0.5 text-[10.5px] font-600 text-steel-600">
-                  <Icon name="home" :size="11" /> HP
-                </span>
-                <span v-if="!p.allowMenu && p.allowFooter === '0' && !p.allowHp" class="text-[11px] text-steel-400">—</span>
-              </div>
-            </td>
-            <td class="px-2 py-3 align-middle">
-              <div class="flex flex-wrap items-center gap-1">
-                <span
-                  v-for="l in LANGS"
-                  :key="l.code"
-                  :title="p.title[l.code].trim() ? `${l.label} — vyplněno` : `${l.label} — chybí překlad`"
-                  class="rounded px-1.5 py-0.5 text-[10.5px] font-700 uppercase tabular-nums"
-                  :class="p.title[l.code].trim() ? 'bg-forge-500/10 text-forge-600' : 'bg-steel-100 text-steel-400'"
-                >
-                  {{ l.code }}
-                </span>
-              </div>
-            </td>
-            <td class="px-2 py-3 align-middle">
-              <AppSwitch
-                :model-value="p.enabled"
-                :aria-label="`Zobrazovat ${p.title.cs}`"
-                @update:model-value="(v) => setEnabled(p, v)"
-              />
-            </td>
-            <td class="px-3 py-3 align-middle">
-              <div class="flex justify-end">
-                <RowActionsMenu :actions="rowActions" label="Akce se stránkou" @select="(key) => onRowAction(key, p)" />
-              </div>
-            </td>
-          </tr>
+                  <span class="font-display text-[13px] font-700 tracking-tight text-graphite-900">{{ item.section.label }}</span>
+                  <span class="rounded-full bg-steel-200 px-1.5 py-0.5 font-mono text-[10.5px] text-steel-600">{{ item.count }}</span>
+                  <span class="hidden text-[12px] text-steel-500 sm:inline">· {{ item.section.desc }}</span>
+                  <span v-if="item.count === 0" class="text-[12px] italic text-steel-400">— žádné stránky</span>
+                </div>
+              </td>
+            </tr>
 
-          <!-- Empty state -->
-          <tr v-if="visibleRows.length === 0">
+            <!-- Řádek stránky -->
+            <tr
+              v-else
+              :draggable="!hasFilters"
+              class="group border-b border-steel-100 transition-colors last:border-0 hover:bg-steel-50/60"
+              :class="[
+                selected.has(item.row.page.id) && 'bg-brand-50/40',
+                dragId === item.row.page.id && 'opacity-40',
+                dropTarget?.id === item.row.page.id && dropTarget?.pos === 'child' && 'bg-brand-50 ring-2 ring-inset ring-brand-400',
+                dropTarget?.id === item.row.page.id && dropTarget?.pos === 'before' && 'shadow-[inset_0_2px_0_0_var(--color-brand-500)]',
+                dropTarget?.id === item.row.page.id && dropTarget?.pos === 'after' && 'shadow-[inset_0_-2px_0_0_var(--color-brand-500)]',
+              ]"
+              @dragstart="onRowDragStart(item.row.page.id)"
+              @dragover="onRowDragOver($event, item.row.page.id)"
+              @dragleave="onRowDragLeave(item.row.page.id)"
+              @drop="onRowDrop"
+              @dragend="resetDnd"
+            >
+              <td class="px-4 py-3 align-middle">
+                <CheckboxRoot
+                  :model-value="selected.has(item.row.page.id)"
+                  class="grid h-4 w-4 place-items-center rounded border border-steel-300 bg-white data-[state=checked]:border-brand-500 data-[state=checked]:bg-brand-500"
+                  @update:model-value="(v) => toggleOne(item.row.page.id, v)"
+                >
+                  <CheckboxIndicator class="text-white"><Icon name="check" :size="12" /></CheckboxIndicator>
+                </CheckboxRoot>
+              </td>
+              <td class="px-2 py-3 align-middle">
+                <div class="flex items-center gap-1.5" :style="{ paddingLeft: item.row.depth * 22 + 'px' }">
+                  <Icon name="grip" :size="14" class="shrink-0 cursor-grab text-steel-300" />
+                  <button
+                    v-if="item.row.hasKids"
+                    class="grid h-5 w-5 shrink-0 place-items-center rounded text-steel-500 transition-colors hover:bg-steel-100 hover:text-graphite-800"
+                    @click="toggleCollapse(item.row.page.id)"
+                  >
+                    <Icon :name="collapsed.has(item.row.page.id) ? 'chevronRight' : 'chevronDown'" :size="15" />
+                  </button>
+                  <span v-else class="w-5 shrink-0" />
+                  <button class="flex min-w-0 items-center gap-2 text-left" @click="goEdit(item.row.page.id)">
+                    <Icon :name="item.row.hasKids ? 'layers' : 'page'" :size="15" class="shrink-0 text-steel-400" />
+                    <span class="min-w-0">
+                      <span class="block truncate text-[14px] font-600 text-graphite-900 group-hover:text-brand-600">
+                        {{ item.row.page.title.cs || 'Bez názvu' }}
+                      </span>
+                      <span v-if="ancestorDisabled(rows, item.row.page.id)" class="text-[10.5px] font-500 text-amber-600">
+                        Skryto — neaktivní rodič
+                      </span>
+                    </span>
+                  </button>
+                </div>
+              </td>
+              <td class="px-2 py-3 align-middle">
+                <div class="flex flex-wrap items-center gap-1">
+                  <span v-if="item.row.page.allowMenu" class="inline-flex items-center gap-1 rounded-full bg-steel-100 px-2 py-0.5 text-[10.5px] font-600 text-steel-600">
+                    <Icon name="reference" :size="11" /> Menu
+                  </span>
+                  <span v-if="item.row.page.allowFooter !== '0'" class="inline-flex items-center gap-1 rounded-full bg-steel-100 px-2 py-0.5 text-[10.5px] font-600 text-steel-600">
+                    <Icon name="layout" :size="11" /> {{ footerLabel(item.row.page) }}
+                  </span>
+                  <span v-if="item.row.page.allowHp" class="inline-flex items-center gap-1 rounded-full bg-steel-100 px-2 py-0.5 text-[10.5px] font-600 text-steel-600">
+                    <Icon name="home" :size="11" /> HP
+                  </span>
+                  <span v-if="!item.row.page.allowMenu && item.row.page.allowFooter === '0' && !item.row.page.allowHp" class="text-[11px] text-steel-400">—</span>
+                </div>
+              </td>
+              <td class="px-2 py-3 align-middle">
+                <div class="flex flex-wrap items-center gap-1">
+                  <span
+                    v-for="l in LANGS"
+                    :key="l.code"
+                    :title="item.row.page.title[l.code].trim() ? `${l.label} — vyplněno` : `${l.label} — chybí překlad`"
+                    class="rounded px-1.5 py-0.5 text-[10.5px] font-700 uppercase tabular-nums"
+                    :class="item.row.page.title[l.code].trim() ? 'bg-forge-500/10 text-forge-600' : 'bg-steel-100 text-steel-400'"
+                  >
+                    {{ l.code }}
+                  </span>
+                </div>
+              </td>
+              <td class="px-2 py-3 align-middle">
+                <AppSwitch
+                  :model-value="item.row.page.enabled"
+                  :aria-label="`Zobrazovat ${item.row.page.title.cs}`"
+                  @update:model-value="(v) => setEnabled(item.row.page, v)"
+                />
+              </td>
+              <td class="px-3 py-3 align-middle">
+                <div class="flex justify-end">
+                  <RowActionsMenu :actions="rowActions" label="Akce se stránkou" @select="(key) => onRowAction(key, item.row.page)" />
+                </div>
+              </td>
+            </tr>
+          </template>
+
+          <!-- Empty state (jen při hledání bez výsledku) -->
+          <tr v-if="hasFilters && visibleRowList.length === 0">
             <td colspan="6" class="px-4 py-16 text-center">
               <div class="mx-auto grid h-12 w-12 place-items-center rounded-xl bg-steel-100 text-steel-400">
                 <Icon name="page" :size="24" />
               </div>
-              <p class="mt-3 text-[14px] font-600 text-graphite-800">Žádné stránky</p>
-              <p class="mt-1 text-[13px] text-steel-500">
-                {{ hasFilters ? 'Zkuste upravit filtry.' : 'Vytvořte první stránku.' }}
-              </p>
+              <p class="mt-3 text-[14px] font-600 text-graphite-800">Nic nenalezeno</p>
+              <p class="mt-1 text-[13px] text-steel-500">Zkuste upravit filtr nebo hledaný výraz.</p>
             </td>
           </tr>
         </tbody>

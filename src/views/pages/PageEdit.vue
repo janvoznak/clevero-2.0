@@ -43,9 +43,12 @@ const empty = (): ML => ({ cs: '', en: '', de: '', pl: '' })
 function clone(): PageItem {
   const s = source.value
   if (s) return JSON.parse(JSON.stringify(s))
+  const parentId = typeof route.query.parent === 'string' ? route.query.parent : null
+  const parent = parentId ? MOCK_PAGES.find((p) => p.id === parentId) : null
   return {
     id: 'nová',
-    parentId: typeof route.query.parent === 'string' ? route.query.parent : null,
+    section: parent?.section ?? 'menu',
+    parentId,
     title: empty(),
     slug: empty(),
     perex: empty(),
