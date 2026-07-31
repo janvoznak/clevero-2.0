@@ -43,6 +43,8 @@ export interface PageItem {
   text: ML
   /** Skladba obsahu z bloků (content builder — prototyp). */
   contentBlocks: ContentBlock[]
+  /** Odkazy na existující stránky zobrazené jako přidružené záložky (↗). */
+  associatedLinks: string[]
   allowMenu: boolean
   allowFooter: FooterCol
   allowHp: boolean
@@ -313,6 +315,7 @@ const base = {
   perex: {} as MLInput,
   text: {} as MLInput,
   contentBlocks: [] as ContentBlock[],
+  associatedLinks: [] as string[],
   allowMenu: false,
   allowFooter: '0' as FooterCol,
   allowHp: false,
@@ -351,6 +354,7 @@ const RAW: RawPage[] = [
       { id: 'cb-onas-4', kind: 'gallery' },
       { id: 'cb-onas-5', kind: 'cta' },
     ],
+    associatedLinks: ['pg-skoly'],
     allowMenu: true,
     allowFooter: '1',
     priority: 1,
@@ -555,4 +559,112 @@ export function parentOptions(pages: PageItem[], excludeId?: string): { value: s
     opts.push({ value: row.page.id, label: `${'  '.repeat(row.depth)}${row.page.title.cs || 'Bez názvu'}` })
   }
   return opts
+}
+
+/* ---------- Přidružené stránky (skupina záložek na stránce) ---------- */
+
+function emptyML(): ML {
+  return { cs: '', en: '', de: '', pl: '' }
+}
+
+/** Nová prázdná stránka se všemi výchozími hodnotami (prototyp). */
+export function blankPage(overrides: Partial<PageItem> = {}): PageItem {
+  return {
+    id: 'nová',
+    section: 'menu',
+    parentId: null,
+    title: emptyML(),
+    slug: emptyML(),
+    perex: emptyML(),
+    text: emptyML(),
+    contentBlocks: [],
+    associatedLinks: [],
+    allowMenu: false,
+    allowFooter: '0',
+    allowHp: false,
+    priority: 0,
+    enabled: true,
+    formTemplateId: '',
+    dynamicFormId: '',
+    inquiryFormType: 'none',
+    contactForm: 'none',
+    contactFormText: emptyML(),
+    metaTitle: emptyML(),
+    metaDescription: emptyML(),
+    metaKeywords: emptyML(),
+    canonicalUrl: emptyML(),
+    allowIndexing: true,
+    gallery: [],
+    attachments: [],
+    jsCodes: '',
+    usedCookies: [],
+    openingHours: defaultOpeningHours(),
+    ...overrides,
+  }
+}
+
+/** Skupina přidružených stránek: kořen (vlastník skupiny) + jeho přímé
+    potomky (vlastní obsah) + odkazy na existující stránky (↗).
+    Editace kterékoliv stránky ve skupině zobrazuje stejnou lištu. */
+export interface PageGroup {
+  root: PageItem
+  /** Kořen + přímé potomky (řazeno dle priority); kořen je první. */
+  members: PageItem[]
+  /** Stránky z root.associatedLinks (existující). */
+  links: PageItem[]
+}
+export function pageGroup(pages: PageItem[], id: string): PageGroup {
+  const byId = new Map(pages.map((p) => [p.id, p]))
+  const self = byId.get(id)
+  if (!self) return { root: blankPage({ id }), members: [], links: [] }
+  const root = self.parentId && byId.has(self.parentId) ? byId.get(self.parentId)! : self
+  const children = pages.filter((p) => p.parentId === root.id).sort((a, b) => a.priority - b.priority)
+  const links = (root.associatedLinks ?? [])
+    .map((lid) => byId.get(lid))
+    .filter((p): p is PageItem => !!p)
+  return { root, members: [root, ...children], links }
+}
+
+let pageSeq = 0
+/** Vytvoří novou přidruženou (pod)stránku pod daným rodičem a vloží ji do dat. */
+export function createChildPage(pages: PageItem[], parentId: string): PageItem {
+  const parent = pages.find((p) => p.id === parentId)
+  pageSeq += 1
+  const priority = pages.filter((p) => p.parentId === parentId).reduce((m, p) => Math.max(m, p.priority), 0) + 1
+  const page = blankPage({
+    id: `pg-new-${pageSeq}`,
+    section: parent?.section ?? 'menu',
+    parentId,
+    priority,
+    allowMenu: parent?.allowMenu ?? false,
+  })
+  pages.push(page)
+  return page
+}
+
+/** Odebere stránku ze stromu; její potomci se přepojí o úroveň výš. */
+export function removePage(pages: PageItem[], id: string): void {
+  const page = pages.find((p) => p.id === id)
+  if (!page) return
+  for (const c of pages) if (c.parentId === id) c.parentId = page.parentId
+  const i = pages.findIndex((p) => p.id === id)
+  if (i >= 0) pages.splice(i, 1)
+  for (const p of pages) {
+    if (p.associatedLinks?.includes(id)) p.associatedLinks = p.associatedLinks.filter((l) => l !== id)
+  }
+}
+
+/** Nastaví pořadí potomků dle předaného pořadí id (priorita = index). */
+export function setChildOrder(pages: PageItem[], orderedIds: string[]): void {
+  orderedIds.forEach((cid, i) => {
+    const p = pages.find((x) => x.id === cid)
+    if (p) p.priority = i + 1
+  })
+}
+
+export function addAssociatedLink(root: PageItem, pageId: string): void {
+  if (!root.associatedLinks.includes(pageId)) root.associatedLinks = [...root.associatedLinks, pageId]
+}
+export function removeAssociatedLink(root: PageItem, pageId: string): void {
+  root.associatedLinks = root.associatedLinks.filter((l) => l !== pageId)
 }

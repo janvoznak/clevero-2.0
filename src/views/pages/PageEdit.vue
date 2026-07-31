@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import {
   TabsRoot,
@@ -19,6 +19,7 @@ import GalleryManager from '@/components/admin/GalleryManager.vue'
 import AttachmentsManager from '@/components/admin/AttachmentsManager.vue'
 import OpeningHoursEditor from '@/components/admin/OpeningHoursEditor.vue'
 import PageFormBuilder from '@/components/admin/PageFormBuilder.vue'
+import PageGroupBar from '@/components/admin/PageGroupBar.vue'
 import { LANGS, SOURCE_LANG } from '@/data/types'
 import type { LangCode, ML } from '@/data/types'
 import {
@@ -58,6 +59,7 @@ function clone(): PageItem {
     perex: empty(),
     text: empty(),
     contentBlocks: [],
+    associatedLinks: [],
     allowMenu: false,
     allowFooter: '0',
     allowHp: false,
@@ -161,6 +163,20 @@ function toggleCookie(value: string, v: boolean | 'indeterminate') {
     form.usedCookies = form.usedCookies.filter((c) => c !== value)
   }
 }
+
+/* ---------- Přepínání mezi přidruženými stránkami ---------- */
+function goPage(id: string) {
+  router.push({ name: 'page-edit', params: { id } })
+}
+/* Router recykluje instanci komponenty — při změně id načteme stránku znovu. */
+watch(
+  () => props.id,
+  () => {
+    Object.assign(form, clone())
+    activeSection.value = 'basic'
+    activeLang.value = 'cs'
+  },
+)
 
 /* ---------- Uložení (prototyp) ---------- */
 const saved = ref(false)
@@ -271,8 +287,16 @@ function translateAll() {
       </div>
     </div>
 
+    <!-- Přidružené stránky (přepínač stránek ve skupině) -->
+    <div v-if="isEdit" class="px-8 pt-6">
+      <PageGroupBar :key="form.id" :current-id="form.id" @navigate="goPage" />
+    </div>
+
     <!-- Two-column body -->
-    <div class="grid grid-cols-1 gap-6 px-8 py-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+    <div
+      class="grid grid-cols-1 gap-6 px-8 py-6 xl:grid-cols-[minmax(0,1fr)_360px]"
+      :class="isEdit ? 'pt-4' : ''"
+    >
       <!-- LEVÝ sloupec: sekce v podtržených tabech -->
       <div class="min-w-0">
         <div class="rounded-lg border border-steel-200 bg-white">
