@@ -238,9 +238,8 @@ const langTag = computed(() => props.lang.toUpperCase())
               :title="l.url"
               @click="openLink(l.url)"
             >
-              <Icon name="globe" :size="13" class="text-steel-400" />
+              <Icon name="externalLink" :size="13" class="text-steel-400" />
               {{ linkLabelText(l) }}
-              <span class="text-steel-400">↗</span>
             </button>
 
             <!-- Editace odkazu -->
@@ -351,7 +350,7 @@ const langTag = computed(() => props.lang.toUpperCase())
                 <div class="rounded-lg border border-steel-200 bg-steel-50/50 px-3 py-2.5">
                   <div class="mb-2 flex items-center gap-2.5">
                     <span class="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-steel-100 text-steel-500">
-                      <Icon name="globe" :size="16" />
+                      <Icon name="externalLink" :size="16" />
                     </span>
                     <span class="min-w-0 flex-1">
                       <span class="block text-[13px] font-700 text-graphite-800">Odkaz na externí stránku</span>
