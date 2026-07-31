@@ -5,6 +5,14 @@ import type { ML, LangCode, GalleryImage, Attachment } from './types'
    Vícejazyčnost (ML) + hierarchie (strom) přes parentId.
    ============================================================ */
 
+/** Sekce, do které stránka v administraci patří. */
+export type PageSection = 'menu' | 'other' | 'client'
+export const PAGE_SECTIONS: { key: PageSection; label: string; desc: string; icon: string }[] = [
+  { key: 'menu', label: 'Menu', desc: 'Hlavní stránky v menu a jejich hierarchie', icon: 'reference' },
+  { key: 'other', label: 'Ostatní stránky', desc: 'Stránky mimo menu i mega menu, ale dostupné na webu', icon: 'page' },
+  { key: 'client', label: 'Klientská sekce', desc: 'Právní dokumenty', icon: 'file' },
+]
+
 /** Sloupec patičky (0 = nezobrazovat). Uloženo jako string kvůli AppSelect. */
 export type FooterCol = '0' | '1' | '2' | '3'
 export type InquiryFormType = 'none' | 'basic' | 'full'
@@ -12,6 +20,8 @@ export type ContactFormType = 'none' | 'email_msg' | 'email_msg_phone' | 'email_
 
 export interface PageItem {
   id: string
+  /** Sekce v administraci (Menu / Ostatní / Klientská). */
+  section: PageSection
   /** Nadřazená stránka (null = kořen). */
   parentId: string | null
   title: ML
@@ -107,6 +117,7 @@ type RawPage = Omit<
 
 /** Výchozí (prázdné) hodnoty společné mock stránkám — zkrátí literály. */
 const base = {
+  section: 'menu' as PageSection,
   perex: {} as MLInput,
   text: {} as MLInput,
   allowMenu: false,
@@ -200,18 +211,40 @@ const RAW: RawPage[] = [
   },
   {
     ...base,
+    id: 'pg-partneri',
+    section: 'other',
+    parentId: null,
+    title: { cs: 'Poděkování partnerům' },
+    slug: { cs: 'podekovani-partnerum' },
+    perex: { cs: 'Stránka mimo menu, odkazovaná z paty článků.' },
+    priority: 1,
+  },
+  {
+    ...base,
+    id: 'pg-archiv',
+    section: 'other',
+    parentId: null,
+    title: { cs: 'Archiv akcí 2023' },
+    slug: { cs: 'archiv-akci-2023' },
+    priority: 2,
+    allowIndexing: false,
+  },
+  {
+    ...base,
     id: 'pg-rad',
+    section: 'client',
     parentId: null,
     title: { cs: 'Návštěvní řád' },
     slug: { cs: 'navstevni-rad' },
     allowFooter: '3',
-    priority: 4,
+    priority: 1,
     enabled: false,
     allowIndexing: false,
   },
   {
     ...base,
     id: 'pg-cookies',
+    section: 'client',
     parentId: 'pg-rad',
     title: { cs: 'Zásady cookies' },
     slug: { cs: 'zasady-cookies' },
@@ -273,9 +306,11 @@ export interface TreeRow {
   hasKids: boolean
 }
 export function treeRows(pages: PageItem[], collapsed: Set<string>): TreeRow[] {
+  const ids = new Set(pages.map((p) => p.id))
   const byParent = new Map<string | null, PageItem[]>()
   for (const p of pages) {
-    const key = p.parentId
+    // Rodič mimo předanou množinu (např. jiná sekce) → bereme jako kořen.
+    const key = p.parentId && ids.has(p.parentId) ? p.parentId : null
     if (!byParent.has(key)) byParent.set(key, [])
     byParent.get(key)!.push(p)
   }
