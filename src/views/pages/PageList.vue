@@ -457,8 +457,9 @@ function onRowAction(key: string, p: PageItem) {
             <tr
               v-else
               :draggable="!hasFilters"
-              class="group border-b border-steel-100 transition-colors last:border-0 hover:bg-steel-50/60"
+              class="group border-b border-steel-100 transition-colors last:border-0"
               :class="[
+                !rowActive(item.row.page) && 'hover:bg-steel-50/60',
                 rowActive(item.row.page) && 'bg-brand-100 shadow-[inset_3px_0_0_0_var(--color-brand-500)]',
                 selected.has(item.row.page.id) && 'bg-brand-50/60',
                 dragId === item.row.page.id && 'opacity-40',
