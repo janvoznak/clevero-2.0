@@ -241,9 +241,6 @@ function confirmDeleteOne() {
 }
 
 /* ---------- Navigace / řádkové akce ---------- */
-function goNew() {
-  router.push({ name: 'page-new' })
-}
 function goNewInSection(section: PageSection) {
   router.push({ name: 'page-new', query: { section } })
 }
@@ -281,10 +278,6 @@ function onRowAction(key: string, p: PageItem) {
           {{ rows.length }} stránek · hierarchická struktura webu · pořadí a zanoření změníte přetažením
         </p>
       </div>
-      <AppButton variant="primary" @click="goNew">
-        <Icon name="plus" :size="17" />
-        Nová stránka
-      </AppButton>
     </div>
 
     <!-- Filter bar -->

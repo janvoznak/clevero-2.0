@@ -334,22 +334,16 @@ function translateAll() {
 
                 <!-- Zařazení a viditelnost -->
                 <div class="mt-2 rounded-md border border-steel-200 bg-steel-50/60 p-4">
-                  <p class="mb-3 text-[12.5px] font-600 text-graphite-800">Zařazení a viditelnost</p>
-                  <div class="grid gap-4 sm:grid-cols-2">
-                    <div class="sm:col-span-2">
-                      <label class="mb-1.5 flex items-center justify-between">
-                        <span class="text-[13px] font-600 text-graphite-800">Nadřazená stránka</span>
-                        <span class="field-tag">page-entityParentId</span>
-                      </label>
-                      <AppSelect v-model="parentValue" :options="parentOpts" />
-                      <p class="mt-1 text-[11px] text-steel-400">
-                        Na výběr jsou pouze stránky ze sekce <span class="font-600 text-steel-500">{{ sectionLabel }}</span>.
-                      </p>
-                    </div>
-                    <div class="flex items-center justify-between rounded-md border border-steel-200 bg-white px-3 py-2.5 sm:col-span-2">
-                      <AppSwitch v-model="form.enabled" label="Zobrazovat (aktivní)" hint="Hlavní vypínač viditelnosti stránky na webu" aria-label="Zobrazovat" />
-                      <span class="field-tag">page-enabled</span>
-                    </div>
+                  <p class="mb-3 text-[12.5px] font-600 text-graphite-800">Zařazení</p>
+                  <div>
+                    <label class="mb-1.5 flex items-center justify-between">
+                      <span class="text-[13px] font-600 text-graphite-800">Nadřazená stránka</span>
+                      <span class="field-tag">page-entityParentId</span>
+                    </label>
+                    <AppSelect v-model="parentValue" :options="parentOpts" />
+                    <p class="mt-1 text-[11px] text-steel-400">
+                      Na výběr jsou pouze stránky ze sekce <span class="font-600 text-steel-500">{{ sectionLabel }}</span>.
+                    </p>
                   </div>
                   <p class="mt-3 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
                     <Icon name="grip" :size="13" class="mt-0.5 shrink-0 text-steel-400" />
@@ -579,8 +573,12 @@ function translateAll() {
 
       <!-- PRAVÝ rail -->
       <aside class="space-y-5 xl:sticky xl:top-[92px] xl:self-start">
-        <FormSection title="Publikace" icon="globe" tag="page-enabled">
+        <FormSection title="Publikace" icon="globe">
           <div class="space-y-3">
+            <div class="flex items-center justify-between rounded-md border border-steel-200 px-3 py-2.5">
+              <AppSwitch v-model="form.enabled" label="Zobrazovat (aktivní)" hint="Hlavní vypínač viditelnosti stránky na webu" aria-label="Zobrazovat" />
+              <span class="field-tag">page-enabled</span>
+            </div>
             <div class="flex items-center justify-between rounded-md bg-steel-50 px-3 py-2.5">
               <span class="text-[12.5px] font-500 text-steel-600">Aktuální stav</span>
               <span
