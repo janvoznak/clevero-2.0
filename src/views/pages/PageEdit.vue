@@ -17,6 +17,7 @@ import FormSection from '@/components/admin/FormSection.vue'
 import RichTextEditor from '@/components/admin/RichTextEditor.vue'
 import GalleryManager from '@/components/admin/GalleryManager.vue'
 import AttachmentsManager from '@/components/admin/AttachmentsManager.vue'
+import OpeningHoursEditor from '@/components/admin/OpeningHoursEditor.vue'
 import { LANGS, SOURCE_LANG } from '@/data/types'
 import type { LangCode, ML } from '@/data/types'
 import {
@@ -26,6 +27,7 @@ import {
   PAGE_SECTIONS,
   slugPath,
   parentOptions,
+  defaultOpeningHours,
   DYNAMIC_FORM_OPTIONS,
   INQUIRY_OPTIONS,
   CONTACT_OPTIONS,
@@ -74,6 +76,7 @@ function clone(): PageItem {
     attachments: [],
     jsCodes: '',
     usedCookies: [],
+    openingHours: defaultOpeningHours(),
   }
 }
 
@@ -602,6 +605,11 @@ function translateAll() {
               <Icon name="eye" :size="16" /> Náhled na webu
             </a>
           </div>
+        </FormSection>
+
+        <FormSection title="Otevírací doba" icon="clock" tag="page-openingHours">
+          <p class="mb-3 text-[12.5px] text-steel-500">Nastavte hodiny pro jednotlivé dny, nebo den označte jako zavřený.</p>
+          <OpeningHoursEditor v-model="form.openingHours" />
         </FormSection>
 
         <FormSection title="Jazykové mutace" icon="globe" tag="ML">
