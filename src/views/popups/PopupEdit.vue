@@ -1,7 +1,19 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { TabsRoot, TabsList, TabsTrigger, RadioGroupRoot, RadioGroupItem } from 'reka-ui'
+import {
+  TabsRoot,
+  TabsList,
+  TabsTrigger,
+  RadioGroupRoot,
+  RadioGroupItem,
+  DialogRoot,
+  DialogPortal,
+  DialogOverlay,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+} from 'reka-ui'
 import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppSwitch from '@/components/ui/AppSwitch.vue'
@@ -9,10 +21,11 @@ import FormSection from '@/components/admin/FormSection.vue'
 import RichTextEditor from '@/components/admin/RichTextEditor.vue'
 import PopupPositionPicker from '@/components/admin/popup/PopupPositionPicker.vue'
 import PopupSizePreview from '@/components/admin/popup/PopupSizePreview.vue'
+import PopupTemplateBar from '@/components/admin/popup/PopupTemplateBar.vue'
 import { LANGS, SOURCE_LANG } from '@/data/types'
 import type { LangCode, ML } from '@/data/types'
-import { MOCK_POPUPS, popupState, POPUP_STATE_META } from '@/data/mockPopups'
-import type { PopupItem } from '@/data/mockPopups'
+import { MOCK_POPUPS, popupState, POPUP_STATE_META, PREDEFINED_TEMPLATES } from '@/data/mockPopups'
+import type { PopupItem, PopupTemplate } from '@/data/mockPopups'
 
 const props = defineProps<{ id?: string }>()
 const router = useRouter()
@@ -94,6 +107,35 @@ function translateAll() {
     toast.value = `Přeloženo z CZ do ${targetLangs.map((l) => l.code.toUpperCase()).join(', ')}`
     window.setTimeout(() => (toast.value = ''), 3000)
   }, 1500)
+}
+
+/* ---------- Předdefinované šablony (prototyp — předvyplňovač) ----------
+   Prázdný formulář = aplikuje rovnou; rozepsaný obsah = potvrzení přepsání. */
+const pendingTemplate = ref<PopupTemplate | null>(null)
+const isDirty = computed(() =>
+  LANGS.some((l) => form.title[l.code].trim() !== '' || form.text[l.code].trim() !== ''),
+)
+function chooseTemplate(tpl: PopupTemplate) {
+  if (isDirty.value) pendingTemplate.value = tpl
+  else applyTemplate(tpl)
+}
+function applyTemplate(tpl: PopupTemplate) {
+  const a = tpl.apply
+  form.title[SOURCE_LANG] = a.title
+  form.text[SOURCE_LANG] = a.text
+  if (a.titleUrl !== undefined) form.titleUrl = a.titleUrl
+  if (a.position) form.position = a.position
+  if (a.widthUnit) form.widthUnit = a.widthUnit
+  if (a.width !== undefined) form.width = a.width
+  if (a.widthPercent !== undefined) form.widthPercent = a.widthPercent
+  if (a.height !== undefined) form.height = a.height
+  if (a.newWindow !== undefined) form.newWindow = a.newWindow
+  if (a.popupFrame !== undefined) form.popupFrame = a.popupFrame
+  if (a.cookieExpiration !== undefined) form.cookieExpiration = a.cookieExpiration
+  activeLang.value = SOURCE_LANG
+  pendingTemplate.value = null
+  toast.value = `Použita šablona „${tpl.name}"`
+  window.setTimeout(() => (toast.value = ''), 3000)
 }
 
 </script>
@@ -182,6 +224,9 @@ function translateAll() {
     <div class="grid grid-cols-1 gap-6 px-8 py-6 xl:grid-cols-[minmax(0,1fr)_360px]">
       <!-- LEVÝ sloupec: obsahové sekce (bez tabů — dle specifikace) -->
       <div class="min-w-0 space-y-5">
+        <!-- Předvyplnění ze šablony (preset — jen předvyplní pole níže) -->
+        <PopupTemplateBar :templates="PREDEFINED_TEMPLATES" @select="chooseTemplate" />
+
         <!-- Základní informace -->
         <FormSection title="Základní informace" icon="page" tag="popup">
           <div class="space-y-4">
@@ -455,6 +500,30 @@ function translateAll() {
         </FormSection>
       </aside>
     </div>
+
+    <!-- Potvrzení přepsání obsahu šablonou -->
+    <DialogRoot :open="!!pendingTemplate" @update:open="(v) => !v && (pendingTemplate = null)">
+      <DialogPortal>
+        <DialogOverlay class="fixed inset-0 z-50 bg-graphite-950/40 backdrop-blur-[1px]" />
+        <DialogContent
+          class="fixed left-1/2 top-1/2 z-50 w-[440px] max-w-[92vw] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-steel-200 bg-white p-6 shadow-2xl"
+        >
+          <div class="mb-3 grid h-11 w-11 place-items-center rounded-lg bg-brand-500/10 text-brand-500">
+            <Icon name="layout" :size="22" />
+          </div>
+          <DialogTitle class="font-display text-lg font-700 text-graphite-900">Přepsat obsah šablonou?</DialogTitle>
+          <DialogDescription class="mt-1.5 text-[13.5px] leading-relaxed text-steel-500">
+            Máte rozepsaný obsah, který bude nahrazen šablonou
+            <span class="font-600 text-graphite-800">„{{ pendingTemplate?.name }}"</span>. Předvyplní se
+            zdrojová čeština a doporučené nastavení; cizí mutace pak doplňte přes AI překlad.
+          </DialogDescription>
+          <div class="mt-5 flex justify-end gap-2">
+            <AppButton variant="secondary" @click="pendingTemplate = null">Zrušit</AppButton>
+            <AppButton variant="primary" @click="pendingTemplate && applyTemplate(pendingTemplate)">Přepsat</AppButton>
+          </div>
+        </DialogContent>
+      </DialogPortal>
+    </DialogRoot>
 
     <!-- Toast -->
     <Transition
