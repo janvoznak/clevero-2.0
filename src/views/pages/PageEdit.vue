@@ -25,13 +25,12 @@ import {
   PAGE_STATE_META,
   slugPath,
   parentOptions,
-  FOOTER_OPTIONS,
   DYNAMIC_FORM_OPTIONS,
   INQUIRY_OPTIONS,
   CONTACT_OPTIONS,
   COOKIE_CATEGORIES,
 } from '@/data/mockPages'
-import type { PageItem, FooterCol, InquiryFormType, ContactFormType } from '@/data/mockPages'
+import type { PageItem, InquiryFormType, ContactFormType } from '@/data/mockPages'
 
 const props = defineProps<{ id?: string }>()
 const router = useRouter()
@@ -87,10 +86,6 @@ const sections = [
 const parentValue = computed({
   get: () => form.parentId ?? '',
   set: (v: string) => (form.parentId = v || null),
-})
-const footerValue = computed({
-  get: () => form.allowFooter,
-  set: (v: string) => (form.allowFooter = v as FooterCol),
 })
 const inquiryValue = computed({
   get: () => form.inquiryFormType,
@@ -335,38 +330,23 @@ function translateAll() {
                       </label>
                       <AppSelect v-model="parentValue" :options="parentOpts" />
                     </div>
-                    <div>
-                      <label class="mb-1.5 flex items-center justify-between">
-                        <span class="text-[13px] font-600 text-graphite-800">Zobrazovat v patičce</span>
-                        <span class="field-tag">page-allowFooter</span>
-                      </label>
-                      <AppSelect v-model="footerValue" :options="FOOTER_OPTIONS" />
-                    </div>
-                    <div>
-                      <label class="mb-1.5 flex items-center justify-between">
-                        <span class="text-[13px] font-600 text-graphite-800">Pořadí</span>
-                        <span class="field-tag">page-priority</span>
-                      </label>
-                      <input
-                        v-model.number="form.priority"
-                        type="number"
-                        min="0"
-                        class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13.5px] text-graphite-800 focus:border-brand-500 focus:outline-none"
-                      />
-                    </div>
-                    <div class="flex items-center justify-between rounded-md border border-steel-200 bg-white px-3 py-2.5">
-                      <AppSwitch v-model="form.allowMenu" label="Zobrazovat v menu" aria-label="Zobrazovat v menu" />
+                    <div class="flex items-center justify-between rounded-md border border-steel-200 bg-white px-3 py-2.5 sm:col-span-2">
+                      <AppSwitch v-model="form.allowMenu" label="Zobrazovat v menu" hint="Zároveň se zobrazí i v navigaci v patičce." aria-label="Zobrazovat v menu" />
                       <span class="field-tag">page-allowMenu</span>
                     </div>
                     <div class="flex items-center justify-between rounded-md border border-steel-200 bg-white px-3 py-2.5">
                       <AppSwitch v-model="form.allowHp" label="Zobrazovat na HP" aria-label="Zobrazovat na HP" />
                       <span class="field-tag">page-allowHp</span>
                     </div>
-                    <div class="flex items-center justify-between rounded-md border border-steel-200 bg-white px-3 py-2.5 sm:col-span-2">
-                      <AppSwitch v-model="form.enabled" label="Zobrazovat (aktivní)" hint="Hlavní vypínač viditelnosti na webu" aria-label="Zobrazovat" />
+                    <div class="flex items-center justify-between rounded-md border border-steel-200 bg-white px-3 py-2.5">
+                      <AppSwitch v-model="form.enabled" label="Zobrazovat (aktivní)" aria-label="Zobrazovat" />
                       <span class="field-tag">page-enabled</span>
                     </div>
                   </div>
+                  <p class="mt-3 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
+                    <Icon name="grip" :size="13" class="mt-0.5 shrink-0 text-steel-400" />
+                    Pořadí a zanoření stránky nastavíte přetažením přímo v seznamu stránek.
+                  </p>
                 </div>
               </TabsContent>
 

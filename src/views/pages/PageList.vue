@@ -27,6 +27,7 @@ import {
   treeRows,
   hasChildren,
   ancestorDisabled,
+  ancestors,
   type PageItem,
   type TreeRow,
 } from '@/data/mockPages'
@@ -80,6 +81,67 @@ function toggleCollapse(id: string) {
 
 function setEnabled(p: PageItem, v: boolean) {
   p.enabled = v // prototyp — lokální stav
+}
+
+/* ---------- Drag & drop řazení / zanoření (jen ve stromovém režimu) ---------- */
+const dragId = ref<string | null>(null)
+const dropTarget = ref<{ id: string; pos: 'before' | 'after' | 'child' } | null>(null)
+
+/** Je `targetId` uvnitř podstromu `rootId` (včetně)? (zákaz vlož do sebe/potomka) */
+function insideSubtree(rootId: string, targetId: string): boolean {
+  return targetId === rootId || ancestors(rows.value, targetId).some((a) => a.id === rootId)
+}
+function renumber(parentId: string | null) {
+  rows.value
+    .filter((p) => p.parentId === parentId)
+    .sort((a, b) => a.priority - b.priority)
+    .forEach((p, i) => (p.priority = i + 1))
+}
+function resetDnd() {
+  dragId.value = null
+  dropTarget.value = null
+}
+function onRowDragStart(id: string) {
+  if (hasFilters.value) return
+  dragId.value = id
+}
+function onRowDragOver(e: DragEvent, targetId: string) {
+  if (!dragId.value || dragId.value === targetId || insideSubtree(dragId.value, targetId)) return
+  e.preventDefault()
+  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+  const y = e.clientY - rect.top
+  const pos = y < rect.height * 0.28 ? 'before' : y > rect.height * 0.72 ? 'after' : 'child'
+  dropTarget.value = { id: targetId, pos }
+}
+function onRowDragLeave(targetId: string) {
+  if (dropTarget.value?.id === targetId) dropTarget.value = null
+}
+function onRowDrop() {
+  const id = dragId.value
+  const info = dropTarget.value
+  resetDnd()
+  if (!id || !info || id === info.id || insideSubtree(id, info.id)) return
+  const dragged = rows.value.find((p) => p.id === id)
+  const target = rows.value.find((p) => p.id === info.id)
+  if (!dragged || !target) return
+
+  if (info.pos === 'child') {
+    dragged.parentId = target.id
+    const kids = rows.value.filter((p) => p.parentId === target.id && p.id !== id)
+    dragged.priority = (kids.length ? Math.max(...kids.map((k) => k.priority)) : 0) + 1
+    const next = new Set(collapsed.value)
+    next.delete(target.id) // ať je nový potomek vidět
+    collapsed.value = next
+  } else {
+    dragged.parentId = target.parentId
+    const siblings = rows.value
+      .filter((p) => p.parentId === target.parentId && p.id !== id)
+      .sort((a, b) => a.priority - b.priority)
+    const idx = siblings.findIndex((s) => s.id === target.id)
+    siblings.splice(info.pos === 'before' ? idx : idx + 1, 0, dragged)
+    siblings.forEach((s, i) => (s.priority = i + 1))
+    renumber(target.parentId)
+  }
 }
 
 /* ---------- Výběr / hromadné akce ---------- */
@@ -185,7 +247,7 @@ function footerLabel(p: PageItem): string {
         </div>
         <h1 class="font-display text-[26px] font-700 leading-none tracking-tight text-graphite-900">Stránky</h1>
         <p class="mt-1.5 text-[13.5px] text-steel-500">
-          {{ rows.length }} stránek · hierarchická struktura webu
+          {{ rows.length }} stránek · hierarchická struktura webu · pořadí a zanoření změníte přetažením
         </p>
       </div>
       <AppButton variant="primary" @click="goNew">
@@ -302,8 +364,20 @@ function footerLabel(p: PageItem): string {
           <tr
             v-for="{ page: p, depth, hasKids } in visibleRows"
             :key="p.id"
+            :draggable="!hasFilters"
             class="group border-b border-steel-100 transition-colors last:border-0 hover:bg-steel-50/60"
-            :class="selected.has(p.id) && 'bg-brand-50/40'"
+            :class="[
+              selected.has(p.id) && 'bg-brand-50/40',
+              dragId === p.id && 'opacity-40',
+              dropTarget?.id === p.id && dropTarget?.pos === 'child' && 'bg-brand-50 ring-2 ring-inset ring-brand-400',
+              dropTarget?.id === p.id && dropTarget?.pos === 'before' && 'shadow-[inset_0_2px_0_0_var(--color-brand-500)]',
+              dropTarget?.id === p.id && dropTarget?.pos === 'after' && 'shadow-[inset_0_-2px_0_0_var(--color-brand-500)]',
+            ]"
+            @dragstart="onRowDragStart(p.id)"
+            @dragover="onRowDragOver($event, p.id)"
+            @dragleave="onRowDragLeave(p.id)"
+            @drop="onRowDrop"
+            @dragend="resetDnd"
           >
             <td class="px-4 py-3 align-middle">
               <CheckboxRoot
