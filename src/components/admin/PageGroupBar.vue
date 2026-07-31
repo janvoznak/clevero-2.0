@@ -150,12 +150,12 @@ const langTag = computed(() => props.lang.toUpperCase())
       <span class="text-[11px] text-steel-400">Klik přepne editaci · přetažením změníte pořadí</span>
     </div>
 
-    <div class="p-3">
+    <div class="space-y-3 p-3">
       <!-- Hlavní (kořenová) stránka -->
-      <div class="mb-2.5 flex items-center gap-2.5">
-        <span class="w-[86px] shrink-0 text-[10.5px] font-700 uppercase tracking-wide text-steel-400">
+      <div>
+        <p class="mb-1.5 text-[10.5px] font-700 uppercase tracking-wide text-steel-400">
           Hlavní stránka
-        </span>
+        </p>
         <button
           type="button"
           class="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[13px] font-600 outline-none transition-colors"
@@ -170,11 +170,11 @@ const langTag = computed(() => props.lang.toUpperCase())
       </div>
 
       <!-- Podstránky + externí odkazy -->
-      <div class="flex items-start gap-2.5">
-        <span class="mt-2 w-[86px] shrink-0 text-[10.5px] font-700 uppercase tracking-wide text-steel-400">
+      <div>
+        <p class="mb-1.5 text-[10.5px] font-700 uppercase tracking-wide text-steel-400">
           Podstránky
-        </span>
-        <div class="flex flex-1 flex-wrap items-center gap-1.5 border-l-2 border-steel-100 pl-3">
+        </p>
+        <div class="flex flex-wrap items-center gap-1.5">
           <!-- Podstránky (vlastní obsah) — přetažitelné -->
           <div
             v-for="c in children"
