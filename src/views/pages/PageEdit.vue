@@ -575,10 +575,6 @@ function translateAll() {
       <aside class="space-y-5 xl:sticky xl:top-[92px] xl:self-start">
         <FormSection title="Publikace" icon="globe">
           <div class="space-y-3">
-            <div class="flex items-center justify-between rounded-md border border-steel-200 px-3 py-2.5">
-              <AppSwitch v-model="form.enabled" label="Zobrazovat (aktivní)" hint="Hlavní vypínač viditelnosti stránky na webu" aria-label="Zobrazovat" />
-              <span class="field-tag">page-enabled</span>
-            </div>
             <div class="flex items-center justify-between rounded-md bg-steel-50 px-3 py-2.5">
               <span class="text-[12.5px] font-500 text-steel-600">Aktuální stav</span>
               <span
@@ -588,6 +584,10 @@ function translateAll() {
                 <span class="h-1.5 w-1.5 rounded-full" :class="PAGE_STATE_META[state].dot" />
                 {{ PAGE_STATE_META[state].label }}
               </span>
+            </div>
+            <div class="flex items-center justify-between rounded-md border border-steel-200 px-3 py-2.5">
+              <AppSwitch v-model="form.enabled" label="Zobrazovat (aktivní)" hint="Hlavní vypínač viditelnosti stránky na webu" aria-label="Zobrazovat" />
+              <span class="field-tag">page-enabled</span>
             </div>
             <div class="rounded-md border border-steel-200 px-3 py-2.5">
               <p class="mb-0.5 field-tag">Adresa na webu</p>
