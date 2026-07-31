@@ -413,7 +413,7 @@ function onRowAction(key: string, p: PageItem) {
               <td
                 colspan="5"
                 class="p-0"
-                :class="sectionActive(item.section.key) ? 'bg-brand-50' : 'bg-steel-50'"
+                :class="sectionActive(item.section.key) ? 'bg-brand-100 shadow-[inset_3px_0_0_0_var(--color-brand-500)]' : 'bg-steel-50'"
               >
                 <div class="flex items-center gap-1 py-1 pl-2 pr-2">
                   <!-- Sbalit / rozbalit -->
@@ -454,7 +454,7 @@ function onRowAction(key: string, p: PageItem) {
               :draggable="!hasFilters"
               class="group border-b border-steel-100 transition-colors last:border-0 hover:bg-steel-50/60"
               :class="[
-                rowActive(item.row.page) && 'bg-brand-50/40',
+                rowActive(item.row.page) && 'bg-brand-100 shadow-[inset_3px_0_0_0_var(--color-brand-500)]',
                 selected.has(item.row.page.id) && 'bg-brand-50/60',
                 dragId === item.row.page.id && 'opacity-40',
                 dropTarget?.id === item.row.page.id && dropTarget?.pos === 'child' && 'bg-brand-50 ring-2 ring-inset ring-brand-400',
