@@ -20,7 +20,7 @@ defineEmits<{ select: [tpl: PopupTemplate] }>()
 </script>
 
 <template>
-  <div class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-steel-200 bg-steel-50/70 px-4 py-3">
+  <div class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-brand-500/20 bg-brand-50 px-4 py-3">
     <div class="flex items-center gap-2.5">
       <span class="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-brand-500/10 text-brand-500">
         <Icon name="layout" :size="17" />

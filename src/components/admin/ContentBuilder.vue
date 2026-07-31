@@ -1,66 +1,56 @@
 <script setup lang="ts">
 /**
  * Content builder (prototyp — vizuální zástupka, viz princip 0).
- * Skládání obsahu stránky z bloků: výběr ze šablon (Popover s kategoriemi),
- * plátno s náhledem bloků, přetahování (reorder) a mazání.
- * Bloky jsou strukturální (ne per-jazyk) — reálný obsah sestaví editor.
+ * Skládání stránky z hotových „grafických vzorů" (jako ContentBuilder.js):
+ *  - prázdné plátno s výzvou k vložení obsahu,
+ *  - plovoucí panel „Grafické vzory" (vlevo) s kategoriemi a náhledy vzorů,
+ *  - přidávání, přetahování (reorder) a mazání vzorů.
+ * Náhled řídí sdílená komponenta GraphicPattern (princip 0b).
  */
 import { computed, ref } from 'vue'
-import { PopoverRoot, PopoverTrigger, PopoverPortal, PopoverContent } from 'reka-ui'
 import Icon from '@/components/ui/Icon.vue'
-import { CONTENT_BLOCK_GROUPS, type ContentBlock } from '@/data/mockPages'
+import AppSelect from '@/components/ui/AppSelect.vue'
+import GraphicPattern from '@/components/admin/GraphicPattern.vue'
+import { GRAPHIC_PATTERN_GROUPS, type ContentBlock } from '@/data/mockPages'
 
-/** Bloky obsahu stránky. */
 const model = defineModel<ContentBlock[]>({ default: () => [] })
 
-/* ---------- Paleta bloků (Popover) ---------- */
-const open = ref(false)
-const activeCat = ref(CONTENT_BLOCK_GROUPS[0].category)
-const activeBlocks = computed(
-  () => CONTENT_BLOCK_GROUPS.find((g) => g.category === activeCat.value)?.blocks ?? [],
+/* ---------- Paleta vzorů (plovoucí panel) ---------- */
+const paletteOpen = ref(true)
+const activeCat = ref(GRAPHIC_PATTERN_GROUPS[0].category)
+const catOptions = GRAPHIC_PATTERN_GROUPS.map((g) => ({ value: g.category, label: g.category }))
+const activePatterns = computed(
+  () => GRAPHIC_PATTERN_GROUPS.find((g) => g.category === activeCat.value)?.patterns ?? [],
 )
 
 let seq = 0
-function addBlock(type: string, name: string) {
+function addPattern(kind: string) {
   seq += 1
-  model.value = [...model.value, { id: `cb-${seq}-${model.value.length}-${type}`, type, name }]
-  open.value = false
+  model.value = [...model.value, { id: `cb-${seq}-${model.value.length}-${kind}`, kind }]
 }
 function remove(id: string) {
   model.value = model.value.filter((b) => b.id !== id)
 }
 
-/* ---------- Ikona podle typu bloku ---------- */
-const ICONS: Record<string, string> = {
-  heading: 'heading',
-  subheading: 'heading',
-  text: 'text',
-  perex: 'text',
-  image: 'image',
-  'image-wide': 'image',
-  gallery: 'gallery',
-  button: 'cursor',
-  'button-group': 'cursor',
-  cta: 'star',
-  divider: 'divider',
-  quote: 'quote',
-  'text-image': 'layout',
-  profile: 'user',
-  reference: 'reference',
-  contact: 'mail',
-  map: 'map',
-  hours: 'clock',
-  video: 'video',
-  faq: 'faq',
+/* ---------- Plovoucí panel — přetažení za hlavičku ---------- */
+const pos = ref({ x: 0, y: 48 })
+let startDrag = { mx: 0, my: 0, px: 0, py: 0 }
+function onHeaderDown(e: PointerEvent) {
+  startDrag = { mx: e.clientX, my: e.clientY, px: pos.value.x, py: pos.value.y }
+  window.addEventListener('pointermove', onHeaderMove)
+  window.addEventListener('pointerup', onHeaderUp)
 }
-function iconOf(type: string) {
-  return ICONS[type] ?? 'box'
+function onHeaderMove(e: PointerEvent) {
+  pos.value = { x: startDrag.px + (e.clientX - startDrag.mx), y: startDrag.py + (e.clientY - startDrag.my) }
+}
+function onHeaderUp() {
+  window.removeEventListener('pointermove', onHeaderMove)
+  window.removeEventListener('pointerup', onHeaderUp)
 }
 
-/* ---------- Drag & drop reorder (nativní, jako GalleryManager) ---------- */
+/* ---------- Drag & drop reorder vzorů na plátně ---------- */
 const dragId = ref<string | null>(null)
 const overId = ref<string | null>(null)
-
 function onDragStart(id: string) {
   dragId.value = id
 }
@@ -69,293 +59,165 @@ function onDragOver(id: string) {
 }
 function onDrop(id: string) {
   const from = dragId.value
-  if (!from || from === id) return reset()
+  if (!from || from === id) return resetDnd()
   const list = [...model.value]
   const fi = list.findIndex((b) => b.id === from)
   const ti = list.findIndex((b) => b.id === id)
-  if (fi < 0 || ti < 0) return reset()
+  if (fi < 0 || ti < 0) return resetDnd()
   const [moved] = list.splice(fi, 1)
   list.splice(ti, 0, moved)
   model.value = list
-  reset()
+  resetDnd()
 }
-function reset() {
+function resetDnd() {
   dragId.value = null
   overId.value = null
 }
 </script>
 
 <template>
-  <div>
-    <!-- Plátno s bloky -->
-    <div
-      v-if="model.length"
-      class="mb-3 space-y-2 rounded-lg border border-steel-200 bg-steel-50/50 p-3"
-    >
-      <div
-        v-for="block in model"
-        :key="block.id"
-        draggable="true"
-        class="group relative rounded-md border bg-white transition-all"
-        :class="[
-          overId === block.id && dragId !== block.id
-            ? 'border-brand-400 ring-1 ring-brand-400/30'
-            : 'border-steel-200',
-          dragId === block.id ? 'opacity-40' : '',
-        ]"
-        @dragstart="onDragStart(block.id)"
-        @dragover.prevent="onDragOver(block.id)"
-        @drop.prevent="onDrop(block.id)"
-        @dragend="reset"
+  <div class="relative">
+    <!-- Ovládací lišta -->
+    <div class="mb-2.5 flex items-center gap-3">
+      <button
+        type="button"
+        class="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-[13px] font-600 outline-none transition-colors"
+        :class="
+          paletteOpen
+            ? 'border-brand-500 bg-brand-50 text-brand-600'
+            : 'border-steel-300 text-graphite-700 hover:border-brand-400 hover:text-brand-600'
+        "
+        @click="paletteOpen = !paletteOpen"
       >
-        <!-- Hlavička bloku -->
-        <div class="flex items-center gap-2 border-b border-steel-100 px-2.5 py-1.5">
-          <Icon name="grip" :size="15" class="cursor-grab text-steel-300" />
-          <span class="grid h-6 w-6 place-items-center rounded bg-brand-50 text-brand-500">
-            <Icon :name="iconOf(block.type)" :size="14" />
-          </span>
-          <span class="text-[12.5px] font-600 text-graphite-800">{{ block.name }}</span>
-          <span class="field-tag ml-1">{{ block.type }}</span>
-          <button
-            type="button"
-            class="ml-auto grid h-6 w-6 place-items-center rounded text-steel-400 opacity-0 outline-none transition-all hover:bg-danger-500/10 hover:text-danger-500 group-hover:opacity-100"
-            aria-label="Odebrat blok"
-            @click="remove(block.id)"
-          >
-            <Icon name="trash" :size="14" />
-          </button>
-        </div>
+        <Icon name="dashboard" :size="16" />
+        Zobrazit grafické vzory
+      </button>
+      <span class="text-[12px] text-steel-400">
+        {{ model.length }} {{ model.length === 1 ? 'prvek' : model.length >= 2 && model.length <= 4 ? 'prvky' : 'prvků' }} na stránce
+      </span>
+    </div>
 
-        <!-- Stylizovaný náhled (nefunkční zástupka) -->
-        <div class="px-3 py-2.5">
-          <!-- Nadpisy -->
-          <div v-if="block.type === 'heading'" class="h-4 w-2/3 rounded bg-graphite-800/80" />
-          <div v-else-if="block.type === 'subheading'" class="h-3 w-1/2 rounded bg-graphite-700/70" />
-
-          <!-- Text / perex -->
-          <div v-else-if="block.type === 'text'" class="space-y-1.5">
-            <div class="h-2 w-full rounded bg-steel-200" />
-            <div class="h-2 w-full rounded bg-steel-200" />
-            <div class="h-2 w-4/5 rounded bg-steel-200" />
-          </div>
-          <div v-else-if="block.type === 'perex'" class="space-y-1.5 border-l-2 border-brand-300 pl-3">
-            <div class="h-2.5 w-full rounded bg-steel-300" />
-            <div class="h-2.5 w-3/4 rounded bg-steel-300" />
-          </div>
-
-          <!-- Obrázky -->
+    <!-- Plátno stránky -->
+    <div class="relative rounded-lg border border-steel-200 bg-white p-4 shadow-sm">
+      <!-- Poskládaný obsah -->
+      <div v-if="model.length" class="mx-auto max-w-2xl">
+        <div
+          v-for="block in model"
+          :key="block.id"
+          draggable="true"
+          class="group relative rounded-md transition-all"
+          :class="
+            overId === block.id && dragId !== block.id
+              ? 'ring-2 ring-brand-400/40'
+              : dragId === block.id
+                ? 'opacity-40'
+                : ''
+          "
+          @dragstart="onDragStart(block.id)"
+          @dragover.prevent="onDragOver(block.id)"
+          @drop.prevent="onDrop(block.id)"
+          @dragend="resetDnd"
+        >
+          <!-- Ovládání vzoru (hover) -->
           <div
-            v-else-if="block.type === 'image'"
-            class="grid h-24 place-items-center rounded bg-steel-100 text-steel-400"
+            class="absolute right-2 top-2 z-10 flex items-center gap-1 rounded-md border border-steel-200 bg-white/95 p-0.5 opacity-0 shadow-sm backdrop-blur transition-opacity group-hover:opacity-100"
           >
-            <Icon name="image" :size="24" />
-          </div>
-          <div
-            v-else-if="block.type === 'image-wide'"
-            class="grid h-16 place-items-center rounded bg-steel-100 text-steel-400"
-          >
-            <Icon name="image" :size="22" />
-          </div>
-          <div v-else-if="block.type === 'gallery'" class="grid grid-cols-4 gap-1.5">
-            <div
-              v-for="n in 4"
-              :key="n"
-              class="grid aspect-square place-items-center rounded bg-steel-100 text-steel-400"
+            <span
+              class="grid h-6 w-6 cursor-grab place-items-center rounded text-steel-400 hover:text-graphite-700"
+              title="Přetáhnout"
             >
-              <Icon name="image" :size="16" />
-            </div>
-          </div>
-
-          <!-- Tlačítka -->
-          <div v-else-if="block.type === 'button'">
-            <span class="inline-block h-7 w-28 rounded-md bg-brand-500/80" />
-          </div>
-          <div v-else-if="block.type === 'button-group'" class="flex gap-2">
-            <span class="inline-block h-7 w-24 rounded-md bg-brand-500/80" />
-            <span class="inline-block h-7 w-24 rounded-md border border-steel-300 bg-white" />
-          </div>
-          <div
-            v-else-if="block.type === 'cta'"
-            class="flex items-center justify-between rounded-md bg-brand-50 px-4 py-3"
-          >
-            <div class="space-y-1.5">
-              <div class="h-3 w-32 rounded bg-brand-300" />
-              <div class="h-2 w-24 rounded bg-brand-200" />
-            </div>
-            <span class="h-7 w-24 rounded-md bg-brand-500/80" />
-          </div>
-
-          <!-- Oddělovač -->
-          <div v-else-if="block.type === 'divider'" class="flex items-center gap-2 py-1">
-            <span class="h-px flex-1 bg-steel-300" />
-            <Icon name="divider" :size="14" class="text-steel-300" />
-            <span class="h-px flex-1 bg-steel-300" />
-          </div>
-
-          <!-- Citace -->
-          <div v-else-if="block.type === 'quote'" class="flex gap-2">
-            <Icon name="quote" :size="22" class="shrink-0 text-brand-300" />
-            <div class="flex-1 space-y-1.5 italic">
-              <div class="h-2.5 w-full rounded bg-steel-200" />
-              <div class="h-2.5 w-2/3 rounded bg-steel-200" />
-            </div>
-          </div>
-
-          <!-- Text s obrázkem -->
-          <div v-else-if="block.type === 'text-image'" class="flex gap-3">
-            <div class="flex-1 space-y-1.5">
-              <div class="h-2 w-full rounded bg-steel-200" />
-              <div class="h-2 w-full rounded bg-steel-200" />
-              <div class="h-2 w-3/4 rounded bg-steel-200" />
-            </div>
-            <div class="grid h-16 w-24 shrink-0 place-items-center rounded bg-steel-100 text-steel-400">
-              <Icon name="image" :size="18" />
-            </div>
-          </div>
-
-          <!-- Profil / tým -->
-          <div v-else-if="block.type === 'profile'" class="flex items-center gap-3">
-            <div class="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-steel-100 text-steel-400">
-              <Icon name="user" :size="22" />
-            </div>
-            <div class="flex-1 space-y-1.5">
-              <div class="h-2.5 w-1/3 rounded bg-graphite-700/60" />
-              <div class="h-2 w-1/2 rounded bg-steel-200" />
-            </div>
-          </div>
-
-          <!-- Reference -->
-          <div v-else-if="block.type === 'reference'" class="rounded-md bg-steel-50 p-3">
-            <Icon name="quote" :size="18" class="text-brand-300" />
-            <div class="mt-1.5 space-y-1.5">
-              <div class="h-2 w-full rounded bg-steel-200" />
-              <div class="h-2 w-2/3 rounded bg-steel-200" />
-            </div>
-            <div class="mt-2 h-2 w-24 rounded bg-graphite-700/50" />
-          </div>
-
-          <!-- Kontaktní blok -->
-          <div v-else-if="block.type === 'contact'" class="space-y-2">
-            <div class="flex items-center gap-2">
-              <Icon name="mail" :size="15" class="text-steel-400" />
-              <div class="h-2 w-40 rounded bg-steel-200" />
-            </div>
-            <div class="flex items-center gap-2">
-              <Icon name="bell" :size="15" class="text-steel-400" />
-              <div class="h-2 w-28 rounded bg-steel-200" />
-            </div>
-          </div>
-
-          <!-- Mapa -->
-          <div
-            v-else-if="block.type === 'map'"
-            class="grid h-24 place-items-center rounded bg-steel-100 text-steel-400"
-          >
-            <div class="flex flex-col items-center gap-1">
-              <Icon name="map" :size="24" />
-              <span class="text-[11px]">Mapa (zástupka)</span>
-            </div>
-          </div>
-
-          <!-- Otevírací doba -->
-          <div v-else-if="block.type === 'hours'" class="space-y-1">
-            <div v-for="n in 3" :key="n" class="flex items-center justify-between">
-              <div class="h-2 w-10 rounded bg-steel-200" />
-              <div class="h-2 w-16 rounded bg-steel-200" />
-            </div>
-          </div>
-
-          <!-- Video -->
-          <div
-            v-else-if="block.type === 'video'"
-            class="grid h-24 place-items-center rounded bg-graphite-800/90 text-white/80"
-          >
-            <Icon name="video" :size="28" />
-          </div>
-
-          <!-- FAQ / akordeon -->
-          <div v-else-if="block.type === 'faq'" class="space-y-1.5">
-            <div
-              v-for="n in 2"
-              :key="n"
-              class="flex items-center justify-between rounded border border-steel-200 px-2.5 py-1.5"
+              <Icon name="grip" :size="14" />
+            </span>
+            <button
+              type="button"
+              class="grid h-6 w-6 place-items-center rounded text-steel-400 outline-none hover:bg-danger-500/10 hover:text-danger-500"
+              title="Odebrat"
+              @click="remove(block.id)"
             >
-              <div class="h-2 w-1/2 rounded bg-steel-200" />
-              <Icon name="chevronDown" :size="14" class="text-steel-300" />
-            </div>
+              <Icon name="trash" :size="14" />
+            </button>
           </div>
 
-          <!-- Fallback -->
-          <div v-else class="h-2 w-1/2 rounded bg-steel-200" />
+          <!-- Náhled vzoru -->
+          <div class="rounded-md px-4 py-4 transition-colors group-hover:bg-steel-50/50">
+            <GraphicPattern :kind="block.kind" />
+          </div>
         </div>
       </div>
+
+      <!-- Prázdný stav -->
+      <button
+        v-else
+        type="button"
+        class="grid min-h-[360px] w-full place-items-center rounded-md border-2 border-dashed border-steel-300 text-center outline-none transition-colors hover:border-brand-400 hover:bg-brand-50/30"
+        @click="paletteOpen = true"
+      >
+        <span>
+          <span class="block text-[13px] font-700 uppercase tracking-wide text-brand-500">
+            Není vložen žádný obsah
+          </span>
+          <span class="mt-1.5 block text-[13.5px] text-steel-500">
+            + Klikněte pro přidání obsahu
+          </span>
+        </span>
+      </button>
     </div>
 
-    <!-- Prázdný stav -->
+    <!-- Plovoucí panel „Grafické vzory" -->
     <div
-      v-else
-      class="mb-3 grid place-items-center rounded-lg border border-dashed border-steel-300 bg-steel-50 px-6 py-10 text-center"
+      v-if="paletteOpen"
+      class="absolute z-30 w-[264px] overflow-hidden rounded-xl border border-steel-200 bg-white shadow-2xl"
+      :style="{ left: pos.x + 'px', top: pos.y + 'px' }"
     >
-      <Icon name="layout" :size="26" class="mb-2 text-steel-300" />
-      <p class="text-[13px] font-600 text-graphite-700">Zatím žádný obsah</p>
-      <p class="mt-0.5 text-[12px] text-steel-500">Poskládejte stránku z bloků — vyberte prvek níže.</p>
-    </div>
-
-    <!-- Přidat blok (Popover s paletou) -->
-    <PopoverRoot v-model:open="open">
-      <PopoverTrigger as-child>
+      <!-- Hlavička (přetažitelná) -->
+      <div
+        class="flex cursor-move items-center gap-2 border-b border-steel-100 bg-steel-50/70 px-3 py-2.5 select-none"
+        @pointerdown="onHeaderDown"
+      >
+        <Icon name="layout" :size="15" class="text-steel-400" />
+        <p class="text-[13px] font-700 text-graphite-900">Grafické vzory</p>
         <button
           type="button"
-          class="inline-flex items-center gap-1.5 rounded-md border border-dashed border-steel-300 px-3 py-2 text-[13px] font-500 text-graphite-700 outline-none transition-colors hover:border-brand-400 hover:bg-brand-50/40 hover:text-brand-600 data-[state=open]:border-brand-500 data-[state=open]:text-brand-600"
+          class="ml-auto grid h-6 w-6 place-items-center rounded text-steel-400 outline-none hover:bg-steel-200/70 hover:text-graphite-700"
+          title="Zavřít"
+          @click="paletteOpen = false"
         >
-          <Icon name="plus" :size="16" /> Přidat blok obsahu
+          <Icon name="x" :size="15" />
         </button>
-      </PopoverTrigger>
-      <PopoverPortal>
-        <PopoverContent
-          align="start"
-          :side-offset="6"
-          class="z-50 w-[420px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-steel-200 bg-white shadow-2xl"
-        >
-          <div class="flex">
-            <!-- Kategorie -->
-            <div class="w-28 shrink-0 border-r border-steel-100 bg-steel-50/60 p-1.5">
-              <button
-                v-for="g in CONTENT_BLOCK_GROUPS"
-                :key="g.category"
-                type="button"
-                class="mb-0.5 block w-full rounded-md px-2.5 py-1.5 text-left text-[12px] font-500 outline-none transition-colors"
-                :class="
-                  activeCat === g.category
-                    ? 'bg-brand-500 text-white'
-                    : 'text-graphite-700 hover:bg-steel-100'
-                "
-                @click="activeCat = g.category"
-              >
-                {{ g.category }}
-              </button>
-            </div>
+      </div>
 
-            <!-- Bloky ve zvolené kategorii -->
-            <div class="scroll-thin max-h-72 flex-1 overflow-y-auto p-2">
-              <div class="grid grid-cols-2 gap-2">
-                <button
-                  v-for="b in activeBlocks"
-                  :key="b.type"
-                  type="button"
-                  class="flex flex-col items-center gap-1.5 rounded-lg border border-steel-200 bg-white p-3 text-center outline-none transition-all hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md"
-                  @click="addBlock(b.type, b.name)"
-                >
-                  <span class="grid h-9 w-9 place-items-center rounded-md bg-steel-100 text-steel-500">
-                    <Icon :name="iconOf(b.type)" :size="18" />
-                  </span>
-                  <span class="text-[11.5px] font-600 leading-tight text-graphite-800">{{ b.name }}</span>
-                </button>
-              </div>
+      <!-- Výběr kategorie -->
+      <div class="border-b border-steel-100 p-2.5">
+        <AppSelect v-model="activeCat" :options="catOptions" class="!w-full" />
+      </div>
+
+      <!-- Náhledy vzorů -->
+      <div class="scroll-thin max-h-[420px] space-y-2.5 overflow-y-auto p-2.5">
+        <button
+          v-for="p in activePatterns"
+          :key="p.kind"
+          type="button"
+          :title="p.name"
+          :aria-label="`Přidat vzor: ${p.name}`"
+          class="group relative block w-full overflow-hidden rounded-lg border border-steel-200 bg-white outline-none transition-all hover:border-brand-400 hover:shadow-md"
+          @click="addPattern(p.kind)"
+        >
+          <!-- Zmenšený náhled (zoom) -->
+          <div class="pointer-events-none" :style="{ zoom: 0.35 }">
+            <div class="w-[660px] bg-white p-5">
+              <GraphicPattern :kind="p.kind" />
             </div>
           </div>
-        </PopoverContent>
-      </PopoverPortal>
-    </PopoverRoot>
+          <!-- Overlay při najetí -->
+          <div
+            class="absolute inset-0 grid place-items-center bg-brand-500/0 opacity-0 transition-all group-hover:bg-brand-500/10 group-hover:opacity-100"
+          >
+            <span class="inline-flex items-center gap-1 rounded-md bg-brand-500 px-2.5 py-1 text-[11.5px] font-600 text-white shadow">
+              <Icon name="plus" :size="13" /> {{ p.name }}
+            </span>
+          </div>
+        </button>
+      </div>
+    </div>
   </div>
 </template>

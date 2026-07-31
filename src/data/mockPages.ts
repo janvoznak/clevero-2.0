@@ -101,78 +101,86 @@ export const COOKIE_CATEGORIES = [
   { value: 'preferences', label: 'Preferenční' },
 ]
 
-/* ---------- Content builder — bloky obsahu (prototyp, vizuální zástupka) ---------- */
+/* ---------- Content builder — grafické vzory (prototyp, vizuální zástupka) ----------
+   Stránka se skládá z hotových „grafických vzorů" (jako ContentBuilder.js).
+   Vzor je vizuální šablona úseku stránky (hero, odstavec, obrázek, CTA…),
+   `kind` řídí náhled. Reálný obsah vzoru vyplní editor — tady jen zástupka. */
 export interface ContentBlock {
   id: string
-  type: string
+  /** Druh grafického vzoru (řídí náhled). */
+  kind: string
+}
+export interface PatternDef {
+  kind: string
   name: string
 }
-export interface BlockDef {
-  type: string
-  name: string
-}
-export const CONTENT_BLOCK_GROUPS: { category: string; blocks: BlockDef[] }[] = [
+export const GRAPHIC_PATTERN_GROUPS: { category: string; patterns: PatternDef[] }[] = [
   {
     category: 'Základní',
-    blocks: [
-      { type: 'heading', name: 'Nadpis' },
-      { type: 'text', name: 'Text' },
-      { type: 'image', name: 'Obrázek' },
-      { type: 'button', name: 'Tlačítko' },
-      { type: 'divider', name: 'Oddělovač' },
+    patterns: [
+      { kind: 'hero', name: 'Úvodní nadpis' },
+      { kind: 'paragraph', name: 'Odstavec textu' },
+      { kind: 'h1-text', name: 'Nadpis 1 + text' },
+      { kind: 'h2-text', name: 'Nadpis 2 + text' },
+      { kind: 'image', name: 'Obrázek' },
+      { kind: 'about', name: 'O nás' },
+      { kind: 'two-col', name: 'Dva sloupce textu' },
     ],
   },
   {
     category: 'Článek',
-    blocks: [
-      { type: 'perex', name: 'Perex' },
-      { type: 'text-image', name: 'Text s obrázkem' },
-      { type: 'quote', name: 'Citace' },
+    patterns: [
+      { kind: 'lead', name: 'Perex' },
+      { kind: 'text-image', name: 'Text s obrázkem' },
+      { kind: 'quote', name: 'Citace' },
+      { kind: 'two-col', name: 'Dva sloupce textu' },
     ],
   },
   {
     category: 'Nadpis',
-    blocks: [
-      { type: 'heading', name: 'Nadpis (H1)' },
-      { type: 'subheading', name: 'Mezinadpis (H2)' },
+    patterns: [
+      { kind: 'hero', name: 'Velký nadpis' },
+      { kind: 'h1-text', name: 'Nadpis 1' },
+      { kind: 'h2-text', name: 'Nadpis 2' },
     ],
   },
   {
     category: 'Tlačítka',
-    blocks: [
-      { type: 'button', name: 'Tlačítko' },
-      { type: 'button-group', name: 'Skupina tlačítek' },
-      { type: 'cta', name: 'CTA banner' },
+    patterns: [
+      { kind: 'button', name: 'Tlačítko' },
+      { kind: 'button-pair', name: 'Dvě tlačítka' },
+      { kind: 'cta', name: 'CTA banner' },
     ],
   },
   {
     category: 'Fotky',
-    blocks: [
-      { type: 'image', name: 'Obrázek' },
-      { type: 'gallery', name: 'Galerie' },
-      { type: 'image-wide', name: 'Obrázek na šířku' },
+    patterns: [
+      { kind: 'image', name: 'Obrázek' },
+      { kind: 'gallery', name: 'Galerie' },
+      { kind: 'image-wide', name: 'Obrázek na šířku' },
     ],
   },
   {
     category: 'Profil',
-    blocks: [
-      { type: 'profile', name: 'Profil / tým' },
-      { type: 'reference', name: 'Reference' },
+    patterns: [
+      { kind: 'team', name: 'Tým' },
+      { kind: 'testimonial', name: 'Reference' },
     ],
   },
   {
     category: 'Kontakt',
-    blocks: [
-      { type: 'contact', name: 'Kontaktní blok' },
-      { type: 'map', name: 'Mapa' },
-      { type: 'hours', name: 'Otevírací doba' },
+    patterns: [
+      { kind: 'contact', name: 'Kontaktní údaje' },
+      { kind: 'map', name: 'Mapa' },
+      { kind: 'hours', name: 'Otevírací doba' },
     ],
   },
   {
     category: 'Více',
-    blocks: [
-      { type: 'video', name: 'Video' },
-      { type: 'faq', name: 'FAQ / akordeon' },
+    patterns: [
+      { kind: 'video', name: 'Video' },
+      { kind: 'faq', name: 'FAQ / akordeon' },
+      { kind: 'divider', name: 'Oddělovač' },
     ],
   },
 ]
@@ -337,11 +345,11 @@ const RAW: RawPage[] = [
     perex: { cs: 'Dolní Vítkovice — národní kulturní památka a živé centrum kultury.' },
     text: { cs: '<p>Areál Dolních Vítkovic patří k unikátním průmyslovým památkám Evropy.</p>' },
     contentBlocks: [
-      { id: 'cb-onas-1', type: 'heading', name: 'Nadpis' },
-      { id: 'cb-onas-2', type: 'perex', name: 'Perex' },
-      { id: 'cb-onas-3', type: 'text-image', name: 'Text s obrázkem' },
-      { id: 'cb-onas-4', type: 'gallery', name: 'Galerie' },
-      { id: 'cb-onas-5', type: 'cta', name: 'CTA banner' },
+      { id: 'cb-onas-1', kind: 'hero' },
+      { id: 'cb-onas-2', kind: 'lead' },
+      { id: 'cb-onas-3', kind: 'text-image' },
+      { id: 'cb-onas-4', kind: 'gallery' },
+      { id: 'cb-onas-5', kind: 'cta' },
     ],
     allowMenu: true,
     allowFooter: '1',
