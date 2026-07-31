@@ -1,14 +1,16 @@
 <script setup lang="ts">
 /**
  * Lišta přidružených stránek (prototyp — přepínač stránek ve skupině).
- * Skupina = kořenová stránka + její přímé podstránky (vlastní obsah)
- * + odkazy na existující stránky (↗). Klik na záložku přepne editaci
- * na danou stránku (její vlastní nadpis/obsah). Přidávání, mazání a
- * změna pořadí přímo na liště.
+ * Hlavní (kořenová) stránka je na samostatném řádku nahoře; pod ní jsou
+ * podstránky s vlastním obsahem + externí odkazy (↗ otevře nové okno).
+ * Popisky respektují jazykový přepínač editoru (prop `lang`). Klik na
+ * podstránku přepne editaci; přidávání, editace, mazání a řazení na liště.
  */
 import { computed, ref } from 'vue'
 import { PopoverRoot, PopoverTrigger, PopoverPortal, PopoverContent } from 'reka-ui'
 import Icon from '@/components/ui/Icon.vue'
+import { LANGS } from '@/data/types'
+import type { LangCode, ML } from '@/data/types'
 import {
   MOCK_PAGES,
   pageGroup,
@@ -16,22 +18,28 @@ import {
   removePage,
   setChildOrder,
   addAssociatedLink,
+  updateAssociatedLink,
   removeAssociatedLink,
-  slugPath,
 } from '@/data/mockPages'
-import type { PageItem } from '@/data/mockPages'
+import type { PageItem, AssociatedLink } from '@/data/mockPages'
 
-const props = defineProps<{ currentId: string }>()
+const props = defineProps<{ currentId: string; lang: LangCode }>()
 const emit = defineEmits<{ navigate: [id: string] }>()
 
 const group = pageGroup(MOCK_PAGES, props.currentId)
 const root = group.root
 const members = ref<PageItem[]>(group.members)
-const links = ref<PageItem[]>(group.links)
+const links = ref<AssociatedLink[]>(group.links)
 const children = computed(() => members.value.slice(1))
 
+function emptyML(): ML {
+  return LANGS.reduce((acc, l) => ({ ...acc, [l.code]: '' }), {} as ML)
+}
 function pageTitle(p: PageItem) {
-  return p.title.cs || 'Bez názvu'
+  return p.title[props.lang] || p.title.cs || 'Bez názvu'
+}
+function linkLabelText(l: AssociatedLink) {
+  return l.label[props.lang] || l.label.cs || 'Bez popisku'
 }
 function isActive(p: PageItem) {
   return p.id === props.currentId
@@ -40,19 +48,7 @@ function go(id: string) {
   if (id !== props.currentId) emit('navigate', id)
 }
 
-/* ---------- Přidání / odebrání ---------- */
-const addOpen = ref(false)
-const search = ref('')
-const groupIds = computed(
-  () => new Set([...members.value.map((m) => m.id), ...links.value.map((l) => l.id)]),
-)
-const candidates = computed(() => {
-  const q = search.value.trim().toLowerCase()
-  return MOCK_PAGES.filter(
-    (p) => !groupIds.value.has(p.id) && pageTitle(p).toLowerCase().includes(q),
-  )
-})
-
+/* ---------- Podstránky (vlastní obsah) ---------- */
 function addChild() {
   const page = createChildPage(MOCK_PAGES, root.id)
   addOpen.value = false
@@ -62,21 +58,59 @@ function removeChild(id: string) {
   const wasActive = id === props.currentId
   removePage(MOCK_PAGES, id)
   members.value = members.value.filter((m) => m.id !== id)
-  // Pokud jsme smazali právě editovanou stránku, přejdeme na kořen skupiny.
   if (wasActive) emit('navigate', root.id)
 }
-function linkExisting(p: PageItem) {
-  addAssociatedLink(root, p.id)
-  links.value = [...links.value, p]
-  search.value = ''
+
+/* ---------- Externí odkazy ---------- */
+const addOpen = ref(false)
+const newLabel = ref('')
+const newUrl = ref('')
+const newValid = computed(() => newLabel.value.trim().length > 0 && newUrl.value.trim().length > 0)
+
+function normalizeUrl(u: string) {
+  const url = u.trim()
+  return /^https?:\/\//i.test(url) ? url : 'https://' + url
+}
+function addExternalLink() {
+  if (!newValid.value) return
+  const label = emptyML()
+  label[props.lang] = newLabel.value.trim()
+  const link = addAssociatedLink(root, label, normalizeUrl(newUrl.value))
+  links.value = [...links.value, link]
+  newLabel.value = ''
+  newUrl.value = ''
   addOpen.value = false
 }
 function unlink(id: string) {
   removeAssociatedLink(root, id)
   links.value = links.value.filter((l) => l.id !== id)
 }
+function openLink(url: string) {
+  window.open(url, '_blank', 'noopener')
+}
 
-/* ---------- Reorder potomků (drag & drop) ---------- */
+/* ---------- Editace odkazu (popisek pro aktuální jazyk + URL) ---------- */
+const editId = ref<string | null>(null)
+const editLabel = ref('')
+const editUrl = ref('')
+function openEdit(l: AssociatedLink) {
+  editId.value = l.id
+  editLabel.value = l.label[props.lang] || ''
+  editUrl.value = l.url
+}
+function setEditOpen(l: AssociatedLink, open: boolean) {
+  if (open) openEdit(l)
+  else if (editId.value === l.id) editId.value = null
+}
+function saveEdit(l: AssociatedLink) {
+  const label: ML = { ...l.label, [props.lang]: editLabel.value.trim() }
+  const patch = { label, url: normalizeUrl(editUrl.value) }
+  updateAssociatedLink(root, l.id, patch)
+  links.value = links.value.map((x) => (x.id === l.id ? { ...x, ...patch } : x))
+  editId.value = null
+}
+
+/* ---------- Reorder podstránek (drag & drop) ---------- */
 const dragId = ref<string | null>(null)
 const overId = ref<string | null>(null)
 function onDragStart(id: string) {
@@ -102,6 +136,8 @@ function resetDnd() {
   dragId.value = null
   overId.value = null
 }
+
+const langTag = computed(() => props.lang.toUpperCase())
 </script>
 
 <template>
@@ -114,147 +150,211 @@ function resetDnd() {
       <span class="text-[11px] text-steel-400">Klik přepne editaci · přetažením změníte pořadí</span>
     </div>
 
-    <div class="flex flex-wrap items-center gap-1.5 p-2.5">
-      <!-- Kořenová stránka (vlastník skupiny) -->
-      <button
-        type="button"
-        class="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[13px] font-600 outline-none transition-colors"
-        :class="isActive(members[0])
-          ? 'border-brand-500 bg-brand-500 text-white'
-          : 'border-steel-200 bg-steel-50 text-graphite-700 hover:bg-steel-100'"
-        @click="go(members[0].id)"
-      >
-        <Icon name="home" :size="14" :class="isActive(members[0]) ? 'text-white/90' : 'text-steel-400'" />
-        {{ pageTitle(members[0]) }}
-      </button>
-
-      <!-- Podstránky (vlastní obsah) — přetažitelné -->
-      <div
-        v-for="c in children"
-        :key="c.id"
-        draggable="true"
-        class="group inline-flex items-center rounded-md border transition-all"
-        :class="[
-          isActive(c) ? 'border-brand-500 bg-brand-500 text-white' : 'border-steel-200 bg-steel-50 text-graphite-700 hover:bg-steel-100',
-          overId === c.id && dragId !== c.id ? 'ring-2 ring-brand-400/50' : '',
-          dragId === c.id ? 'opacity-40' : '',
-        ]"
-        @dragstart="onDragStart(c.id)"
-        @dragover.prevent="onDragOver(c.id)"
-        @drop.prevent="onDrop(c.id)"
-        @dragend="resetDnd"
-      >
+    <div class="p-3">
+      <!-- Hlavní (kořenová) stránka -->
+      <div class="mb-2.5 flex items-center gap-2.5">
+        <span class="w-[86px] shrink-0 text-[10.5px] font-700 uppercase tracking-wide text-steel-400">
+          Hlavní stránka
+        </span>
         <button
           type="button"
-          class="inline-flex cursor-grab items-center gap-1.5 py-1.5 pl-3 pr-1.5 text-[13px] font-600 outline-none"
-          @click="go(c.id)"
+          class="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[13px] font-600 outline-none transition-colors"
+          :class="isActive(members[0])
+            ? 'border-brand-500 bg-brand-500 text-white'
+            : 'border-steel-200 bg-steel-50 text-graphite-700 hover:bg-steel-100'"
+          @click="go(members[0].id)"
         >
-          <Icon name="grip" :size="13" :class="isActive(c) ? 'text-white/70' : 'text-steel-400'" />
-          {{ pageTitle(c) }}
-        </button>
-        <button
-          type="button"
-          class="mr-1 grid h-5 w-5 shrink-0 place-items-center rounded outline-none transition-colors"
-          :class="isActive(c) ? 'text-white/70 hover:bg-white/20 hover:text-white' : 'text-steel-400 hover:bg-danger-500/10 hover:text-danger-500'"
-          title="Odebrat stránku"
-          @click.stop="removeChild(c.id)"
-        >
-          <Icon name="x" :size="13" />
+          <Icon name="home" :size="14" :class="isActive(members[0]) ? 'text-white/90' : 'text-steel-400'" />
+          {{ pageTitle(members[0]) }}
         </button>
       </div>
 
-      <!-- Oddělovač před odkazy -->
-      <span v-if="links.length" class="mx-1 h-5 w-px bg-steel-200" />
-
-      <!-- Odkazy na existující stránky (↗) -->
-      <div
-        v-for="l in links"
-        :key="l.id"
-        class="group inline-flex items-center rounded-md border border-dashed transition-colors"
-        :class="isActive(l) ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-steel-300 bg-white text-graphite-700 hover:bg-steel-50'"
-      >
-        <button
-          type="button"
-          class="inline-flex items-center gap-1.5 py-1.5 pl-3 pr-1.5 text-[13px] font-600 outline-none"
-          @click="go(l.id)"
-        >
-          {{ pageTitle(l) }}
-          <Icon name="link" :size="12" class="text-steel-400" />
-        </button>
-        <button
-          type="button"
-          class="mr-1 grid h-5 w-5 shrink-0 place-items-center rounded text-steel-400 outline-none transition-colors hover:bg-danger-500/10 hover:text-danger-500"
-          title="Zrušit odkaz"
-          @click.stop="unlink(l.id)"
-        >
-          <Icon name="x" :size="13" />
-        </button>
-      </div>
-
-      <!-- Přidat přidruženou stránku -->
-      <PopoverRoot v-model:open="addOpen">
-        <PopoverTrigger as-child>
-          <button
-            type="button"
-            class="grid h-8 w-8 place-items-center rounded-md border border-dashed border-steel-300 text-steel-500 outline-none transition-colors hover:border-brand-400 hover:bg-brand-50/40 hover:text-brand-600 data-[state=open]:border-brand-500 data-[state=open]:text-brand-600"
-            title="Přidat přidruženou stránku"
-          >
-            <Icon name="plus" :size="16" />
-          </button>
-        </PopoverTrigger>
-        <PopoverPortal>
-          <PopoverContent
-            align="start"
-            :side-offset="6"
-            class="z-50 w-72 rounded-xl border border-steel-200 bg-white p-2 shadow-2xl"
+      <!-- Podstránky + externí odkazy -->
+      <div class="flex items-start gap-2.5">
+        <span class="mt-2 w-[86px] shrink-0 text-[10.5px] font-700 uppercase tracking-wide text-steel-400">
+          Podstránky
+        </span>
+        <div class="flex flex-1 flex-wrap items-center gap-1.5 border-l-2 border-steel-100 pl-3">
+          <!-- Podstránky (vlastní obsah) — přetažitelné -->
+          <div
+            v-for="c in children"
+            :key="c.id"
+            draggable="true"
+            class="group inline-flex items-center rounded-md border transition-all"
+            :class="[
+              isActive(c) ? 'border-brand-500 bg-brand-500 text-white' : 'border-steel-200 bg-steel-50 text-graphite-700 hover:bg-steel-100',
+              overId === c.id && dragId !== c.id ? 'ring-2 ring-brand-400/50' : '',
+              dragId === c.id ? 'opacity-40' : '',
+            ]"
+            @dragstart="onDragStart(c.id)"
+            @dragover.prevent="onDragOver(c.id)"
+            @drop.prevent="onDrop(c.id)"
+            @dragend="resetDnd"
           >
             <button
               type="button"
-              class="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left outline-none transition-colors hover:bg-steel-100"
-              @click="addChild"
+              class="inline-flex cursor-grab items-center gap-1.5 py-1.5 pl-3 pr-1.5 text-[13px] font-600 outline-none"
+              @click="go(c.id)"
             >
-              <span class="grid h-7 w-7 shrink-0 place-items-center rounded bg-brand-50 text-brand-500">
-                <Icon name="plus" :size="15" />
-              </span>
-              <span class="flex-1">
-                <span class="block text-[13px] font-600 text-graphite-800">Nová podstránka</span>
-                <span class="block text-[11px] text-steel-500">Vlastní obsah přes grafické vzory</span>
-              </span>
+              <Icon name="grip" :size="13" :class="isActive(c) ? 'text-white/70' : 'text-steel-400'" />
+              {{ pageTitle(c) }}
+            </button>
+            <button
+              type="button"
+              class="mr-1 grid h-5 w-5 shrink-0 place-items-center rounded outline-none transition-colors"
+              :class="isActive(c) ? 'text-white/70 hover:bg-white/20 hover:text-white' : 'text-steel-400 hover:bg-danger-500/10 hover:text-danger-500'"
+              title="Odebrat podstránku"
+              @click.stop="removeChild(c.id)"
+            >
+              <Icon name="x" :size="13" />
+            </button>
+          </div>
+
+          <!-- Externí odkazy (↗ otevře nové okno) -->
+          <div
+            v-for="l in links"
+            :key="l.id"
+            class="group inline-flex items-center rounded-md border border-dashed border-steel-300 bg-white text-graphite-700 transition-colors hover:bg-steel-50"
+          >
+            <button
+              type="button"
+              class="inline-flex items-center gap-1.5 py-1.5 pl-3 pr-1 text-[13px] font-600 outline-none"
+              :class="l.label[props.lang] ? '' : 'italic text-steel-400'"
+              :title="l.url"
+              @click="openLink(l.url)"
+            >
+              <Icon name="globe" :size="13" class="text-steel-400" />
+              {{ linkLabelText(l) }}
+              <span class="text-steel-400">↗</span>
             </button>
 
-            <div class="my-1.5 border-t border-steel-100" />
-            <p class="px-1 pb-1.5 text-[11px] font-600 text-steel-500">Odkaz na existující stránku</p>
-            <div class="relative mb-1.5">
-              <Icon name="search" :size="14" class="absolute left-2.5 top-1/2 -translate-y-1/2 text-steel-400" />
-              <input
-                v-model="search"
-                type="text"
-                placeholder="Hledat stránku…"
-                class="h-8 w-full rounded-md border border-steel-200 pl-8 pr-2 text-[13px] focus:border-brand-500 focus:outline-none"
-              />
-            </div>
-            <div class="scroll-thin max-h-48 overflow-y-auto">
+            <!-- Editace odkazu -->
+            <PopoverRoot :open="editId === l.id" @update:open="(o) => setEditOpen(l, o)">
+              <PopoverTrigger as-child>
+                <button
+                  type="button"
+                  class="grid h-5 w-5 shrink-0 place-items-center rounded text-steel-400 outline-none transition-colors hover:bg-steel-200 hover:text-graphite-700"
+                  title="Upravit odkaz"
+                >
+                  <Icon name="edit" :size="12" />
+                </button>
+              </PopoverTrigger>
+              <PopoverPortal>
+                <PopoverContent
+                  align="end"
+                  :side-offset="6"
+                  class="z-50 w-64 rounded-xl border border-steel-200 bg-white p-2.5 shadow-2xl"
+                >
+                  <label class="mb-1 flex items-center justify-between">
+                    <span class="text-[12px] font-600 text-graphite-800">Popisek</span>
+                    <span class="field-tag">{{ langTag }}</span>
+                  </label>
+                  <input
+                    v-model="editLabel"
+                    type="text"
+                    :placeholder="`Popisek (${langTag})`"
+                    class="mb-2 h-8 w-full rounded-md border border-steel-200 px-2.5 text-[13px] focus:border-brand-500 focus:outline-none"
+                  />
+                  <label class="mb-1 block text-[12px] font-600 text-graphite-800">Adresa (URL)</label>
+                  <input
+                    v-model="editUrl"
+                    type="text"
+                    placeholder="https://…"
+                    class="mb-2.5 h-8 w-full rounded-md border border-steel-200 px-2.5 text-[13px] focus:border-brand-500 focus:outline-none"
+                    @keyup.enter="saveEdit(l)"
+                  />
+                  <div class="flex items-center gap-2">
+                    <button
+                      type="button"
+                      class="flex flex-1 items-center justify-center gap-1.5 rounded-md bg-brand-500 py-1.5 text-[12.5px] font-600 text-white outline-none hover:bg-brand-600"
+                      @click="saveEdit(l)"
+                    >
+                      <Icon name="check" :size="13" /> Uložit
+                    </button>
+                    <button
+                      type="button"
+                      class="grid h-8 w-8 place-items-center rounded-md border border-steel-200 text-steel-500 outline-none hover:bg-danger-500/10 hover:text-danger-500"
+                      title="Odebrat odkaz"
+                      @click="unlink(l.id); editId = null"
+                    >
+                      <Icon name="trash" :size="14" />
+                    </button>
+                  </div>
+                  <p class="mt-2 text-[10.5px] leading-relaxed text-steel-400">
+                    Popisek zadáváte pro každý jazyk zvlášť — přepněte jazyk nahoře.
+                  </p>
+                </PopoverContent>
+              </PopoverPortal>
+            </PopoverRoot>
+          </div>
+
+          <!-- Přidat -->
+          <PopoverRoot v-model:open="addOpen">
+            <PopoverTrigger as-child>
               <button
-                v-for="p in candidates"
-                :key="p.id"
                 type="button"
-                class="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left outline-none transition-colors hover:bg-steel-100"
-                @click="linkExisting(p)"
+                class="grid h-8 w-8 place-items-center rounded-md border border-dashed border-steel-300 text-steel-500 outline-none transition-colors hover:border-brand-400 hover:bg-brand-50/40 hover:text-brand-600 data-[state=open]:border-brand-500 data-[state=open]:text-brand-600"
+                title="Přidat podstránku nebo odkaz"
               >
-                <Icon name="subpage" :size="14" class="shrink-0 text-steel-400" />
-                <span class="min-w-0 flex-1">
-                  <span class="block truncate text-[13px] text-graphite-800">{{ pageTitle(p) }}</span>
-                  <span class="block truncate font-mono text-[10.5px] text-steel-400">{{ slugPath(MOCK_PAGES, p) }}</span>
-                </span>
-                <Icon name="link" :size="13" class="shrink-0 text-steel-300" />
+                <Icon name="plus" :size="16" />
               </button>
-              <p v-if="!candidates.length" class="px-2 py-3 text-center text-[12px] text-steel-400">
-                Žádná další stránka k odkazu.
-              </p>
-            </div>
-          </PopoverContent>
-        </PopoverPortal>
-      </PopoverRoot>
+            </PopoverTrigger>
+            <PopoverPortal>
+              <PopoverContent
+                align="start"
+                :side-offset="6"
+                class="z-50 w-72 rounded-xl border border-steel-200 bg-white p-2 shadow-2xl"
+              >
+                <button
+                  type="button"
+                  class="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left outline-none transition-colors hover:bg-steel-100"
+                  @click="addChild"
+                >
+                  <span class="grid h-7 w-7 shrink-0 place-items-center rounded bg-brand-50 text-brand-500">
+                    <Icon name="subpage" :size="15" />
+                  </span>
+                  <span class="flex-1">
+                    <span class="block text-[13px] font-600 text-graphite-800">Nová podstránka</span>
+                    <span class="block text-[11px] text-steel-500">Vlastní obsah přes grafické vzory</span>
+                  </span>
+                </button>
+
+                <div class="my-1.5 border-t border-steel-100" />
+                <p class="flex items-center justify-between px-1 pb-1.5">
+                  <span class="flex items-center gap-1.5 text-[11px] font-600 text-steel-500">
+                    <Icon name="globe" :size="13" class="text-steel-400" /> Odkaz na externí stránku
+                  </span>
+                  <span class="field-tag">{{ langTag }}</span>
+                </p>
+                <input
+                  v-model="newLabel"
+                  type="text"
+                  :placeholder="`Popisek (${langTag}) – např. Pro školy`"
+                  class="mb-1.5 h-8 w-full rounded-md border border-steel-200 px-2.5 text-[13px] focus:border-brand-500 focus:outline-none"
+                />
+                <input
+                  v-model="newUrl"
+                  type="text"
+                  placeholder="https://…"
+                  class="mb-2 h-8 w-full rounded-md border border-steel-200 px-2.5 text-[13px] focus:border-brand-500 focus:outline-none"
+                  @keyup.enter="addExternalLink"
+                />
+                <button
+                  type="button"
+                  :disabled="!newValid"
+                  class="flex w-full items-center justify-center gap-1.5 rounded-md bg-brand-500 py-2 text-[13px] font-600 text-white outline-none transition-colors hover:bg-brand-600 disabled:cursor-not-allowed disabled:bg-steel-200 disabled:text-steel-400"
+                  @click="addExternalLink"
+                >
+                  <Icon name="plus" :size="14" /> Přidat odkaz
+                </button>
+                <p class="mt-2 px-1 text-[10.5px] leading-relaxed text-steel-400">
+                  Popisek zadáváte pro každý jazyk zvlášť — přepněte jazyk nahoře a doplňte překlad.
+                </p>
+              </PopoverContent>
+            </PopoverPortal>
+          </PopoverRoot>
+        </div>
+      </div>
     </div>
   </div>
 </template>

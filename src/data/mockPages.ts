@@ -43,8 +43,8 @@ export interface PageItem {
   text: ML
   /** Skladba obsahu z bloků (content builder — prototyp). */
   contentBlocks: ContentBlock[]
-  /** Odkazy na existující stránky zobrazené jako přidružené záložky (↗). */
-  associatedLinks: string[]
+  /** Externí odkazy zobrazené jako přidružené záložky (↗ otevře v novém okně). */
+  associatedLinks: AssociatedLink[]
   allowMenu: boolean
   allowFooter: FooterCol
   allowHp: boolean
@@ -111,6 +111,13 @@ export interface ContentBlock {
   id: string
   /** Druh grafického vzoru (řídí náhled). */
   kind: string
+}
+/** Externí odkaz zobrazený jako přidružená záložka (otevře se v novém okně).
+    Popisek je vícejazyčný, URL je společná pro všechny mutace. */
+export interface AssociatedLink {
+  id: string
+  label: ML
+  url: string
 }
 export interface PatternDef {
   kind: string
@@ -315,7 +322,7 @@ const base = {
   perex: {} as MLInput,
   text: {} as MLInput,
   contentBlocks: [] as ContentBlock[],
-  associatedLinks: [] as string[],
+  associatedLinks: [] as AssociatedLink[],
   allowMenu: false,
   allowFooter: '0' as FooterCol,
   allowHp: false,
@@ -354,7 +361,13 @@ const RAW: RawPage[] = [
       { id: 'cb-onas-4', kind: 'gallery' },
       { id: 'cb-onas-5', kind: 'cta' },
     ],
-    associatedLinks: ['pg-skoly'],
+    associatedLinks: [
+      {
+        id: 'al-skoly',
+        label: { cs: 'Pro školy', en: 'For schools', de: 'Für Schulen', pl: 'Dla szkół' },
+        url: 'https://www.dolnivitkovice.cz/pro-skoly',
+      },
+    ],
     allowMenu: true,
     allowFooter: '1',
     priority: 1,
@@ -610,8 +623,8 @@ export interface PageGroup {
   root: PageItem
   /** Kořen + přímé potomky (řazeno dle priority); kořen je první. */
   members: PageItem[]
-  /** Stránky z root.associatedLinks (existující). */
-  links: PageItem[]
+  /** Externí odkazy z root.associatedLinks. */
+  links: AssociatedLink[]
 }
 export function pageGroup(pages: PageItem[], id: string): PageGroup {
   const byId = new Map(pages.map((p) => [p.id, p]))
@@ -619,10 +632,7 @@ export function pageGroup(pages: PageItem[], id: string): PageGroup {
   if (!self) return { root: blankPage({ id }), members: [], links: [] }
   const root = self.parentId && byId.has(self.parentId) ? byId.get(self.parentId)! : self
   const children = pages.filter((p) => p.parentId === root.id).sort((a, b) => a.priority - b.priority)
-  const links = (root.associatedLinks ?? [])
-    .map((lid) => byId.get(lid))
-    .filter((p): p is PageItem => !!p)
-  return { root, members: [root, ...children], links }
+  return { root, members: [root, ...children], links: [...(root.associatedLinks ?? [])] }
 }
 
 let pageSeq = 0
@@ -649,9 +659,6 @@ export function removePage(pages: PageItem[], id: string): void {
   for (const c of pages) if (c.parentId === id) c.parentId = page.parentId
   const i = pages.findIndex((p) => p.id === id)
   if (i >= 0) pages.splice(i, 1)
-  for (const p of pages) {
-    if (p.associatedLinks?.includes(id)) p.associatedLinks = p.associatedLinks.filter((l) => l !== id)
-  }
 }
 
 /** Nastaví pořadí potomků dle předaného pořadí id (priorita = index). */
@@ -662,9 +669,16 @@ export function setChildOrder(pages: PageItem[], orderedIds: string[]): void {
   })
 }
 
-export function addAssociatedLink(root: PageItem, pageId: string): void {
-  if (!root.associatedLinks.includes(pageId)) root.associatedLinks = [...root.associatedLinks, pageId]
+let linkSeq = 0
+export function addAssociatedLink(root: PageItem, label: ML, url: string): AssociatedLink {
+  linkSeq += 1
+  const link: AssociatedLink = { id: `al-new-${linkSeq}`, label, url }
+  root.associatedLinks = [...root.associatedLinks, link]
+  return link
 }
-export function removeAssociatedLink(root: PageItem, pageId: string): void {
-  root.associatedLinks = root.associatedLinks.filter((l) => l !== pageId)
+export function updateAssociatedLink(root: PageItem, id: string, patch: Partial<AssociatedLink>): void {
+  root.associatedLinks = root.associatedLinks.map((l) => (l.id === id ? { ...l, ...patch } : l))
+}
+export function removeAssociatedLink(root: PageItem, linkId: string): void {
+  root.associatedLinks = root.associatedLinks.filter((l) => l.id !== linkId)
 }
