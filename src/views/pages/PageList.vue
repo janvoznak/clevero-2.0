@@ -82,6 +82,7 @@ const displayItems = computed<DisplayItem[]>(() => {
   for (const sec of PAGE_SECTIONS) {
     const secPages = rows.value.filter((p) => p.section === sec.key)
     out.push({ kind: 'section', section: sec, count: secPages.length })
+    if (collapsedSections.value.has(sec.key)) continue
     for (const row of treeRows(secPages, collapsed.value)) out.push({ kind: 'row', row })
   }
   return out
@@ -98,6 +99,15 @@ function toggleCollapse(id: string) {
   if (next.has(id)) next.delete(id)
   else next.add(id)
   collapsed.value = next
+}
+
+/* Sbalení celých sekcí (Menu / Ostatní / Klientská). */
+const collapsedSections = ref<Set<PageSection>>(new Set())
+function toggleSection(key: PageSection) {
+  const next = new Set(collapsedSections.value)
+  if (next.has(key)) next.delete(key)
+  else next.add(key)
+  collapsedSections.value = next
 }
 
 function setEnabled(p: PageItem, v: boolean) {
@@ -386,8 +396,18 @@ function footerLabel(p: PageItem): string {
           <template v-for="item in displayItems" :key="item.kind === 'section' ? 'sec-' + item.section.key : item.row.page.id">
             <!-- Hlavička sekce -->
             <tr v-if="item.kind === 'section'" class="border-b border-steel-200 bg-steel-50">
-              <td colspan="6" class="px-4 py-2.5">
-                <div class="flex flex-wrap items-center gap-2">
+              <td colspan="6" class="p-0">
+                <button
+                  type="button"
+                  class="flex w-full flex-wrap items-center gap-2 px-4 py-2.5 text-left outline-none transition-colors hover:bg-steel-100 focus-visible:bg-steel-100"
+                  :aria-expanded="!collapsedSections.has(item.section.key)"
+                  @click="toggleSection(item.section.key)"
+                >
+                  <Icon
+                    :name="collapsedSections.has(item.section.key) ? 'chevronRight' : 'chevronDown'"
+                    :size="15"
+                    class="shrink-0 text-steel-500"
+                  />
                   <span class="grid h-6 w-6 place-items-center rounded border border-steel-200 bg-white text-steel-500">
                     <Icon :name="item.section.icon" :size="14" />
                   </span>
@@ -395,7 +415,8 @@ function footerLabel(p: PageItem): string {
                   <span class="rounded-full bg-steel-200 px-1.5 py-0.5 font-mono text-[10.5px] text-steel-600">{{ item.count }}</span>
                   <span class="hidden text-[12px] text-steel-500 sm:inline">· {{ item.section.desc }}</span>
                   <span v-if="item.count === 0" class="text-[12px] italic text-steel-400">— žádné stránky</span>
-                </div>
+                  <span v-else-if="collapsedSections.has(item.section.key)" class="text-[12px] text-steel-400">— sbaleno</span>
+                </button>
               </td>
             </tr>
 
