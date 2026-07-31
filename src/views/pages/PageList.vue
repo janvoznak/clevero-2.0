@@ -262,10 +262,6 @@ function onRowAction(key: string, p: PageItem) {
   else if (key === 'delete') askDelete(p)
   // 'preview' — prototyp: náhled na webu je mrtvý odkaz
 }
-
-function footerLabel(p: PageItem): string {
-  return `Patička ${p.allowFooter}`
-}
 </script>
 
 <template>
@@ -386,7 +382,6 @@ function footerLabel(p: PageItem): string {
               </CheckboxRoot>
             </th>
             <th class="px-2 py-3 font-600">Název stránky</th>
-            <th class="px-2 py-3 font-600">Umístění</th>
             <th class="px-2 py-3 font-600">Jazykové mutace</th>
             <th class="w-24 px-2 py-3 font-600">Stav</th>
             <th class="w-16 px-3 py-3 text-right font-600">Akce</th>
@@ -396,7 +391,7 @@ function footerLabel(p: PageItem): string {
           <template v-for="item in displayItems" :key="item.kind === 'section' ? 'sec-' + item.section.key : item.row.page.id">
             <!-- Hlavička sekce -->
             <tr v-if="item.kind === 'section'" class="border-b border-steel-200 bg-steel-50">
-              <td colspan="6" class="p-0">
+              <td colspan="5" class="p-0">
                 <button
                   type="button"
                   class="flex w-full flex-wrap items-center gap-2 px-4 py-2.5 text-left outline-none transition-colors hover:bg-steel-100 focus-visible:bg-steel-100"
@@ -473,20 +468,6 @@ function footerLabel(p: PageItem): string {
               </td>
               <td class="px-2 py-3 align-middle">
                 <div class="flex flex-wrap items-center gap-1">
-                  <span v-if="item.row.page.allowMenu" class="inline-flex items-center gap-1 rounded-full bg-steel-100 px-2 py-0.5 text-[10.5px] font-600 text-steel-600">
-                    <Icon name="reference" :size="11" /> Menu
-                  </span>
-                  <span v-if="item.row.page.allowFooter !== '0'" class="inline-flex items-center gap-1 rounded-full bg-steel-100 px-2 py-0.5 text-[10.5px] font-600 text-steel-600">
-                    <Icon name="layout" :size="11" /> {{ footerLabel(item.row.page) }}
-                  </span>
-                  <span v-if="item.row.page.allowHp" class="inline-flex items-center gap-1 rounded-full bg-steel-100 px-2 py-0.5 text-[10.5px] font-600 text-steel-600">
-                    <Icon name="home" :size="11" /> HP
-                  </span>
-                  <span v-if="!item.row.page.allowMenu && item.row.page.allowFooter === '0' && !item.row.page.allowHp" class="text-[11px] text-steel-400">—</span>
-                </div>
-              </td>
-              <td class="px-2 py-3 align-middle">
-                <div class="flex flex-wrap items-center gap-1">
                   <span
                     v-for="l in LANGS"
                     :key="l.code"
@@ -515,7 +496,7 @@ function footerLabel(p: PageItem): string {
 
           <!-- Empty state (jen při hledání bez výsledku) -->
           <tr v-if="hasFilters && visibleRowList.length === 0">
-            <td colspan="6" class="px-4 py-16 text-center">
+            <td colspan="5" class="px-4 py-16 text-center">
               <div class="mx-auto grid h-12 w-12 place-items-center rounded-xl bg-steel-100 text-steel-400">
                 <Icon name="page" :size="24" />
               </div>
