@@ -26,7 +26,6 @@ import {
   MOCK_PAGES,
   treeRows,
   hasChildren,
-  ancestorDisabled,
   ancestors,
   PAGE_SECTIONS,
   type PageItem,
@@ -499,9 +498,6 @@ function onRowAction(key: string, p: PageItem) {
                     <span class="min-w-0">
                       <span class="block truncate text-[14px] font-600 text-graphite-900 group-hover:text-brand-600">
                         {{ item.row.page.title.cs || 'Bez názvu' }}
-                      </span>
-                      <span v-if="ancestorDisabled(rows, item.row.page.id)" class="text-[10.5px] font-500 text-amber-600">
-                        Skryto — neaktivní rodič
                       </span>
                     </span>
                   </button>
