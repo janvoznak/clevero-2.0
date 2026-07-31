@@ -23,6 +23,7 @@ import {
   MOCK_PAGES,
   pageState,
   PAGE_STATE_META,
+  PAGE_SECTIONS,
   slugPath,
   parentOptions,
   DYNAMIC_FORM_OPTIONS,
@@ -100,7 +101,14 @@ const contactValue = computed({
   get: () => form.contactForm,
   set: (v: string) => (form.contactForm = v as ContactFormType),
 })
-const parentOpts = computed(() => parentOptions(MOCK_PAGES, props.id))
+/** Nadřazená stránka jen z téže sekce, do které stránka patří. */
+const parentOpts = computed(() =>
+  parentOptions(
+    MOCK_PAGES.filter((p) => p.section === form.section),
+    props.id,
+  ),
+)
+const sectionLabel = computed(() => PAGE_SECTIONS.find((s) => s.key === form.section)?.label ?? '')
 
 function langFilled(code: LangCode): boolean {
   return form.title[code].trim().length > 0
@@ -334,6 +342,9 @@ function translateAll() {
                         <span class="field-tag">page-entityParentId</span>
                       </label>
                       <AppSelect v-model="parentValue" :options="parentOpts" />
+                      <p class="mt-1 text-[11px] text-steel-400">
+                        Na výběr jsou pouze stránky ze sekce <span class="font-600 text-steel-500">{{ sectionLabel }}</span>.
+                      </p>
                     </div>
                     <div class="flex items-center justify-between rounded-md border border-steel-200 bg-white px-3 py-2.5 sm:col-span-2">
                       <AppSwitch v-model="form.enabled" label="Zobrazovat (aktivní)" hint="Hlavní vypínač viditelnosti stránky na webu" aria-label="Zobrazovat" />
