@@ -112,10 +112,11 @@ export interface ContentBlock {
   /** Druh grafického vzoru (řídí náhled). */
   kind: string
 }
-/** Externí odkaz zobrazený jako přidružená záložka (otevře se v novém okně). */
+/** Externí odkaz zobrazený jako přidružená záložka (otevře se v novém okně).
+    Popisek je vícejazyčný, URL je společná pro všechny mutace. */
 export interface AssociatedLink {
   id: string
-  label: string
+  label: ML
   url: string
 }
 export interface PatternDef {
@@ -361,7 +362,11 @@ const RAW: RawPage[] = [
       { id: 'cb-onas-5', kind: 'cta' },
     ],
     associatedLinks: [
-      { id: 'al-skoly', label: 'Pro školy', url: 'https://www.dolnivitkovice.cz/pro-skoly' },
+      {
+        id: 'al-skoly',
+        label: { cs: 'Pro školy', en: 'For schools', de: 'Für Schulen', pl: 'Dla szkół' },
+        url: 'https://www.dolnivitkovice.cz/pro-skoly',
+      },
     ],
     allowMenu: true,
     allowFooter: '1',
@@ -665,11 +670,14 @@ export function setChildOrder(pages: PageItem[], orderedIds: string[]): void {
 }
 
 let linkSeq = 0
-export function addAssociatedLink(root: PageItem, label: string, url: string): AssociatedLink {
+export function addAssociatedLink(root: PageItem, label: ML, url: string): AssociatedLink {
   linkSeq += 1
   const link: AssociatedLink = { id: `al-new-${linkSeq}`, label, url }
   root.associatedLinks = [...root.associatedLinks, link]
   return link
+}
+export function updateAssociatedLink(root: PageItem, id: string, patch: Partial<AssociatedLink>): void {
+  root.associatedLinks = root.associatedLinks.map((l) => (l.id === id ? { ...l, ...patch } : l))
 }
 export function removeAssociatedLink(root: PageItem, linkId: string): void {
   root.associatedLinks = root.associatedLinks.filter((l) => l.id !== linkId)

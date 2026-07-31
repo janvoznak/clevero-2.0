@@ -3,12 +3,14 @@
  * Lišta přidružených stránek (prototyp — přepínač stránek ve skupině).
  * Hlavní (kořenová) stránka je na samostatném řádku nahoře; pod ní jsou
  * podstránky s vlastním obsahem + externí odkazy (↗ otevře nové okno).
- * Klik na podstránku přepne editaci na danou stránku (její vlastní
- * nadpis / obsah / SEO). Přidávání, mazání a změna pořadí přímo na liště.
+ * Popisky respektují jazykový přepínač editoru (prop `lang`). Klik na
+ * podstránku přepne editaci; přidávání, editace, mazání a řazení na liště.
  */
 import { computed, ref } from 'vue'
 import { PopoverRoot, PopoverTrigger, PopoverPortal, PopoverContent } from 'reka-ui'
 import Icon from '@/components/ui/Icon.vue'
+import { LANGS } from '@/data/types'
+import type { LangCode, ML } from '@/data/types'
 import {
   MOCK_PAGES,
   pageGroup,
@@ -16,11 +18,12 @@ import {
   removePage,
   setChildOrder,
   addAssociatedLink,
+  updateAssociatedLink,
   removeAssociatedLink,
 } from '@/data/mockPages'
 import type { PageItem, AssociatedLink } from '@/data/mockPages'
 
-const props = defineProps<{ currentId: string }>()
+const props = defineProps<{ currentId: string; lang: LangCode }>()
 const emit = defineEmits<{ navigate: [id: string] }>()
 
 const group = pageGroup(MOCK_PAGES, props.currentId)
@@ -29,8 +32,14 @@ const members = ref<PageItem[]>(group.members)
 const links = ref<AssociatedLink[]>(group.links)
 const children = computed(() => members.value.slice(1))
 
+function emptyML(): ML {
+  return LANGS.reduce((acc, l) => ({ ...acc, [l.code]: '' }), {} as ML)
+}
 function pageTitle(p: PageItem) {
-  return p.title.cs || 'Bez názvu'
+  return p.title[props.lang] || p.title.cs || 'Bez názvu'
+}
+function linkLabelText(l: AssociatedLink) {
+  return l.label[props.lang] || l.label.cs || 'Bez popisku'
 }
 function isActive(p: PageItem) {
   return p.id === props.currentId
@@ -54,18 +63,22 @@ function removeChild(id: string) {
 
 /* ---------- Externí odkazy ---------- */
 const addOpen = ref(false)
-const linkLabel = ref('')
-const linkUrl = ref('')
-const linkValid = computed(() => linkLabel.value.trim().length > 0 && linkUrl.value.trim().length > 0)
+const newLabel = ref('')
+const newUrl = ref('')
+const newValid = computed(() => newLabel.value.trim().length > 0 && newUrl.value.trim().length > 0)
 
+function normalizeUrl(u: string) {
+  const url = u.trim()
+  return /^https?:\/\//i.test(url) ? url : 'https://' + url
+}
 function addExternalLink() {
-  if (!linkValid.value) return
-  let url = linkUrl.value.trim()
-  if (!/^https?:\/\//i.test(url)) url = 'https://' + url
-  const link = addAssociatedLink(root, linkLabel.value.trim(), url)
+  if (!newValid.value) return
+  const label = emptyML()
+  label[props.lang] = newLabel.value.trim()
+  const link = addAssociatedLink(root, label, normalizeUrl(newUrl.value))
   links.value = [...links.value, link]
-  linkLabel.value = ''
-  linkUrl.value = ''
+  newLabel.value = ''
+  newUrl.value = ''
   addOpen.value = false
 }
 function unlink(id: string) {
@@ -74,6 +87,27 @@ function unlink(id: string) {
 }
 function openLink(url: string) {
   window.open(url, '_blank', 'noopener')
+}
+
+/* ---------- Editace odkazu (popisek pro aktuální jazyk + URL) ---------- */
+const editId = ref<string | null>(null)
+const editLabel = ref('')
+const editUrl = ref('')
+function openEdit(l: AssociatedLink) {
+  editId.value = l.id
+  editLabel.value = l.label[props.lang] || ''
+  editUrl.value = l.url
+}
+function setEditOpen(l: AssociatedLink, open: boolean) {
+  if (open) openEdit(l)
+  else if (editId.value === l.id) editId.value = null
+}
+function saveEdit(l: AssociatedLink) {
+  const label: ML = { ...l.label, [props.lang]: editLabel.value.trim() }
+  const patch = { label, url: normalizeUrl(editUrl.value) }
+  updateAssociatedLink(root, l.id, patch)
+  links.value = links.value.map((x) => (x.id === l.id ? { ...x, ...patch } : x))
+  editId.value = null
 }
 
 /* ---------- Reorder podstránek (drag & drop) ---------- */
@@ -102,6 +136,8 @@ function resetDnd() {
   dragId.value = null
   overId.value = null
 }
+
+const langTag = computed(() => props.lang.toUpperCase())
 </script>
 
 <template>
@@ -182,22 +218,74 @@ function resetDnd() {
           >
             <button
               type="button"
-              class="inline-flex items-center gap-1.5 py-1.5 pl-3 pr-1.5 text-[13px] font-600 outline-none"
+              class="inline-flex items-center gap-1.5 py-1.5 pl-3 pr-1 text-[13px] font-600 outline-none"
+              :class="l.label[props.lang] ? '' : 'italic text-steel-400'"
               :title="l.url"
               @click="openLink(l.url)"
             >
               <Icon name="globe" :size="13" class="text-steel-400" />
-              {{ l.label }}
+              {{ linkLabelText(l) }}
               <span class="text-steel-400">↗</span>
             </button>
-            <button
-              type="button"
-              class="mr-1 grid h-5 w-5 shrink-0 place-items-center rounded text-steel-400 outline-none transition-colors hover:bg-danger-500/10 hover:text-danger-500"
-              title="Odebrat odkaz"
-              @click.stop="unlink(l.id)"
-            >
-              <Icon name="x" :size="13" />
-            </button>
+
+            <!-- Editace odkazu -->
+            <PopoverRoot :open="editId === l.id" @update:open="(o) => setEditOpen(l, o)">
+              <PopoverTrigger as-child>
+                <button
+                  type="button"
+                  class="grid h-5 w-5 shrink-0 place-items-center rounded text-steel-400 outline-none transition-colors hover:bg-steel-200 hover:text-graphite-700"
+                  title="Upravit odkaz"
+                >
+                  <Icon name="edit" :size="12" />
+                </button>
+              </PopoverTrigger>
+              <PopoverPortal>
+                <PopoverContent
+                  align="end"
+                  :side-offset="6"
+                  class="z-50 w-64 rounded-xl border border-steel-200 bg-white p-2.5 shadow-2xl"
+                >
+                  <label class="mb-1 flex items-center justify-between">
+                    <span class="text-[12px] font-600 text-graphite-800">Popisek</span>
+                    <span class="field-tag">{{ langTag }}</span>
+                  </label>
+                  <input
+                    v-model="editLabel"
+                    type="text"
+                    :placeholder="`Popisek (${langTag})`"
+                    class="mb-2 h-8 w-full rounded-md border border-steel-200 px-2.5 text-[13px] focus:border-brand-500 focus:outline-none"
+                  />
+                  <label class="mb-1 block text-[12px] font-600 text-graphite-800">Adresa (URL)</label>
+                  <input
+                    v-model="editUrl"
+                    type="text"
+                    placeholder="https://…"
+                    class="mb-2.5 h-8 w-full rounded-md border border-steel-200 px-2.5 text-[13px] focus:border-brand-500 focus:outline-none"
+                    @keyup.enter="saveEdit(l)"
+                  />
+                  <div class="flex items-center gap-2">
+                    <button
+                      type="button"
+                      class="flex flex-1 items-center justify-center gap-1.5 rounded-md bg-brand-500 py-1.5 text-[12.5px] font-600 text-white outline-none hover:bg-brand-600"
+                      @click="saveEdit(l)"
+                    >
+                      <Icon name="check" :size="13" /> Uložit
+                    </button>
+                    <button
+                      type="button"
+                      class="grid h-8 w-8 place-items-center rounded-md border border-steel-200 text-steel-500 outline-none hover:bg-danger-500/10 hover:text-danger-500"
+                      title="Odebrat odkaz"
+                      @click="unlink(l.id); editId = null"
+                    >
+                      <Icon name="trash" :size="14" />
+                    </button>
+                  </div>
+                  <p class="mt-2 text-[10.5px] leading-relaxed text-steel-400">
+                    Popisek zadáváte pro každý jazyk zvlášť — přepněte jazyk nahoře.
+                  </p>
+                </PopoverContent>
+              </PopoverPortal>
+            </PopoverRoot>
           </div>
 
           <!-- Přidat -->
@@ -232,17 +320,20 @@ function resetDnd() {
                 </button>
 
                 <div class="my-1.5 border-t border-steel-100" />
-                <p class="flex items-center gap-1.5 px-1 pb-1.5 text-[11px] font-600 text-steel-500">
-                  <Icon name="globe" :size="13" class="text-steel-400" /> Odkaz na externí stránku
+                <p class="flex items-center justify-between px-1 pb-1.5">
+                  <span class="flex items-center gap-1.5 text-[11px] font-600 text-steel-500">
+                    <Icon name="globe" :size="13" class="text-steel-400" /> Odkaz na externí stránku
+                  </span>
+                  <span class="field-tag">{{ langTag }}</span>
                 </p>
                 <input
-                  v-model="linkLabel"
+                  v-model="newLabel"
                   type="text"
-                  placeholder="Popisek (např. Pro školy)"
+                  :placeholder="`Popisek (${langTag}) – např. Pro školy`"
                   class="mb-1.5 h-8 w-full rounded-md border border-steel-200 px-2.5 text-[13px] focus:border-brand-500 focus:outline-none"
                 />
                 <input
-                  v-model="linkUrl"
+                  v-model="newUrl"
                   type="text"
                   placeholder="https://…"
                   class="mb-2 h-8 w-full rounded-md border border-steel-200 px-2.5 text-[13px] focus:border-brand-500 focus:outline-none"
@@ -250,12 +341,15 @@ function resetDnd() {
                 />
                 <button
                   type="button"
-                  :disabled="!linkValid"
+                  :disabled="!newValid"
                   class="flex w-full items-center justify-center gap-1.5 rounded-md bg-brand-500 py-2 text-[13px] font-600 text-white outline-none transition-colors hover:bg-brand-600 disabled:cursor-not-allowed disabled:bg-steel-200 disabled:text-steel-400"
                   @click="addExternalLink"
                 >
                   <Icon name="plus" :size="14" /> Přidat odkaz
                 </button>
+                <p class="mt-2 px-1 text-[10.5px] leading-relaxed text-steel-400">
+                  Popisek zadáváte pro každý jazyk zvlášť — přepněte jazyk nahoře a doplňte překlad.
+                </p>
               </PopoverContent>
             </PopoverPortal>
           </PopoverRoot>

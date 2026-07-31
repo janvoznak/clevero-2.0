@@ -292,7 +292,7 @@ function translateAll() {
 
     <!-- Přidružené stránky (přepínač stránek ve skupině) -->
     <div v-if="isEdit" class="px-8 pt-6">
-      <PageGroupBar :key="form.id" :current-id="form.id" @navigate="goPage" />
+      <PageGroupBar :key="form.id" :current-id="form.id" :lang="activeLang" @navigate="goPage" />
     </div>
 
     <!-- Two-column body -->
