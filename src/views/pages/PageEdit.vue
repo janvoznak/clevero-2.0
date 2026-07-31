@@ -30,6 +30,9 @@ import {
   slugPath,
   parentOptions,
   hasChildren,
+  createChildPage,
+  persistNewPage,
+  addAssociatedLink,
   defaultOpeningHours,
   FORM_TEMPLATES,
   COOKIE_CATEGORIES,
@@ -81,6 +84,7 @@ function clone(): PageItem {
     jsCodes: '',
     usedCookies: [],
     openingHours: defaultOpeningHours(),
+    showOpeningHours: true,
   }
 }
 
@@ -170,6 +174,19 @@ function toggleCookie(value: string, v: boolean | 'indeterminate') {
 /* ---------- Přepínání mezi přidruženými stránkami ---------- */
 function goPage(id: string) {
   router.push({ name: 'page-edit', params: { id } })
+}
+/* Přidání podstránky/odkazu na dosud neuložené stránce → nejdřív ji založíme. */
+function onAddChildNew() {
+  const parent = persistNewPage(MOCK_PAGES, form)
+  form.id = parent.id
+  const child = createChildPage(MOCK_PAGES, parent.id)
+  goPage(child.id)
+}
+function onAddLinkNew(payload: { label: ML; url: string }) {
+  const parent = persistNewPage(MOCK_PAGES, form)
+  form.id = parent.id
+  addAssociatedLink(parent, payload.label, payload.url)
+  goPage(parent.id)
 }
 /* Router recykluje instanci komponenty — při změně id načteme stránku znovu. */
 watch(
@@ -291,15 +308,19 @@ function translateAll() {
     </div>
 
     <!-- Přidružené stránky (přepínač stránek ve skupině) -->
-    <div v-if="isEdit" class="px-8 pt-6">
-      <PageGroupBar :key="form.id" :current-id="form.id" :lang="activeLang" @navigate="goPage" />
+    <div class="px-8 pt-6">
+      <PageGroupBar
+        :key="form.id"
+        :current-id="form.id"
+        :lang="activeLang"
+        @navigate="goPage"
+        @add-child-new="onAddChildNew"
+        @add-link-new="onAddLinkNew"
+      />
     </div>
 
     <!-- Two-column body -->
-    <div
-      class="grid grid-cols-1 gap-6 px-8 py-6 xl:grid-cols-[minmax(0,1fr)_360px]"
-      :class="isEdit ? 'pt-4' : ''"
-    >
+    <div class="grid grid-cols-1 gap-6 px-8 py-6 pt-4 xl:grid-cols-[minmax(0,1fr)_360px]">
       <!-- LEVÝ sloupec: sekce v podtržených tabech -->
       <div class="min-w-0">
         <div class="rounded-lg border border-steel-200 bg-white">
@@ -607,8 +628,18 @@ function translateAll() {
         </FormSection>
 
         <FormSection title="Otevírací doba" icon="clock" tag="page-openingHours">
-          <p class="mb-3 text-[12.5px] text-steel-500">Nastavte hodiny pro jednotlivé dny, nebo den označte jako zavřený.</p>
-          <OpeningHoursEditor v-model="form.openingHours" />
+          <div class="rounded-md border border-steel-200 bg-steel-50/60 px-3 py-2.5">
+            <AppSwitch
+              v-model="form.showOpeningHours"
+              label="Zobrazit na webu"
+              hint="Některé stránky otevírací dobu nepotřebují — vypnutím se skryje."
+              aria-label="Zobrazit otevírací dobu na webu"
+            />
+          </div>
+          <template v-if="form.showOpeningHours">
+            <p class="mb-3 mt-4 text-[12.5px] text-steel-500">Nastavte hodiny pro jednotlivé dny, nebo den označte jako zavřený.</p>
+            <OpeningHoursEditor v-model="form.openingHours" />
+          </template>
         </FormSection>
 
         <FormSection title="Jazykové mutace" icon="globe" tag="ML">

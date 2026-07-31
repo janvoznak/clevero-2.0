@@ -70,6 +70,8 @@ export interface PageItem {
   usedCookies: string[]
   /* Otevírací doba (per den). */
   openingHours: OpeningDay[]
+  /** Zobrazit otevírací dobu na webu? (některé stránky ji nepotřebují) */
+  showOpeningHours: boolean
 }
 
 /* ---------- Číselníky (pro AppSelect / checkboxy) ---------- */
@@ -343,6 +345,7 @@ const base = {
   jsCodes: '',
   usedCookies: [] as string[],
   openingHours: [] as OpeningDay[],
+  showOpeningHours: true,
 }
 
 const RAW: RawPage[] = [
@@ -612,6 +615,7 @@ export function blankPage(overrides: Partial<PageItem> = {}): PageItem {
     jsCodes: '',
     usedCookies: [],
     openingHours: defaultOpeningHours(),
+    showOpeningHours: true,
     ...overrides,
   }
 }
@@ -629,7 +633,10 @@ export interface PageGroup {
 export function pageGroup(pages: PageItem[], id: string): PageGroup {
   const byId = new Map(pages.map((p) => [p.id, p]))
   const self = byId.get(id)
-  if (!self) return { root: blankPage({ id }), members: [], links: [] }
+  if (!self) {
+    const r = blankPage({ id })
+    return { root: r, members: [r], links: [] }
+  }
   const root = self.parentId && byId.has(self.parentId) ? byId.get(self.parentId)! : self
   const children = pages.filter((p) => p.parentId === root.id).sort((a, b) => a.priority - b.priority)
   return { root, members: [root, ...children], links: [...(root.associatedLinks ?? [])] }
@@ -648,6 +655,14 @@ export function createChildPage(pages: PageItem[], parentId: string): PageItem {
     priority,
     allowMenu: parent?.allowMenu ?? false,
   })
+  pages.push(page)
+  return page
+}
+
+/** Uloží dosud nezaloženou stránku (z editoru) do dat pod novým id. */
+export function persistNewPage(pages: PageItem[], data: PageItem): PageItem {
+  pageSeq += 1
+  const page: PageItem = JSON.parse(JSON.stringify({ ...data, id: `pg-new-${pageSeq}` }))
   pages.push(page)
   return page
 }

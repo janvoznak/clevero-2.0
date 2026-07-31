@@ -24,13 +24,19 @@ import {
 import type { PageItem, AssociatedLink } from '@/data/mockPages'
 
 const props = defineProps<{ currentId: string; lang: LangCode }>()
-const emit = defineEmits<{ navigate: [id: string] }>()
+const emit = defineEmits<{
+  navigate: [id: string]
+  addChildNew: []
+  addLinkNew: [payload: { label: ML; url: string }]
+}>()
 
 const group = pageGroup(MOCK_PAGES, props.currentId)
 const root = group.root
 const members = ref<PageItem[]>(group.members)
 const links = ref<AssociatedLink[]>(group.links)
 const children = computed(() => members.value.slice(1))
+/** Je kořen skupiny už uložený v datech? (nová stránka ještě ne) */
+const rootPersisted = MOCK_PAGES.some((p) => p.id === root.id)
 
 function emptyML(): ML {
   return LANGS.reduce((acc, l) => ({ ...acc, [l.code]: '' }), {} as ML)
@@ -50,8 +56,12 @@ function go(id: string) {
 
 /* ---------- Podstránky (vlastní obsah) ---------- */
 function addChild() {
-  const page = createChildPage(MOCK_PAGES, root.id)
   addOpen.value = false
+  if (!rootPersisted) {
+    emit('addChildNew')
+    return
+  }
+  const page = createChildPage(MOCK_PAGES, root.id)
   emit('navigate', page.id)
 }
 function removeChild(id: string) {
@@ -75,11 +85,16 @@ function addExternalLink() {
   if (!newValid.value) return
   const label = emptyML()
   label[props.lang] = newLabel.value.trim()
-  const link = addAssociatedLink(root, label, normalizeUrl(newUrl.value))
-  links.value = [...links.value, link]
+  const url = normalizeUrl(newUrl.value)
   newLabel.value = ''
   newUrl.value = ''
   addOpen.value = false
+  if (!rootPersisted) {
+    emit('addLinkNew', { label, url })
+    return
+  }
+  const link = addAssociatedLink(root, label, url)
+  links.value = [...links.value, link]
 }
 function unlink(id: string) {
   removeAssociatedLink(root, id)
@@ -150,12 +165,12 @@ const langTag = computed(() => props.lang.toUpperCase())
       <span class="text-[11px] text-steel-400">Klik přepne editaci · přetažením změníte pořadí</span>
     </div>
 
-    <div class="p-3">
+    <div class="space-y-3 p-3">
       <!-- Hlavní (kořenová) stránka -->
-      <div class="mb-2.5 flex items-center gap-2.5">
-        <span class="w-[86px] shrink-0 text-[10.5px] font-700 uppercase tracking-wide text-steel-400">
+      <div>
+        <p class="mb-1.5 text-[10.5px] font-700 uppercase tracking-wide text-steel-400">
           Hlavní stránka
-        </span>
+        </p>
         <button
           type="button"
           class="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[13px] font-600 outline-none transition-colors"
@@ -170,11 +185,11 @@ const langTag = computed(() => props.lang.toUpperCase())
       </div>
 
       <!-- Podstránky + externí odkazy -->
-      <div class="flex items-start gap-2.5">
-        <span class="mt-2 w-[86px] shrink-0 text-[10.5px] font-700 uppercase tracking-wide text-steel-400">
+      <div>
+        <p class="mb-1.5 text-[10.5px] font-700 uppercase tracking-wide text-steel-400">
           Podstránky
-        </span>
-        <div class="flex flex-1 flex-wrap items-center gap-1.5 border-l-2 border-steel-100 pl-3">
+        </p>
+        <div class="flex flex-wrap items-center gap-1.5">
           <!-- Podstránky (vlastní obsah) — přetažitelné -->
           <div
             v-for="c in children"
@@ -303,53 +318,72 @@ const langTag = computed(() => props.lang.toUpperCase())
               <PopoverContent
                 align="start"
                 :side-offset="6"
-                class="z-50 w-72 rounded-xl border border-steel-200 bg-white p-2 shadow-2xl"
+                class="z-50 w-80 rounded-xl border border-steel-200 bg-white p-3 shadow-2xl"
               >
+                <p class="mb-2 text-[10.5px] font-700 uppercase tracking-wide text-steel-400">
+                  Přidat do skupiny
+                </p>
+
+                <!-- Možnost 1: nová podstránka -->
                 <button
                   type="button"
-                  class="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left outline-none transition-colors hover:bg-steel-100"
+                  class="group/opt flex w-full items-center gap-2.5 rounded-lg border border-steel-200 bg-white px-3 py-2.5 text-left outline-none transition-colors hover:border-brand-400 hover:bg-brand-50/50"
                   @click="addChild"
                 >
-                  <span class="grid h-7 w-7 shrink-0 place-items-center rounded bg-brand-50 text-brand-500">
-                    <Icon name="subpage" :size="15" />
+                  <span class="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-brand-50 text-brand-500">
+                    <Icon name="subpage" :size="16" />
                   </span>
-                  <span class="flex-1">
-                    <span class="block text-[13px] font-600 text-graphite-800">Nová podstránka</span>
+                  <span class="min-w-0 flex-1">
+                    <span class="block text-[13px] font-700 text-graphite-800">Nová podstránka</span>
                     <span class="block text-[11px] text-steel-500">Vlastní obsah přes grafické vzory</span>
                   </span>
+                  <Icon name="chevronRight" :size="16" class="shrink-0 text-steel-300 transition-colors group-hover/opt:text-brand-500" />
                 </button>
 
-                <div class="my-1.5 border-t border-steel-100" />
-                <p class="flex items-center justify-between px-1 pb-1.5">
-                  <span class="flex items-center gap-1.5 text-[11px] font-600 text-steel-500">
-                    <Icon name="globe" :size="13" class="text-steel-400" /> Odkaz na externí stránku
-                  </span>
-                  <span class="field-tag">{{ langTag }}</span>
-                </p>
-                <input
-                  v-model="newLabel"
-                  type="text"
-                  :placeholder="`Popisek (${langTag}) – např. Pro školy`"
-                  class="mb-1.5 h-8 w-full rounded-md border border-steel-200 px-2.5 text-[13px] focus:border-brand-500 focus:outline-none"
-                />
-                <input
-                  v-model="newUrl"
-                  type="text"
-                  placeholder="https://…"
-                  class="mb-2 h-8 w-full rounded-md border border-steel-200 px-2.5 text-[13px] focus:border-brand-500 focus:outline-none"
-                  @keyup.enter="addExternalLink"
-                />
-                <button
-                  type="button"
-                  :disabled="!newValid"
-                  class="flex w-full items-center justify-center gap-1.5 rounded-md bg-brand-500 py-2 text-[13px] font-600 text-white outline-none transition-colors hover:bg-brand-600 disabled:cursor-not-allowed disabled:bg-steel-200 disabled:text-steel-400"
-                  @click="addExternalLink"
-                >
-                  <Icon name="plus" :size="14" /> Přidat odkaz
-                </button>
-                <p class="mt-2 px-1 text-[10.5px] leading-relaxed text-steel-400">
-                  Popisek zadáváte pro každý jazyk zvlášť — přepněte jazyk nahoře a doplňte překlad.
-                </p>
+                <!-- Oddělovač -->
+                <div class="my-2.5 flex items-center gap-2">
+                  <span class="h-px flex-1 bg-steel-100" />
+                  <span class="text-[10px] font-700 uppercase tracking-wider text-steel-300">nebo</span>
+                  <span class="h-px flex-1 bg-steel-100" />
+                </div>
+
+                <!-- Možnost 2: externí odkaz -->
+                <div class="rounded-lg border border-steel-200 bg-steel-50/50 px-3 py-2.5">
+                  <div class="mb-2 flex items-center gap-2.5">
+                    <span class="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-steel-100 text-steel-500">
+                      <Icon name="globe" :size="16" />
+                    </span>
+                    <span class="min-w-0 flex-1">
+                      <span class="block text-[13px] font-700 text-graphite-800">Odkaz na externí stránku</span>
+                      <span class="block text-[11px] text-steel-500">Otevře se v novém okně (↗)</span>
+                    </span>
+                    <span class="field-tag">{{ langTag }}</span>
+                  </div>
+                  <input
+                    v-model="newLabel"
+                    type="text"
+                    :placeholder="`Popisek (${langTag}) – např. Pro školy`"
+                    class="mb-1.5 h-8 w-full rounded-md border border-steel-200 px-2.5 text-[13px] focus:border-brand-500 focus:outline-none"
+                  />
+                  <input
+                    v-model="newUrl"
+                    type="text"
+                    placeholder="https://…"
+                    class="mb-2 h-8 w-full rounded-md border border-steel-200 px-2.5 text-[13px] focus:border-brand-500 focus:outline-none"
+                    @keyup.enter="addExternalLink"
+                  />
+                  <button
+                    type="button"
+                    :disabled="!newValid"
+                    class="flex w-full items-center justify-center gap-1.5 rounded-md bg-brand-500 py-2 text-[13px] font-600 text-white outline-none transition-colors hover:bg-brand-600 disabled:cursor-not-allowed disabled:bg-steel-200 disabled:text-steel-400"
+                    @click="addExternalLink"
+                  >
+                    <Icon name="plus" :size="14" /> Přidat odkaz
+                  </button>
+                  <p class="mt-2 text-[10.5px] leading-relaxed text-steel-400">
+                    Popisek zadáváte pro každý jazyk zvlášť — přepněte jazyk nahoře a doplňte překlad.
+                  </p>
+                </div>
               </PopoverContent>
             </PopoverPortal>
           </PopoverRoot>
