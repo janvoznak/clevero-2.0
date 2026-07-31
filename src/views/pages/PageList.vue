@@ -15,6 +15,11 @@ import {
   RadioGroupRoot,
   RadioGroupItem,
   RadioGroupIndicator,
+  TooltipProvider,
+  TooltipRoot,
+  TooltipTrigger,
+  TooltipPortal,
+  TooltipContent,
 } from 'reka-ui'
 import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
@@ -241,6 +246,14 @@ function confirmDeleteOne() {
 }
 
 /* ---------- Navigace / řádkové akce ---------- */
+/** Aktivní sekce (záložka) — cíl pro horní tlačítko „Nová stránka". */
+const activeSection = ref<PageSection>('menu')
+function selectSection(key: PageSection) {
+  activeSection.value = key
+}
+const activeSectionLabel = computed(
+  () => PAGE_SECTIONS.find((s) => s.key === activeSection.value)?.label ?? '',
+)
 function goNewInSection(section: PageSection) {
   router.push({ name: 'page-new', query: { section } })
 }
@@ -278,6 +291,10 @@ function onRowAction(key: string, p: PageItem) {
           {{ rows.length }} stránek · hierarchická struktura webu · pořadí a zanoření změníte přetažením
         </p>
       </div>
+      <AppButton variant="primary" @click="goNewInSection(activeSection)">
+        <Icon name="plus" :size="17" />
+        Nová stránka do „{{ activeSectionLabel }}"
+      </AppButton>
     </div>
 
     <!-- Filter bar -->
@@ -364,6 +381,7 @@ function onRowAction(key: string, p: PageItem) {
     </Transition>
 
     <!-- Tree table -->
+    <TooltipProvider :delay-duration="250">
     <div class="overflow-hidden rounded-lg border border-steel-200 bg-white">
       <table class="w-full border-collapse text-left">
         <thead>
@@ -386,21 +404,33 @@ function onRowAction(key: string, p: PageItem) {
         <tbody>
           <template v-for="item in displayItems" :key="item.kind === 'section' ? 'sec-' + item.section.key : item.row.page.id">
             <!-- Hlavička sekce -->
-            <tr v-if="item.kind === 'section'" class="border-b border-steel-200 bg-steel-50">
-              <td colspan="5" class="p-0">
-                <div class="flex items-center justify-between gap-3 pr-3">
+            <tr v-if="item.kind === 'section'" class="border-b border-steel-200">
+              <td
+                colspan="5"
+                class="p-0"
+                :class="activeSection === item.section.key ? 'bg-brand-50' : 'bg-steel-50'"
+              >
+                <div class="flex items-center gap-1 py-1 pl-2 pr-2">
+                  <!-- Sbalit / rozbalit -->
                   <button
                     type="button"
-                    class="flex flex-1 flex-wrap items-center gap-2 px-4 py-2.5 text-left outline-none transition-colors hover:bg-steel-100 focus-visible:bg-steel-100"
+                    class="grid h-7 w-7 shrink-0 place-items-center rounded text-steel-500 outline-none transition-colors hover:bg-steel-200/60"
                     :aria-expanded="!collapsedSections.has(item.section.key)"
+                    :aria-label="collapsedSections.has(item.section.key) ? 'Rozbalit sekci' : 'Sbalit sekci'"
                     @click="toggleSection(item.section.key)"
                   >
-                    <Icon
-                      :name="collapsedSections.has(item.section.key) ? 'chevronRight' : 'chevronDown'"
-                      :size="15"
-                      class="shrink-0 text-steel-500"
-                    />
-                    <span class="grid h-6 w-6 place-items-center rounded border border-steel-200 bg-white text-steel-500">
+                    <Icon :name="collapsedSections.has(item.section.key) ? 'chevronRight' : 'chevronDown'" :size="15" />
+                  </button>
+                  <!-- Výběr sekce (záložka) -->
+                  <button
+                    type="button"
+                    class="flex flex-1 flex-wrap items-center gap-2 py-1.5 pr-2 text-left outline-none"
+                    @click="selectSection(item.section.key)"
+                  >
+                    <span
+                      class="grid h-6 w-6 place-items-center rounded border bg-white"
+                      :class="activeSection === item.section.key ? 'border-brand-300 text-brand-600' : 'border-steel-200 text-steel-500'"
+                    >
                       <Icon :name="item.section.icon" :size="14" />
                     </span>
                     <span class="font-display text-[13px] font-700 tracking-tight text-graphite-900">{{ item.section.label }}</span>
@@ -409,9 +439,24 @@ function onRowAction(key: string, p: PageItem) {
                     <span v-if="item.count === 0" class="text-[12px] italic text-steel-400">— žádné stránky</span>
                     <span v-else-if="collapsedSections.has(item.section.key)" class="text-[12px] text-steel-400">— sbaleno</span>
                   </button>
-                  <AppButton variant="secondary" size="sm" class="shrink-0" @click="goNewInSection(item.section.key)">
-                    <Icon name="plus" :size="15" /> Nová stránka
-                  </AppButton>
+                  <!-- Přidat stránku do sekce (+ ikona s tooltipem) -->
+                  <TooltipRoot>
+                    <TooltipTrigger as-child>
+                      <button
+                        type="button"
+                        class="grid h-8 w-8 shrink-0 place-items-center rounded-md border border-steel-200 bg-white text-steel-500 outline-none transition-colors hover:border-brand-400 hover:text-brand-600"
+                        aria-label="Přidat stránku"
+                        @click="goNewInSection(item.section.key)"
+                      >
+                        <Icon name="plus" :size="16" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipPortal>
+                      <TooltipContent side="top" class="rounded bg-graphite-900 px-2 py-1 text-[11.5px] text-white">
+                        Přidat stránku
+                      </TooltipContent>
+                    </TooltipPortal>
+                  </TooltipRoot>
                 </div>
               </td>
             </tr>
@@ -508,6 +553,7 @@ function onRowAction(key: string, p: PageItem) {
         </tbody>
       </table>
     </div>
+    </TooltipProvider>
 
     <!-- Delete dialog (s ohledem na potomky) -->
     <DialogRoot :open="!!deleteTarget" @update:open="(v) => !v && (deleteTarget = null)">
