@@ -47,6 +47,7 @@ export interface PageItem {
   priority: number
   enabled: boolean
   /* Formuláře */
+  formTemplateId: string
   dynamicFormId: string
   inquiryFormType: InquiryFormType
   contactForm: ContactFormType
@@ -98,6 +99,97 @@ export const COOKIE_CATEGORIES = [
   { value: 'preferences', label: 'Preferenční' },
 ]
 
+/* ---------- Formulářové šablony (prototyp — vizuální „content builder") ---------- */
+export type FormFieldType = 'text' | 'email' | 'tel' | 'number' | 'date' | 'textarea' | 'select' | 'checkbox' | 'file'
+export interface FormField {
+  label: string
+  type: FormFieldType
+}
+export interface FormTemplate {
+  id: string
+  name: string
+  desc: string
+  fields: FormField[]
+}
+
+/** Předdefinované formuláře relevantní pro web Dolních Vítkovic. */
+export const FORM_TEMPLATES: FormTemplate[] = [
+  {
+    id: 'ft-kontakt',
+    name: 'Kontaktní formulář',
+    desc: 'Obecný dotaz od návštěvníka webu.',
+    fields: [
+      { label: 'Jméno a příjmení', type: 'text' },
+      { label: 'E-mail', type: 'email' },
+      { label: 'Telefon', type: 'tel' },
+      { label: 'Zpráva', type: 'textarea' },
+    ],
+  },
+  {
+    id: 'ft-prohlidka',
+    name: 'Rezervace prohlídky',
+    desc: 'Objednávka komentované prohlídky areálu.',
+    fields: [
+      { label: 'Jméno a příjmení', type: 'text' },
+      { label: 'E-mail', type: 'email' },
+      { label: 'Telefon', type: 'tel' },
+      { label: 'Termín', type: 'date' },
+      { label: 'Počet osob', type: 'number' },
+      { label: 'Poznámka', type: 'textarea' },
+    ],
+  },
+  {
+    id: 'ft-skoly',
+    name: 'Školní exkurze',
+    desc: 'Objednávka vzdělávacího programu pro školy.',
+    fields: [
+      { label: 'Škola', type: 'text' },
+      { label: 'Kontaktní osoba', type: 'text' },
+      { label: 'E-mail', type: 'email' },
+      { label: 'Telefon', type: 'tel' },
+      { label: 'Stupeň školy', type: 'select' },
+      { label: 'Termín', type: 'date' },
+      { label: 'Počet žáků', type: 'number' },
+      { label: 'Poznámka', type: 'textarea' },
+    ],
+  },
+  {
+    id: 'ft-akce',
+    name: 'Registrace na akci',
+    desc: 'Přihlášení na festival, koncert nebo akci.',
+    fields: [
+      { label: 'Jméno a příjmení', type: 'text' },
+      { label: 'E-mail', type: 'email' },
+      { label: 'Telefon', type: 'tel' },
+      { label: 'Počet vstupenek', type: 'number' },
+      { label: 'Souhlasím s podmínkami', type: 'checkbox' },
+    ],
+  },
+  {
+    id: 'ft-pronajem',
+    name: 'Poptávka pronájmu prostor',
+    desc: 'Firemní akce, konference, teambuilding.',
+    fields: [
+      { label: 'Jméno / firma', type: 'text' },
+      { label: 'E-mail', type: 'email' },
+      { label: 'Telefon', type: 'tel' },
+      { label: 'Typ akce', type: 'select' },
+      { label: 'Předpokládaný termín', type: 'date' },
+      { label: 'Počet hostů', type: 'number' },
+      { label: 'Popis akce', type: 'textarea' },
+    ],
+  },
+  {
+    id: 'ft-newsletter',
+    name: 'Odběr novinek',
+    desc: 'Přihlášení k odběru programu a novinek.',
+    fields: [
+      { label: 'E-mail', type: 'email' },
+      { label: 'Souhlas se zpracováním údajů', type: 'checkbox' },
+    ],
+  },
+]
+
 /* ---------- Stav (odvozený z enabled) ---------- */
 export type PageState = 'active' | 'inactive'
 export const PAGE_STATE_META: Record<PageState, { label: string; dot: string; text: string; bg: string }> = {
@@ -139,6 +231,7 @@ const base = {
   allowHp: false,
   priority: 0,
   enabled: true,
+  formTemplateId: '',
   dynamicFormId: '',
   inquiryFormType: 'none' as InquiryFormType,
   contactForm: 'none' as ContactFormType,
@@ -208,6 +301,7 @@ const RAW: RawPage[] = [
     allowMenu: true,
     allowFooter: '2',
     priority: 2,
+    formTemplateId: 'ft-kontakt',
     contactForm: 'full_contact',
     contactFormText: { cs: 'Ozveme se vám do dvou pracovních dnů.' },
     usedCookies: ['preferences'],
@@ -222,6 +316,7 @@ const RAW: RawPage[] = [
     allowMenu: true,
     allowHp: true,
     priority: 3,
+    formTemplateId: 'ft-skoly',
     dynamicFormId: 'df-general',
   },
   {
