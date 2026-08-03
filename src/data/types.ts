@@ -58,10 +58,9 @@ export interface NewsItem {
   attachments: Attachment[]
   /** Štítky (průřezové, nezávislé na jazyce) — z předdefinovaných nebo vlastní. */
   tags: string[]
-  /** Kategorie (průřezové, nezávislé na jazyce) — chová se stejně jako štítky. */
+  /** Kategorie (průřezové, nezávislé na jazyce) — chová se stejně jako štítky.
+      Zároveň párují aktualitu s objektem v Areálu. */
   categories: string[]
-  /** Vazba na objekt v Areálu (ID objektu, '' = nepropojeno). */
-  areaId: string
 }
 
 /** Předdefinovaný štítek s barvou (barva = hex, kvůli jednoduchosti mimo Tailwind shade). */

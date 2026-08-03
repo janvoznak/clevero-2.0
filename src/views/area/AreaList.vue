@@ -19,7 +19,6 @@ import {
   MOCK_VENUES,
   PREDEFINED_AREA_TAGS,
   areaTagColor,
-  eventsForVenue,
   OPEN_STATE_META,
   type AreaObject,
 } from '@/data/mockVenues'
@@ -143,7 +142,7 @@ function confirmDelete() {
             <th class="px-4 py-3 font-600">Objekt</th>
             <th class="px-2 py-3 font-600">Štítky</th>
             <th class="w-28 px-2 py-3 font-600">Stav</th>
-            <th class="w-28 px-2 py-3 font-600">Vazby</th>
+            <th class="w-24 px-2 py-3 font-600">Galerie</th>
             <th class="w-24 px-2 py-3 font-600">Zveřejněno</th>
             <th class="w-16 px-3 py-3 text-right font-600">Akce</th>
           </tr>
@@ -185,16 +184,11 @@ function confirmDelete() {
                 {{ OPEN_STATE_META[v.openState].label }}
               </span>
             </td>
-            <!-- Vazby -->
+            <!-- Galerie -->
             <td class="px-2 py-3 align-middle">
-              <div class="flex items-center gap-3 text-[12px] text-steel-600">
-                <span class="inline-flex items-center gap-1" :title="`${eventsForVenue(v.id).length} akcí`">
-                  <Icon name="calendar" :size="13" class="text-steel-400" /> {{ eventsForVenue(v.id).length }}
-                </span>
-                <span class="inline-flex items-center gap-1" :title="`${v.galleryIds.length} galerií`">
-                  <Icon name="gallery" :size="13" class="text-steel-400" /> {{ v.galleryIds.length }}
-                </span>
-              </div>
+              <span class="inline-flex items-center gap-1 text-[12px] text-steel-600" :title="`${v.galleryIds.length} galerií`">
+                <Icon name="gallery" :size="13" class="text-steel-400" /> {{ v.galleryIds.length }}
+              </span>
             </td>
             <!-- Zveřejněno -->
             <td class="px-2 py-3 align-middle">

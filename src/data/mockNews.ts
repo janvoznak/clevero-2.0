@@ -73,7 +73,7 @@ function makeGallery(count: number, offset = 0): GalleryImage[] {
 type MLInput = Partial<Record<LangCode, string>>
 type RawNews = Omit<
   NewsItem,
-  'title' | 'summary' | 'text' | 'metaTitle' | 'metaDescription' | 'metaKeywords' | 'areaId'
+  'title' | 'summary' | 'text' | 'metaTitle' | 'metaDescription' | 'metaKeywords'
 > & {
   title: MLInput
   summary: MLInput
@@ -81,8 +81,6 @@ type RawNews = Omit<
   metaTitle: MLInput
   metaDescription: MLInput
   metaKeywords: MLInput
-  /** Volitelná vazba na objekt v Areálu (jinak nepropojeno). */
-  areaId?: string
 }
 
 /** Doplní všechny jazyky (chybějící = prázdný řetězec). */
@@ -95,7 +93,6 @@ const empty: MLInput = { cs: '', en: '', de: '' }
 const RAW: RawNews[] = [
   {
     id: 'n-2041',
-    areaId: 'v-bolt',
     author: 'Jana Svobodová',
     title: {
       cs: 'Bolt Tower otevírá letní vyhlídkovou sezónu',
@@ -129,7 +126,6 @@ const RAW: RawNews[] = [
   },
   {
     id: 'n-2038',
-    areaId: 'v-gong',
     author: 'Petr Dvořák',
     title: {
       cs: 'Colours of Ostrava 2026 — program v Gongu',
@@ -152,7 +148,6 @@ const RAW: RawNews[] = [
   },
   {
     id: 'n-2035',
-    areaId: 'v-hlubina',
     author: 'Jana Svobodová',
     title: { cs: 'Noční prohlídky Dolu Hlubina', en: 'Night tours of the Hlubina Mine', de: '' },
     summary: { cs: 'Zážitkové prohlídky bývalého černouhelného dolu při svitu lamp.', en: '', de: '' },
@@ -171,7 +166,6 @@ const RAW: RawNews[] = [
   },
   {
     id: 'n-2030',
-    areaId: 'v-u6',
     author: 'Martin Kučera',
     title: { cs: 'Velký svět techniky — nová interaktivní expozice', en: '', de: '' },
     summary: { cs: 'Science and technology centrum U6 rozšiřuje expozici o robotiku.', en: '', de: '' },
@@ -229,7 +223,6 @@ const RAW: RawNews[] = [
 /** Normalizace raw dat na plný datový model (doplní všechny jazyky). */
 export const MOCK_NEWS: NewsItem[] = RAW.map((r) => ({
   ...r,
-  areaId: r.areaId ?? '',
   title: toML(r.title),
   summary: toML(r.summary),
   text: toML(r.text),

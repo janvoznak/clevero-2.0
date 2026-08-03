@@ -4,7 +4,8 @@ import { TooltipProvider, TooltipRoot, TooltipTrigger, TooltipPortal, TooltipCon
 import Icon from '@/components/ui/Icon.vue'
 import VenueSilhouette from '@/components/ui/VenueSilhouette.vue'
 import { shiftMonth, monthLabel, daysInMonth, parseISO, dayDiff, addDays, sameDay } from '@/utils/calendar'
-import { EVENTS_NOW, VENUES, venue, type DovEvent } from '@/data/mockEvents'
+import { EVENTS_NOW, type DovEvent } from '@/data/mockEvents'
+import { MOCK_VENUES } from '@/data/mockVenues'
 
 function rangeLabel(e: DovEvent): string {
   const f = parseISO(e.from).toLocaleDateString('cs-CZ')
@@ -30,6 +31,7 @@ interface Row {
   venueId: string
   label: string
   color: string
+  silhouette: string
   segs: Seg[]
   lanes: number
 }
@@ -47,9 +49,9 @@ const model = computed(() => {
   })
 
   const rows: Row[] = []
-  for (const v of VENUES) {
+  for (const v of MOCK_VENUES) {
     const evs = props.events.filter(
-      (e) => e.venueId === v.id && parseISO(e.to) >= monthStart && parseISO(e.from) <= monthEnd,
+      (e) => e.areaId === v.id && parseISO(e.to) >= monthStart && parseISO(e.from) <= monthEnd,
     )
     if (!evs.length) continue
     const segs: Seg[] = evs.map((e) => {
@@ -75,7 +77,7 @@ const model = computed(() => {
       s.lane = lane
       laneEnd[lane] = s.startCol + s.span - 1
     }
-    rows.push({ venueId: v.id, label: v.label, color: v.color, segs, lanes: Math.max(1, laneEnd.length) })
+    rows.push({ venueId: v.id, label: v.title.cs, color: v.color, silhouette: v.silhouette, segs, lanes: Math.max(1, laneEnd.length) })
   }
   return { label: monthLabel(y, m), n, dayHeaders, rows }
 })
@@ -98,7 +100,7 @@ const model = computed(() => {
       <div :style="{ minWidth: 176 + model.n * 30 + 'px' }">
         <!-- hlavička dnů -->
         <div class="flex border-b border-steel-200 bg-steel-50/50">
-          <div class="w-44 shrink-0 border-r border-steel-200 px-4 py-2 text-[11px] font-600 uppercase tracking-wide text-steel-400">Budova</div>
+          <div class="w-44 shrink-0 border-r border-steel-200 px-4 py-2 text-[11px] font-600 uppercase tracking-wide text-steel-400">Místo</div>
           <div class="grid flex-1" :style="{ gridTemplateColumns: `repeat(${model.n}, minmax(0,1fr))` }">
             <div
               v-for="(d, i) in model.dayHeaders"
@@ -116,7 +118,7 @@ const model = computed(() => {
         <div v-for="row in model.rows" :key="row.venueId" class="flex border-b border-steel-100 last:border-0">
           <div class="relative flex w-44 shrink-0 items-center gap-2.5 border-r border-steel-200 py-2.5 pl-4 pr-3">
             <span class="absolute left-0 top-0 h-full w-[3px]" :style="{ backgroundColor: row.color }" />
-            <VenueSilhouette :venue-id="row.venueId" :color="row.color" :size="24" class="shrink-0" />
+            <VenueSilhouette :venue-id="row.silhouette" :color="row.color" :size="24" class="shrink-0" />
             <span class="truncate text-[13px] font-600 text-graphite-800">{{ row.label }}</span>
           </div>
           <div
@@ -178,7 +180,7 @@ const model = computed(() => {
 
     <p class="mt-3 flex items-center gap-1.5 text-[12px] text-steel-500">
       <Icon name="calendar" :size="13" class="text-steel-400" />
-      Řádek = budova, pruh = akce v čase. Vícedenní akce se táhnou přes dny, souběžné akce v jedné budově jsou nad sebou.
+      Řádek = místo (objekt v areálu), pruh = akce v čase. Vícedenní akce se táhnou přes dny, souběžné akce na jednom místě jsou nad sebou.
     </p>
   </div>
 </template>

@@ -1,14 +1,14 @@
-import { imageFor, TAG_PALETTE, MOCK_NEWS } from './mockNews'
-import { MOCK_EVENTS, type DovEvent } from './mockEvents'
+import { imageFor, TAG_PALETTE } from './mockNews'
 import { defaultOpeningHours } from './mockPages'
-import type { ML, Tag, NewsItem } from './types'
+import type { ML, Tag } from './types'
 import type { OpeningDay } from './mockPages'
 import type { ContentBlock } from './mockPages'
 
 /* ============================================================
    Modul „Areál" — objekty/místa v areálu Dolních Vítkovic.
-   Editace obsahu budovy (popis, čísla, galerie, akce, vstupenky
-   přes Colosseum). Propojení s moduly Kalendář akcí, Galerie, Novinky.
+   Kanonický seznam MÍST v areálu: slouží zároveň jako obsahová stránka
+   objektu i jako místo konání akcí (kalendář barví řádky podle objektu).
+   Propojení s moduly Kalendář akcí, Galerie, Novinky.
    ============================================================ */
 
 /** Štítky objektů areálu (dle zadání) — sdílený `TagPicker`/`TagChip`. */
@@ -60,6 +60,10 @@ export interface AreaObject {
   stats: VenueStat[]
   /** Hlavní obrázek objektu. */
   image: string
+  /** Barva místa (řádek/pruh v kalendáři akcí). */
+  color: string
+  /** Klíč siluety budovy (VenueSilhouette): areal|bolt|gong|galerie|technika|hlubina|hopjump|lezecka. */
+  silhouette: string
   /** Štítky (Gastro / Atraktivity / Ubytování / vlastní). */
   tags: string[]
   /** Přiřazené galerie (ID z modulu Galerie). */
@@ -86,6 +90,8 @@ type RawVenue = {
   title: string
   summary: string
   image: string
+  color: string
+  silhouette: string
   tags: string[]
   galleryIds: string[]
   colosseumId: string
@@ -98,25 +104,27 @@ type RawVenue = {
 
 const RAW: RawVenue[] = [
   {
-    id: 'v-u6',
-    title: 'Malý svět techniky U6',
-    summary:
-      'Interaktivní expozice s exponáty na motivy Julese Verna. U6 v novém kabátu láká na desítky pokusů, které si návštěvníci vyzkouší na vlastní kůži.',
-    image: imageFor(4),
+    id: 'v-areal',
+    title: 'Areál DOV',
+    summary: 'Industriální areál Dolních Vítkovic jako celek — festivaly a akce napříč celým prostorem.',
+    image: imageFor(1),
+    color: '#64748b',
+    silhouette: 'areal',
     tags: ['Atraktivity'],
-    galleryIds: ['g-u6', 'g-technika'],
-    colosseumId: 'COL-U6-1042',
+    galleryIds: ['g-areal'],
+    colosseumId: '',
     accessible: true,
     openState: 'open',
-    showOpeningHours: true,
+    showOpeningHours: false,
     published: true,
-    stats: [stat('12 m', 'výška vyhlídkové plošiny'), stat('1938', 'rok dokončení stavby'), stat('900 t', 'váha dmychadel'), stat('900 m²', 'rozloha expozice')],
   },
   {
     id: 'v-bolt',
     title: 'Bolt Tower',
     summary: 'Vyhlídková nástavba na vrcholu vysoké pece č. 1 s kavárnou a jedinečným výhledem na celý areál i Ostravu.',
     image: imageFor(0),
+    color: '#ee703d',
+    silhouette: 'bolt',
     tags: ['Atraktivity', 'Gastro'],
     galleryIds: ['g-bolt'],
     colosseumId: 'COL-BOLT-2011',
@@ -127,24 +135,12 @@ const RAW: RawVenue[] = [
     stats: [stat('78 m', 'výška vyhlídky'), stat('2015', 'rok otevření')],
   },
   {
-    id: 'v-hlubina',
-    title: 'Důl Hlubina',
-    summary: 'Národní kulturní památka — bývalý černouhelný důl s autentickými prostorami a zážitkovými prohlídkami.',
-    image: imageFor(5),
-    tags: ['Atraktivity'],
-    galleryIds: ['g-hlubina'],
-    colosseumId: 'COL-HLUB-3301',
-    accessible: false,
-    openState: 'seasonal',
-    showOpeningHours: true,
-    published: true,
-    stats: [stat('1852', 'rok založení dolu')],
-  },
-  {
     id: 'v-gong',
     title: 'Multifunkční aula Gong',
     summary: 'Bývalý plynojem přeměněný v multifunkční aulu pro koncerty, konference a společenské akce.',
     image: imageFor(8),
+    color: '#7b5ea7',
+    silhouette: 'gong',
     tags: ['Atraktivity'],
     galleryIds: ['g-gong'],
     colosseumId: '',
@@ -155,10 +151,90 @@ const RAW: RawVenue[] = [
     stats: [stat('1 500', 'míst k sezení')],
   },
   {
+    id: 'v-galerie',
+    title: 'Galerie Gong',
+    summary: 'Galerijní prostor v horní části plynojemu — výstavy současného umění.',
+    image: imageFor(3),
+    color: '#c2568c',
+    silhouette: 'galerie',
+    tags: ['Atraktivity'],
+    galleryIds: ['g-galerie'],
+    colosseumId: '',
+    accessible: true,
+    openState: 'open',
+    showOpeningHours: true,
+    published: true,
+  },
+  {
+    id: 'v-u6',
+    title: 'Malý svět techniky U6',
+    summary:
+      'Interaktivní expozice s exponáty na motivy Julese Verna. U6 v novém kabátu láká na desítky pokusů, které si návštěvníci vyzkouší na vlastní kůži.',
+    image: imageFor(4),
+    color: '#3b6fb0',
+    silhouette: 'technika',
+    tags: ['Atraktivity'],
+    galleryIds: ['g-u6', 'g-technika'],
+    colosseumId: 'COL-U6-1042',
+    accessible: true,
+    openState: 'open',
+    showOpeningHours: true,
+    published: true,
+    stats: [stat('12 m', 'výška vyhlídkové plošiny'), stat('1938', 'rok dokončení stavby'), stat('900 t', 'váha dmychadel'), stat('900 m²', 'rozloha expozice')],
+  },
+  {
+    id: 'v-hlubina',
+    title: 'Důl Hlubina',
+    summary: 'Národní kulturní památka — bývalý černouhelný důl s autentickými prostorami a zážitkovými prohlídkami.',
+    image: imageFor(5),
+    color: '#b04f20',
+    silhouette: 'hlubina',
+    tags: ['Atraktivity'],
+    galleryIds: ['g-hlubina'],
+    colosseumId: 'COL-HLUB-3301',
+    accessible: false,
+    openState: 'seasonal',
+    showOpeningHours: true,
+    published: true,
+    stats: [stat('1852', 'rok založení dolu')],
+  },
+  {
+    id: 'v-hopjump',
+    title: 'HopJump',
+    summary: 'Trampolínová hala pro všechny věkové kategorie — zábava i pohyb pod jednou střechou.',
+    image: imageFor(9),
+    color: '#15916a',
+    silhouette: 'hopjump',
+    tags: ['Atraktivity'],
+    galleryIds: [],
+    colosseumId: '',
+    accessible: true,
+    openState: 'open',
+    showOpeningHours: true,
+    published: true,
+  },
+  {
+    id: 'v-lezecka',
+    title: 'Lezecká stěna',
+    summary: 'Venkovní i vnitřní lezecká stěna pro začátečníky i pokročilé.',
+    image: imageFor(10),
+    color: '#0e8a8a',
+    silhouette: 'lezecka',
+    tags: ['Atraktivity'],
+    galleryIds: [],
+    colosseumId: '',
+    accessible: false,
+    openState: 'seasonal',
+    showOpeningHours: true,
+    published: true,
+  },
+  {
     id: 'v-marycka',
     title: 'Restaurace Maryčka',
     summary: 'Restaurace s industriální atmosférou přímo v areálu — regionální kuchyně a domácí pivo.',
-    image: imageFor(9),
+    image: imageFor(6),
+    color: '#e0a52a',
+    silhouette: 'areal',
     tags: ['Gastro'],
     galleryIds: ['g-gastro'],
     colosseumId: '',
@@ -171,7 +247,9 @@ const RAW: RawVenue[] = [
     id: 'v-hotel',
     title: 'Ubytování v areálu',
     summary: 'Designové ubytování v srdci industriálního areálu — ideální pro víkendový pobyt i firemní akce.',
-    image: imageFor(6),
+    image: imageFor(7),
+    color: '#5b5bd6',
+    silhouette: 'areal',
     tags: ['Ubytování'],
     galleryIds: ['g-hotel'],
     colosseumId: '',
@@ -189,6 +267,8 @@ export const MOCK_VENUES: AreaObject[] = RAW.map((r) => ({
   contentBlocks: [],
   stats: r.stats ?? [],
   image: r.image,
+  color: r.color,
+  silhouette: r.silhouette,
   tags: r.tags,
   galleryIds: r.galleryIds,
   colosseumId: r.colosseumId,
@@ -199,6 +279,17 @@ export const MOCK_VENUES: AreaObject[] = RAW.map((r) => ({
   published: r.published,
 }))
 
+/** Vyhledání místa/objektu podle ID (pro kalendář, výpisy, detaily akcí). */
+export function areaPlace(id: string): AreaObject | undefined {
+  return MOCK_VENUES.find((v) => v.id === id)
+}
+
+/** Volby míst pro výběr v jiných modulech (Kalendář akcí). */
+export const PLACE_OPTIONS = MOCK_VENUES.map((v) => ({ value: v.id, label: v.title.cs }))
+
+/** Výchozí místo pro nové akce (celý areál). */
+export const DEFAULT_PLACE_ID = 'v-areal'
+
 /** Prázdný objekt pro zakládání. */
 export function blankVenue(): AreaObject {
   return {
@@ -208,6 +299,8 @@ export function blankVenue(): AreaObject {
     contentBlocks: [],
     stats: [],
     image: '',
+    color: '#64748b',
+    silhouette: 'areal',
     tags: [],
     galleryIds: [],
     colosseumId: '',
@@ -217,18 +310,4 @@ export function blankVenue(): AreaObject {
     showOpeningHours: true,
     published: false,
   }
-}
-
-/** Akce napojené na objekt (vazba `areaId` z modulu Kalendář akcí).
-    Detail objektu je zobrazuje automaticky — vazba se řídí z akce. */
-export function eventsForVenue(id: string): DovEvent[] {
-  if (!id || id === 'nový') return []
-  return MOCK_EVENTS.filter((e) => e.areaId === id)
-}
-
-/** Novinky napojené na objekt (vazba `areaId` z modulu Aktuality).
-    Automaticky se propíší do detailu objektu. */
-export function relatedNews(v: AreaObject): NewsItem[] {
-  if (!v.id || v.id === 'nový') return []
-  return MOCK_NEWS.filter((n) => n.areaId === v.id).slice(0, 8)
 }

@@ -18,12 +18,9 @@ import {
   PREDEFINED_AREA_TAGS,
   OPEN_STATE_OPTIONS,
   blankVenue,
-  relatedNews,
-  eventsForVenue,
   type AreaObject,
 } from '@/data/mockVenues'
 import { MOCK_GALLERIES } from '@/data/mockGalleries'
-import { venue, eventStatus, EVENT_STATE_META } from '@/data/mockEvents'
 
 const props = defineProps<{ id?: string }>()
 const router = useRouter()
@@ -46,7 +43,6 @@ const sections = [
   { value: 'basic', label: 'Základní informace', icon: 'page' },
   { value: 'content', label: 'Popis a čísla', icon: 'text' },
   { value: 'gallery', label: 'Galerie', icon: 'gallery' },
-  { value: 'events', label: 'Akce', icon: 'calendar' },
   { value: 'hours', label: 'Otevírací doba', icon: 'clock' },
 ]
 
@@ -65,9 +61,6 @@ const galleryItems = computed<RelItem[]>(() =>
   MOCK_GALLERIES.map((g) => ({ id: g.id, label: g.name, sub: `${g.count} fotek`, thumb: g.cover })),
 )
 
-/* ---------- Automaticky odvozené vazby (řízené z Akcí / Aktualit) ---------- */
-const linkedEvents = computed(() => eventsForVenue(form.id))
-const related = computed(() => relatedNews(form))
 
 /* ---------- AI překlad (prototyp) ---------- */
 const targetLangs = LANGS.filter((l) => l.code !== SOURCE_LANG)
@@ -288,48 +281,6 @@ function save() {
                 />
               </TabsContent>
 
-              <!-- Sekce: Akce (automaticky z modulu Kalendář akcí) -->
-              <TabsContent value="events" class="outline-none">
-                <p class="mb-3 flex items-start gap-1.5 text-[12.5px] leading-relaxed text-steel-500">
-                  <Icon name="calendar" :size="14" class="mt-0.5 shrink-0 text-brand-500" />
-                  Akce se sem propisují <span class="font-600 text-graphite-700">automaticky</span> — v modulu
-                  <span class="font-600 text-graphite-700">Kalendář akcí</span> u akce vyberete „Objekt v areálu".
-                </p>
-                <ul v-if="linkedEvents.length" class="space-y-1.5">
-                  <li
-                    v-for="e in linkedEvents"
-                    :key="e.id"
-                    class="flex items-center gap-3 rounded-md border border-steel-200 bg-white py-2 pl-2 pr-3"
-                  >
-                    <span class="h-10 w-14 shrink-0 overflow-hidden rounded bg-steel-100">
-                      <img v-if="e.image" :src="e.image" alt="" class="h-full w-full object-cover" />
-                    </span>
-                    <span class="min-w-0 flex-1">
-                      <span class="block truncate text-[13.5px] font-600 text-graphite-900">{{ e.title.cs }}</span>
-                      <span class="block truncate text-[12px] text-steel-500">
-                        {{ venue(e.venueId).label }} · {{ e.from }}<template v-if="e.to !== e.from"> – {{ e.to }}</template>
-                      </span>
-                    </span>
-                    <span
-                      class="inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-600"
-                      :class="[EVENT_STATE_META[eventStatus(e)].bg, EVENT_STATE_META[eventStatus(e)].text]"
-                    >
-                      <span class="h-1.5 w-1.5 rounded-full" :class="EVENT_STATE_META[eventStatus(e)].dot" />
-                      {{ EVENT_STATE_META[eventStatus(e)].label }}
-                    </span>
-                  </li>
-                </ul>
-                <div v-else class="rounded-lg border border-dashed border-steel-300 bg-steel-50/60 px-4 py-8 text-center">
-                  <div class="mx-auto grid h-10 w-10 place-items-center rounded-lg bg-steel-100 text-steel-400">
-                    <Icon name="calendar" :size="20" />
-                  </div>
-                  <p class="mt-2 text-[13px] font-600 text-graphite-800">Zatím žádné napojené akce</p>
-                  <p class="mt-1 text-[12px] text-steel-500">
-                    Vytvořte akci v Kalendáři akcí a jako „Objekt v areálu" zvolte tento objekt.
-                  </p>
-                </div>
-              </TabsContent>
-
               <!-- Sekce: Otevírací doba -->
               <TabsContent value="hours" class="space-y-4 outline-none">
                 <div class="flex items-center justify-between rounded-md bg-steel-50 px-3 py-2.5">
@@ -372,23 +323,6 @@ function save() {
           <p class="mt-2 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
             <Icon name="integration" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
             Přes toto ID se napojí prodej vstupenek na prohlídku objektu v systému Colosseum.
-          </p>
-        </FormSection>
-
-        <!-- Související novinky (automaticky) -->
-        <FormSection title="Související novinky" icon="news" tag="auto">
-          <ul v-if="related.length" class="space-y-1.5">
-            <li v-for="n in related" :key="n.id" class="flex items-center gap-2.5 rounded-md px-1 py-1.5 transition-colors hover:bg-steel-50">
-              <span class="h-8 w-10 shrink-0 overflow-hidden rounded bg-steel-100">
-                <img v-if="n.ogImage" :src="n.ogImage" alt="" class="h-full w-full object-cover" />
-              </span>
-              <span class="min-w-0 flex-1 truncate text-[12.5px] font-500 text-graphite-800">{{ n.title.cs }}</span>
-            </li>
-          </ul>
-          <p v-else class="text-[12px] text-steel-400">Žádné odpovídající novinky.</p>
-          <p class="mt-2.5 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
-            <Icon name="sparkles" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
-            Napojuje se automaticky podle štítků a názvu objektu. Novinky se spravují v modulu Aktuality.
           </p>
         </FormSection>
 
