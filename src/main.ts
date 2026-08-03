@@ -12,6 +12,8 @@ import PopupEdit from './views/popups/PopupEdit.vue'
 import PopupEditCanvas from './views/popups/PopupEditCanvas.vue'
 import PageList from './views/pages/PageList.vue'
 import PageEdit from './views/pages/PageEdit.vue'
+import AreaList from './views/area/AreaList.vue'
+import AreaEdit from './views/area/AreaEdit.vue'
 import Placeholder from './views/Placeholder.vue'
 
 const router = createRouter({
@@ -36,6 +38,9 @@ const router = createRouter({
         { path: 'admin/pages/list', name: 'pages-list', component: PageList },
         { path: 'admin/pages/new', name: 'page-new', component: PageEdit },
         { path: 'admin/pages/:id/edit', name: 'page-edit', component: PageEdit, props: true },
+        { path: 'admin/area/list', name: 'area-list', component: AreaList },
+        { path: 'admin/area/new', name: 'area-new', component: AreaEdit },
+        { path: 'admin/area/:id/edit', name: 'area-edit', component: AreaEdit, props: true },
         { path: 'admin/:section+', name: 'placeholder', component: Placeholder },
       ],
     },
