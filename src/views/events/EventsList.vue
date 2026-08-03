@@ -23,6 +23,7 @@ import {
   EVENT_TYPES,
   venue,
   eventStatus,
+  eventTagColor,
   EVENT_STATE_META,
   type DovEvent,
 } from '@/data/mockEvents'
@@ -175,6 +176,9 @@ function goNew() {
                     <span class="min-w-0">
                       <span class="block truncate text-[14px] font-600 text-graphite-900 group-hover:text-brand-600">
                         {{ e.title.cs || 'Bez názvu' }}
+                      </span>
+                      <span v-if="e.tags.length" class="mt-1 flex flex-wrap items-center gap-1.5">
+                        <TagChip v-for="t in e.tags" :key="t" :label="t" :color="eventTagColor(t)" />
                       </span>
                       <span v-if="!e.published" class="mt-0.5 inline-block text-[11px] text-steel-400">Koncept</span>
                     </span>
