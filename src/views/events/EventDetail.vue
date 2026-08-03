@@ -10,6 +10,7 @@ import TagChip from '@/components/ui/TagChip.vue'
 import TagPicker from '@/components/admin/TagPicker.vue'
 import FormSection from '@/components/admin/FormSection.vue'
 import AiPanel from '@/components/admin/AiPanel.vue'
+import RelationPicker from '@/components/admin/RelationPicker.vue'
 import RichTextEditor from '@/components/admin/RichTextEditor.vue'
 import { LANGS, SOURCE_LANG } from '@/data/types'
 import type { LangCode, ML } from '@/data/types'
@@ -23,6 +24,9 @@ import {
   type DovEvent,
 } from '@/data/mockEvents'
 import { PLACE_OPTIONS, DEFAULT_PLACE_ID, areaPlace } from '@/data/mockVenues'
+import { tourOptionsList } from '@/data/mockTours'
+
+const tourItems = tourOptionsList()
 
 const props = defineProps<{ id?: string }>()
 const router = useRouter()
@@ -54,6 +58,7 @@ function clone(): DovEvent {
     performers: '',
     tags: [],
     areaId: DEFAULT_PLACE_ID,
+    tourIds: [],
     published: false,
   }
 }
@@ -427,6 +432,18 @@ function save() {
         <!-- Štítky (sdílený TagPicker — stejné UI/UX jako Aktuality) -->
         <FormSection title="Štítky" icon="filter" tag="event-tags">
           <TagPicker v-model="form.tags" :options="PREDEFINED_EVENT_TAGS" />
+        </FormSection>
+
+        <!-- Související prohlídky (vazba na modul Prohlídky) -->
+        <FormSection title="Související prohlídky" icon="ticket" tag="event-tours">
+          <RelationPicker
+            v-model="form.tourIds"
+            :items="tourItems"
+            add-label="Přidat prohlídku"
+            empty-label="Zatím žádné prohlídky."
+            search-placeholder="Hledat prohlídku…"
+            icon="ticket"
+          />
         </FormSection>
 
         <!-- Jazykové mutace + AI překlad -->

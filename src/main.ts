@@ -14,6 +14,10 @@ import PageList from './views/pages/PageList.vue'
 import PageEdit from './views/pages/PageEdit.vue'
 import AreaList from './views/area/AreaList.vue'
 import AreaEdit from './views/area/AreaEdit.vue'
+import ToursList from './views/tours/ToursList.vue'
+import CategoryDetail from './views/tours/CategoryDetail.vue'
+import TourEdit from './views/tours/TourEdit.vue'
+import TicketsList from './views/tours/TicketsList.vue'
 import Placeholder from './views/Placeholder.vue'
 
 const router = createRouter({
@@ -41,6 +45,12 @@ const router = createRouter({
         { path: 'admin/area/list', name: 'area-list', component: AreaList },
         { path: 'admin/area/new', name: 'area-new', component: AreaEdit },
         { path: 'admin/area/:id/edit', name: 'area-edit', component: AreaEdit, props: true },
+        { path: 'admin/tours', name: 'tours-list', component: ToursList },
+        { path: 'admin/tickets', name: 'tours-tickets', component: TicketsList },
+        { path: 'admin/tours/new', name: 'tour-new', component: TourEdit },
+        { path: 'admin/tours/category/new', name: 'category-new', component: CategoryDetail },
+        { path: 'admin/tours/category/:id', name: 'category-edit', component: CategoryDetail, props: true },
+        { path: 'admin/tours/:id/edit', name: 'tour-edit', component: TourEdit, props: true },
         { path: 'admin/:section+', name: 'placeholder', component: Placeholder },
       ],
     },

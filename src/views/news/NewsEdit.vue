@@ -9,9 +9,13 @@ import RichTextEditor from '@/components/admin/RichTextEditor.vue'
 import GalleryManager from '@/components/admin/GalleryManager.vue'
 import AttachmentsManager from '@/components/admin/AttachmentsManager.vue'
 import TagPicker from '@/components/admin/TagPicker.vue'
+import RelationPicker from '@/components/admin/RelationPicker.vue'
 import { LANGS, SOURCE_LANG } from '@/data/types'
 import type { LangCode, NewsItem, ML } from '@/data/types'
 import { MOCK_NEWS, publishState, STATE_META, PREDEFINED_TAGS, PREDEFINED_CATEGORIES } from '@/data/mockNews'
+import { tourOptionsList } from '@/data/mockTours'
+
+const tourItems = tourOptionsList()
 
 const props = defineProps<{ id?: string }>()
 const router = useRouter()
@@ -40,6 +44,7 @@ function clone(): NewsItem {
     attachments: [],
     tags: [],
     categories: [],
+    tourIds: [],
   }
 }
 
@@ -497,6 +502,18 @@ function translateAll() {
             <Icon name="map" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
             Kategorie zároveň párují aktualitu s objektem v areálu (např. Bolt Tower).
           </p>
+        </FormSection>
+
+        <!-- Související prohlídky (vazba na modul Prohlídky) -->
+        <FormSection title="Související prohlídky" icon="ticket" tag="news-tours">
+          <RelationPicker
+            v-model="form.tourIds"
+            :items="tourItems"
+            add-label="Přidat prohlídku"
+            empty-label="Zatím žádné prohlídky."
+            search-placeholder="Hledat prohlídku…"
+            icon="ticket"
+          />
         </FormSection>
 
         <!-- Jazykové mutace přehled -->
