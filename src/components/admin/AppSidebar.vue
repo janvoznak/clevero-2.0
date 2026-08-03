@@ -43,6 +43,7 @@ type NavEntry = LinkEntry | GroupEntry
 const nav: NavEntry[] = [
   { kind: 'link', label: 'Dashboard', icon: 'dashboard', to: '/admin/dashboard' },
   { kind: 'link', label: 'Kalendář akcí', icon: 'calendar', to: '/admin/events' },
+  { kind: 'link', label: 'Areál', icon: 'map', to: '/admin/area/list', match: '/admin/area' },
   { kind: 'link', label: 'Vstupenky', icon: 'ticket', to: '/admin/tickets' },
   {
     kind: 'group',

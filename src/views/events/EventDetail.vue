@@ -23,6 +23,7 @@ import {
   aiImportFromUrl,
   type DovEvent,
 } from '@/data/mockEvents'
+import { MOCK_VENUES } from '@/data/mockVenues'
 
 const props = defineProps<{ id?: string }>()
 const router = useRouter()
@@ -54,6 +55,7 @@ function clone(): DovEvent {
     duration: '',
     performers: '',
     tags: [],
+    areaId: '',
     published: false,
   }
 }
@@ -66,6 +68,17 @@ function langFilled(code: LangCode): boolean {
 
 const venueOptions = VENUES.map((v) => ({ value: v.id, label: v.label }))
 const typeOptions = EVENT_TYPES.map((t) => ({ value: t, label: t }))
+/** Výběr objektu v Areálu (kanonická vazba akce → objekt).
+    Reka Select nepovolí prázdnou hodnotu, proto sentinel + proxy na ''. */
+const AREA_NONE = '__none__'
+const areaOptions = [
+  { value: AREA_NONE, label: '— nepropojeno' },
+  ...MOCK_VENUES.map((v) => ({ value: v.id, label: v.title.cs })),
+]
+const areaModel = computed({
+  get: () => form.areaId || AREA_NONE,
+  set: (v: string) => (form.areaId = v === AREA_NONE ? '' : v),
+})
 const status = computed(() => (form.from && form.to ? eventStatus(form) : null))
 
 /** Sekce detailu (podtržené záložky). */
@@ -304,6 +317,18 @@ function save() {
                     <label class="mb-1.5 block text-[13px] font-600 text-graphite-800">Typ akce</label>
                     <AppSelect v-model="form.type" :options="typeOptions" />
                   </div>
+                </div>
+
+                <div>
+                  <label class="mb-1.5 flex items-center justify-between">
+                    <span class="text-[13px] font-600 text-graphite-800">Objekt v areálu</span>
+                    <span class="field-tag">event-area_id</span>
+                  </label>
+                  <AppSelect v-model="areaModel" :options="areaOptions" />
+                  <p class="mt-1.5 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
+                    <Icon name="map" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
+                    Napojí akci na objekt v modulu <span class="font-600 text-graphite-700">Areál</span> — akce se pak zobrazí v jeho detailu v sekci „Akce".
+                  </p>
                 </div>
 
                 <div class="grid gap-4 sm:grid-cols-2">

@@ -60,6 +60,8 @@ export interface NewsItem {
   tags: string[]
   /** Kategorie (průřezové, nezávislé na jazyce) — chová se stejně jako štítky. */
   categories: string[]
+  /** Vazba na objekt v Areálu (ID objektu, '' = nepropojeno). */
+  areaId: string
 }
 
 /** Předdefinovaný štítek s barvou (barva = hex, kvůli jednoduchosti mimo Tailwind shade). */
