@@ -23,6 +23,7 @@ import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppSwitch from '@/components/ui/AppSwitch.vue'
 import FormSection from '@/components/admin/FormSection.vue'
+import AiPanel from '@/components/admin/AiPanel.vue'
 import CanvasEditable from '@/components/admin/popup/CanvasEditable.vue'
 import EditorVersionSwitch from '@/components/admin/popup/EditorVersionSwitch.vue'
 import PopupPositionPicker from '@/components/admin/popup/PopupPositionPicker.vue'
@@ -487,39 +488,30 @@ function fireToast(msg: string) {
           </p>
         </div>
 
-        <!-- AI Composer (hero) -->
-        <div class="overflow-hidden rounded-xl border border-brand-200 bg-brand-50/60">
-          <div class="flex items-center gap-2 border-b border-brand-100 bg-brand-500/5 px-4 py-2.5">
-            <span class="grid h-6 w-6 place-items-center rounded-md bg-brand-500 text-white">
-              <Icon name="sparkles" :size="14" />
-            </span>
-            <span class="text-[13px] font-700 text-graphite-900">Vytvořit okno s AI</span>
-            <span class="rounded bg-white px-1.5 py-0.5 font-mono text-[10px] text-brand-600">AI-first</span>
+        <!-- AI Composer (sjednocený AI blok) -->
+        <AiPanel title="Vytvořit okno s AI" badge="AI-first" hint="Popiš, co chceš oznámit, a AI vytvoří celé okno.">
+          <textarea
+            v-model="aiPrompt"
+            rows="2"
+            placeholder="Popište, co chcete návštěvníkům oznámit — např. Noční prohlídky dolu Hlubina, omezená kapacita, odkaz na rezervaci."
+            class="w-full resize-none rounded-lg border border-steel-200 bg-white px-3.5 py-2.5 text-[13.5px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none"
+          />
+          <div class="mt-3 flex flex-wrap items-center gap-2">
+            <AppButton variant="primary" size="sm" :disabled="!aiPrompt.trim() || aiComposing" @click="aiCompose">
+              <Icon name="sparkles" :size="15" :class="aiComposing && 'animate-pulse'" />
+              {{ aiComposing ? 'Tvořím okno…' : 'Vytvořit pop-up' }}
+            </AppButton>
+            <span class="text-[11.5px] text-steel-500">nebo začněte z inspirace:</span>
+            <button
+              v-for="tpl in PREDEFINED_TEMPLATES"
+              :key="tpl.id"
+              class="rounded-full border border-steel-200 bg-white px-2.5 py-1 text-[11.5px] font-500 text-graphite-700 transition-colors hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700"
+              @click="useInspiration(tpl.id)"
+            >
+              {{ tpl.category }}
+            </button>
           </div>
-          <div class="p-4">
-            <textarea
-              v-model="aiPrompt"
-              rows="2"
-              placeholder="Popište, co chcete návštěvníkům oznámit — např. Noční prohlídky dolu Hlubina, omezená kapacita, odkaz na rezervaci."
-              class="w-full resize-none rounded-lg border border-steel-200 bg-white px-3.5 py-2.5 text-[13.5px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none"
-            />
-            <div class="mt-3 flex flex-wrap items-center gap-2">
-              <AppButton variant="primary" size="sm" :disabled="!aiPrompt.trim() || aiComposing" @click="aiCompose">
-                <Icon name="sparkles" :size="15" :class="aiComposing && 'animate-pulse'" />
-                {{ aiComposing ? 'Tvořím okno…' : 'Vytvořit pop-up' }}
-              </AppButton>
-              <span class="text-[11.5px] text-steel-500">nebo začněte z inspirace:</span>
-              <button
-                v-for="tpl in PREDEFINED_TEMPLATES"
-                :key="tpl.id"
-                class="rounded-full border border-steel-200 bg-white px-2.5 py-1 text-[11.5px] font-500 text-graphite-700 transition-colors hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700"
-                @click="useInspiration(tpl.id)"
-              >
-                {{ tpl.category }}
-              </button>
-            </div>
-          </div>
-        </div>
+        </AiPanel>
 
         <!-- Toolbar plátna: motivy + rámeček + poloha + velikost -->
         <div class="flex flex-wrap items-center gap-x-5 gap-y-3 rounded-lg border border-steel-200 bg-white px-4 py-3">

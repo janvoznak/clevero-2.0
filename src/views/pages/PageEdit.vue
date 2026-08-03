@@ -307,20 +307,8 @@ function translateAll() {
       </div>
     </div>
 
-    <!-- Přidružené stránky (přepínač stránek ve skupině) -->
-    <div class="px-8 pt-6">
-      <PageGroupBar
-        :key="form.id"
-        :current-id="form.id"
-        :lang="activeLang"
-        @navigate="goPage"
-        @add-child-new="onAddChildNew"
-        @add-link-new="onAddLinkNew"
-      />
-    </div>
-
     <!-- Two-column body -->
-    <div class="grid grid-cols-1 gap-6 px-8 py-6 pt-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+    <div class="grid grid-cols-1 gap-6 px-8 py-6 xl:grid-cols-[minmax(0,1fr)_360px]">
       <!-- LEVÝ sloupec: sekce v podtržených tabech -->
       <div class="min-w-0">
         <div class="rounded-lg border border-steel-200 bg-white">
@@ -596,6 +584,16 @@ function translateAll() {
 
       <!-- PRAVÝ rail -->
       <aside class="space-y-5 xl:sticky xl:top-[92px] xl:self-start">
+        <!-- Přidružené stránky (podstránky + externí odkazy) — vztahy stránky -->
+        <PageGroupBar
+          :key="form.id"
+          :current-id="form.id"
+          :lang="activeLang"
+          @navigate="goPage"
+          @add-child-new="onAddChildNew"
+          @add-link-new="onAddLinkNew"
+        />
+
         <FormSection title="Publikace" icon="globe">
           <div class="space-y-3">
             <div class="flex items-center justify-between rounded-md bg-steel-50 px-3 py-2.5">

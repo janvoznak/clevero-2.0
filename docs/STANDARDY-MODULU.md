@@ -298,6 +298,7 @@ Když přidáváš prototypový prvek, **okomentuj to v kódu** („prototyp —
 
 AI má klientům usnadnit práci; v prototypu je ale vždy jen **UI + předstíraný stav** (`ref` + `setTimeout`, jako SEO auto-generování). Žádné volání modelu, žádné klíče. Zavedené vzory:
 
+- **AI blok (hero)** — větší AI vstup (import z odkazu, composer z promptu…) **vždy přes sdílenou komponentu `AiPanel`** (`components/admin/AiPanel.vue`). Je **defaultně sbalený**, výrazně podbarvený značkovou oranžovou s ikonou `sparkles` v hlavičce → nepřehlédnutelný; klik na hlavičku ho rozbalí. Props: `title`, `hint`, `badge` (default „AI"), `icon`, `defaultOpen`. Obsah = slot. **Nikdy nestavět AI blok ad-hoc** — jen `AiPanel`, ať je vizuál napříč moduly jednotný.
 - **Generování textu** — v `RichTextEditor` tlačítko „✨ Napsat s AI" (Reka `Popover`): prompt + `Vygenerovat` (`AppButton`). Po simulovaném běhu vloží zástupný text. Protože je v editoru, funguje ve všech modulech s richtextem.
 - **Překlad na klik** — v railu „Jazykové mutace" tlačítko „Přeložit z CZ přes AI": ze zdrojového jazyka (`SOURCE_LANG`) doplní všechny cizí mutace všech ML polí. V prototypu zkopíruje zdroj + potvrdí toastem.
 - **Vizuál AI akcí**: značková oranžová + ikona `sparkles`, stav „Generuji…/Překládám…" s `animate-pulse`. Disabled, dokud není co zpracovat (např. prázdná CZ verze).
