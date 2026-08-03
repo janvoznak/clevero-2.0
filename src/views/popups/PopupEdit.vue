@@ -23,6 +23,7 @@ import RichTextEditor from '@/components/admin/RichTextEditor.vue'
 import PopupPositionPicker from '@/components/admin/popup/PopupPositionPicker.vue'
 import PopupSizePreview from '@/components/admin/popup/PopupSizePreview.vue'
 import PopupTemplateBar from '@/components/admin/popup/PopupTemplateBar.vue'
+import EditorVersionSwitch from '@/components/admin/popup/EditorVersionSwitch.vue'
 import { LANGS, SOURCE_LANG } from '@/data/types'
 import type { LangCode, ML } from '@/data/types'
 import { MOCK_POPUPS, popupState, POPUP_STATE_META, PREDEFINED_TEMPLATES } from '@/data/mockPopups'
@@ -172,6 +173,8 @@ function applyTemplate(tpl: PopupTemplate) {
             {{ isEdit ? form.title.cs || 'Bez názvu' : 'Nové pop-up okno' }}
           </h1>
         </div>
+
+        <EditorVersionSwitch :id="props.id" class="hidden md:inline-flex" />
 
         <!-- Jazykový přepínač (globální) — Reka Tabs, pilulky -->
         <TabsRoot
