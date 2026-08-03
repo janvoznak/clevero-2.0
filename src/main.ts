@@ -40,4 +40,19 @@ const router = createRouter({
   scrollBehavior: () => ({ top: 0 }),
 })
 
+// Pojistka proti známému Reka/Radix bugu: když se modální vrstva (DropdownMenu,
+// Dialog, Select…) odmountuje kvůli navigaci dřív, než doběhne její cleanup,
+// může na <body> zůstat `pointer-events: none` (a scroll-lock) → celá
+// administrace je neklikatelná a působí „zamrzle". Po každé dokončené navigaci
+// proto tyto zámky preventivně uvolníme (až po přepatchování DOM).
+router.afterEach(() => {
+  requestAnimationFrame(() => {
+    const { body } = document
+    if (body.style.pointerEvents === 'none') body.style.pointerEvents = ''
+    body.style.removeProperty('overflow')
+    body.removeAttribute('data-scroll-locked')
+    document.documentElement.removeAttribute('data-scroll-locked')
+  })
+})
+
 createApp(App).use(router).mount('#app')

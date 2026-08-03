@@ -12,6 +12,10 @@ import {
   DialogTitle,
   DialogDescription,
   DialogClose,
+  TabsRoot,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
   PaginationRoot,
   PaginationList,
   PaginationListItem,
@@ -28,6 +32,9 @@ import { LANGS } from '@/data/types'
 import type { PopupItem } from '@/data/mockPopups'
 
 const router = useRouter()
+
+/** Zobrazení výpisu: dlaždice / tabulka. */
+const view = ref<'grid' | 'table'>('grid')
 
 /* ---------- Data + mazání/přepínání (prototyp — jen lokální stav) ---------- */
 const rows = ref<PopupItem[]>([...MOCK_POPUPS])
@@ -138,6 +145,25 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
       </AppButton>
     </div>
 
+    <TabsRoot v-model="view">
+      <!-- Přepínač zobrazení: Dlaždice / Tabulka -->
+      <div class="mb-4 flex justify-end">
+        <TabsList class="inline-flex items-center gap-1 rounded-lg border border-steel-200 bg-steel-50 p-1" aria-label="Zobrazení výpisu">
+          <TabsTrigger
+            value="grid"
+            class="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12.5px] font-600 text-steel-500 outline-none transition-colors hover:text-graphite-800 data-[state=active]:bg-white data-[state=active]:text-graphite-900 data-[state=active]:shadow-sm"
+          >
+            <Icon name="dashboard" :size="15" /> Dlaždice
+          </TabsTrigger>
+          <TabsTrigger
+            value="table"
+            class="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12.5px] font-600 text-steel-500 outline-none transition-colors hover:text-graphite-800 data-[state=active]:bg-white data-[state=active]:text-graphite-900 data-[state=active]:shadow-sm"
+          >
+            <Icon name="reference" :size="15" /> Tabulka
+          </TabsTrigger>
+        </TabsList>
+      </div>
+
     <!-- Bulk action bar -->
     <Transition
       enter-active-class="transition duration-150"
@@ -200,7 +226,96 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
       </div>
     </Transition>
 
-    <!-- Table -->
+    <!-- DLAŽDICE -->
+    <TabsContent value="grid" class="outline-none">
+      <div v-if="visible.length" class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+        <div
+          v-for="p in visible"
+          :key="p.id"
+          class="group relative flex flex-col overflow-hidden rounded-xl border bg-white transition-shadow hover:shadow-md"
+          :class="selected.has(p.id) ? 'border-brand-500 ring-1 ring-brand-500' : 'border-steel-200'"
+        >
+          <!-- výběr -->
+          <CheckboxRoot
+            :model-value="selected.has(p.id)"
+            class="absolute left-2.5 top-2.5 z-10 grid h-5 w-5 place-items-center rounded border border-steel-300 bg-white/90 shadow-sm backdrop-blur data-[state=checked]:border-brand-500 data-[state=checked]:bg-brand-500"
+            :aria-label="`Vybrat ${p.title.cs}`"
+            @update:model-value="(v) => toggleOne(p.id, v)"
+          >
+            <CheckboxIndicator class="text-white"><Icon name="check" :size="12" /></CheckboxIndicator>
+          </CheckboxRoot>
+
+          <!-- obrázek = ústřední prvek -->
+          <button class="relative block aspect-[16/10] w-full overflow-hidden bg-steel-100" @click="goEdit(p.id)">
+            <img
+              v-if="p.image"
+              :src="p.image"
+              :alt="p.title.cs"
+              class="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.03]"
+            />
+            <span v-else class="grid h-full w-full place-items-center text-steel-300"><Icon name="popup" :size="34" /></span>
+            <span
+              class="absolute bottom-2 left-2 inline-flex items-center gap-1.5 rounded-full bg-white/90 px-2 py-0.5 text-[10.5px] font-600 shadow-sm backdrop-blur"
+              :class="POPUP_STATE_META[popupState(p)].text"
+            >
+              <span class="h-1.5 w-1.5 rounded-full" :class="POPUP_STATE_META[popupState(p)].dot" />
+              {{ POPUP_STATE_META[popupState(p)].label }}
+            </span>
+          </button>
+
+          <!-- tělo -->
+          <div class="flex flex-1 flex-col p-3.5">
+            <div class="flex items-start justify-between gap-2">
+              <button class="min-w-0 flex-1 text-left" @click="goEdit(p.id)">
+                <h3 class="truncate text-[14px] font-600 text-graphite-900 group-hover:text-brand-600">
+                  {{ p.title.cs || 'Bez názvu' }}
+                </h3>
+              </button>
+              <RowActionsMenu :actions="rowActions" label="Akce s pop-up oknem" @select="(key) => onRowAction(key, p)" />
+            </div>
+
+            <dl class="mt-2.5 space-y-1.5 text-[12px]">
+              <div class="flex items-center justify-between gap-2">
+                <dt class="text-steel-500">Vytvořeno</dt>
+                <dd class="tabular-nums text-graphite-700">{{ fmt(p.createdAt) }}</dd>
+              </div>
+              <div class="flex items-center justify-between gap-2">
+                <dt class="text-steel-500">Zobrazení</dt>
+                <dd class="tabular-nums text-graphite-700">{{ fmt(p.from) }} → {{ fmt(p.to) }}</dd>
+              </div>
+            </dl>
+
+            <div class="mt-3 flex items-center justify-between gap-2 border-t border-steel-100 pt-3">
+              <AppSwitch
+                :model-value="p.enabled"
+                label="Zobrazovat"
+                :aria-label="`Zobrazovat ${p.title.cs}`"
+                @update:model-value="(v) => toggleEnabled(p, v)"
+              />
+              <div class="flex flex-wrap items-center justify-end gap-1">
+                <span
+                  v-for="l in LANGS"
+                  :key="l.code"
+                  :title="p.title[l.code].trim() ? `${l.label} — vyplněno` : `${l.label} — chybí překlad`"
+                  class="rounded px-1 py-0.5 text-[10px] font-700 uppercase"
+                  :class="p.title[l.code].trim() ? 'bg-forge-500/10 text-forge-600' : 'bg-steel-100 text-steel-400'"
+                >
+                  {{ l.code }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div v-else class="rounded-xl border border-steel-200 bg-white px-4 py-16 text-center">
+        <div class="mx-auto grid h-12 w-12 place-items-center rounded-xl bg-steel-100 text-steel-400"><Icon name="popup" :size="24" /></div>
+        <p class="mt-3 text-[14px] font-600 text-graphite-800">Žádná pop-up okna</p>
+        <p class="mt-1 text-[13px] text-steel-500">Vytvořte první pop-up okno.</p>
+      </div>
+    </TabsContent>
+
+    <!-- TABULKA -->
+    <TabsContent value="table" class="outline-none">
     <div class="overflow-hidden rounded-lg border border-steel-200 bg-white">
       <table class="w-full border-collapse text-left">
         <thead>
@@ -323,6 +438,7 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
         </tbody>
       </table>
     </div>
+    </TabsContent>
 
     <!-- Pagination (Reka Pagination) -->
     <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
@@ -355,6 +471,7 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
         </PaginationList>
       </PaginationRoot>
     </div>
+    </TabsRoot>
 
     <!-- Single delete dialog -->
     <DialogRoot :open="!!deleteTarget" @update:open="(v) => !v && (deleteTarget = null)">

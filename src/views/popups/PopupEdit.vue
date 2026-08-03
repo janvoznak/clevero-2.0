@@ -5,6 +5,7 @@ import {
   TabsRoot,
   TabsList,
   TabsTrigger,
+  TabsContent,
   RadioGroupRoot,
   RadioGroupItem,
   DialogRoot,
@@ -60,6 +61,14 @@ function clone(): PopupItem {
 
 const form = reactive<PopupItem>(clone())
 const activeLang = ref<LangCode>('cs')
+
+/** Sekce detailu jako záložky (jiná vizuální rovina než jazykové mutace). */
+const activeSection = ref('basic')
+const sections = [
+  { value: 'basic', label: 'Základní informace', icon: 'page' },
+  { value: 'image', label: 'Obrázek', icon: 'image' },
+  { value: 'appearance', label: 'Vzhled a umístění', icon: 'layout' },
+]
 
 /** Šířka svázaná s aktivní jednotkou (px / %). */
 const widthValue = computed({
@@ -222,14 +231,32 @@ function applyTemplate(tpl: PopupTemplate) {
 
     <!-- Two-column body -->
     <div class="grid grid-cols-1 gap-6 px-8 py-6 xl:grid-cols-[minmax(0,1fr)_360px]">
-      <!-- LEVÝ sloupec: obsahové sekce (bez tabů — dle specifikace) -->
-      <div class="min-w-0 space-y-5">
+      <!-- LEVÝ sloupec: obsahové sekce v záložkách (Reka Tabs, podtržený styl) -->
+      <div class="min-w-0">
         <!-- Předvyplnění ze šablony (preset — jen předvyplní pole níže) -->
-        <PopupTemplateBar :templates="PREDEFINED_TEMPLATES" @select="chooseTemplate" />
+        <div class="mb-5"><PopupTemplateBar :templates="PREDEFINED_TEMPLATES" @select="chooseTemplate" /></div>
 
-        <!-- Základní informace -->
-        <FormSection title="Základní informace" icon="page" tag="popup">
-          <div class="space-y-4">
+        <div class="rounded-lg border border-steel-200 bg-white">
+          <TabsRoot v-model="activeSection">
+            <TabsList
+              class="flex flex-wrap gap-1.5 overflow-x-auto border-b border-steel-200 bg-steel-50/60 px-3 pt-2"
+              aria-label="Sekce pop-upu"
+            >
+              <TabsTrigger
+                v-for="s in sections"
+                :key="s.value"
+                :value="s.value"
+                class="-mb-px inline-flex shrink-0 items-center gap-2 rounded-t-md border-b-2 border-transparent px-4 py-2.5 text-[13px] font-600 text-steel-500 outline-none transition-colors hover:bg-steel-100 hover:text-graphite-800 data-[state=active]:border-brand-500 data-[state=active]:bg-brand-50 data-[state=active]:text-brand-700"
+              >
+                <Icon :name="s.icon" :size="16" />
+                {{ s.label }}
+              </TabsTrigger>
+            </TabsList>
+
+            <div class="p-5">
+              <!-- Sekce: Základní informace -->
+              <TabsContent value="basic" class="outline-none">
+                <div class="space-y-4">
             <div>
               <label class="mb-1.5 flex items-center justify-between">
                 <span class="text-[13px] font-600 text-graphite-800">Název (nadpis) <span class="text-brand-500">*</span></span>
@@ -270,13 +297,13 @@ function applyTemplate(tpl: PopupTemplate) {
                 <span class="field-tag ml-1">popup-new_window</span>
               </div>
             </div>
-          </div>
-        </FormSection>
+                </div>
+              </TabsContent>
 
-        <!-- Obrázek -->
-        <FormSection title="Obrázek" icon="image" tag="popup-image">
-          <p class="mb-3 text-[12.5px] text-steel-500">Obrázek zobrazený v pop-up okně. Není jazykově specifický.</p>
-          <div class="flex items-center gap-4">
+              <!-- Sekce: Obrázek -->
+              <TabsContent value="image" class="outline-none">
+                <p class="mb-3 text-[12.5px] text-steel-500">Obrázek zobrazený v pop-up okně. Není jazykově specifický.</p>
+                <div class="flex items-center gap-4">
             <span class="grid h-24 w-40 shrink-0 place-items-center overflow-hidden rounded-md border border-steel-200 bg-steel-100 text-steel-400">
               <img v-if="form.image" :src="form.image" alt="Náhled obrázku" class="h-full w-full object-cover" />
               <Icon v-else name="image" :size="24" />
@@ -295,12 +322,12 @@ function applyTemplate(tpl: PopupTemplate) {
               </button>
               <p class="text-[11px] text-steel-400">Doporučeno max. 1200 px na šířku.</p>
             </div>
-          </div>
-        </FormSection>
+                </div>
+              </TabsContent>
 
-        <!-- Vzhled a umístění -->
-        <FormSection title="Vzhled a umístění" icon="layout" tag="popup-position">
-          <div class="space-y-5">
+              <!-- Sekce: Vzhled a umístění -->
+              <TabsContent value="appearance" class="outline-none">
+                <div class="space-y-5">
             <div>
               <label class="mb-1.5 flex items-center justify-between">
                 <span class="text-[13px] font-600 text-graphite-800">Umístění na obrazovce <span class="text-brand-500">*</span></span>
@@ -377,8 +404,11 @@ function applyTemplate(tpl: PopupTemplate) {
               <AppSwitch v-model="form.popupFrame" label="Zobrazit rámeček pop-up okna" aria-label="Zobrazit rámeček pop-up okna" />
               <span class="field-tag">popup-popupFrame</span>
             </div>
-          </div>
-        </FormSection>
+                </div>
+              </TabsContent>
+            </div>
+          </TabsRoot>
+        </div>
       </div>
 
       <!-- PRAVÝ rail -->
