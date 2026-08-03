@@ -19,14 +19,13 @@ import TagChip from '@/components/ui/TagChip.vue'
 import CalVenues from '@/components/admin/calendar/CalVenues.vue'
 import {
   MOCK_EVENTS,
-  VENUES,
   EVENT_TYPES,
-  venue,
   eventStatus,
   eventTagColor,
   EVENT_STATE_META,
   type DovEvent,
 } from '@/data/mockEvents'
+import { MOCK_VENUES, areaPlace } from '@/data/mockVenues'
 
 const router = useRouter()
 
@@ -37,7 +36,14 @@ const filterVenue = ref('all')
 const filterType = ref('all')
 const filterStatus = ref('all')
 
-const venueOptions = [{ value: 'all', label: 'Všechny budovy' }, ...VENUES.map((v) => ({ value: v.id, label: v.label }))]
+const venueOptions = [{ value: 'all', label: 'Všechna místa' }, ...MOCK_VENUES.map((v) => ({ value: v.id, label: v.title.cs }))]
+/** Popisek a barva místa (objektu v Areálu) pro výpis. */
+function placeLabel(id: string): string {
+  return areaPlace(id)?.title.cs ?? '—'
+}
+function placeColor(id: string): string {
+  return areaPlace(id)?.color ?? '#64748b'
+}
 const typeOptions = [{ value: 'all', label: 'Všechny typy' }, ...EVENT_TYPES.map((t) => ({ value: t, label: t }))]
 const statusOptions = [
   { value: 'all', label: 'Všechny stavy' },
@@ -57,7 +63,7 @@ function clearFilters() {
 
 const visible = computed(() =>
   MOCK_EVENTS.filter((e) => {
-    const mV = filterVenue.value === 'all' || e.venueId === filterVenue.value
+    const mV = filterVenue.value === 'all' || e.areaId === filterVenue.value
     const mT = filterType.value === 'all' || e.type === filterType.value
     const mS = filterStatus.value === 'all' || eventStatus(e) === filterStatus.value
     return mV && mT && mS
@@ -111,7 +117,7 @@ function goNew() {
       <div class="mb-4 flex flex-wrap items-end justify-between gap-3 rounded-lg border border-steel-200 bg-white p-3">
         <div class="flex flex-wrap items-end gap-3">
           <div>
-            <label class="mb-1 block text-[11.5px] font-600 text-steel-500">Budova</label>
+            <label class="mb-1 block text-[11.5px] font-600 text-steel-500">Místo</label>
             <AppSelect v-model="filterVenue" :options="venueOptions" />
           </div>
           <div>
@@ -185,7 +191,7 @@ function goNew() {
                   </button>
                 </td>
                 <td class="px-2 py-3 align-middle">
-                  <TagChip :label="venue(e.venueId).label" :color="venue(e.venueId).color" />
+                  <TagChip :label="placeLabel(e.areaId)" :color="placeColor(e.areaId)" />
                 </td>
                 <td class="px-2 py-3 align-middle">
                   <div class="text-[13px] text-graphite-700 tabular-nums">{{ fmtRange(e) }}</div>

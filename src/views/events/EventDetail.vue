@@ -14,16 +14,14 @@ import { LANGS, SOURCE_LANG } from '@/data/types'
 import type { LangCode, ML } from '@/data/types'
 import {
   MOCK_EVENTS,
-  VENUES,
   EVENT_TYPES,
   PREDEFINED_EVENT_TAGS,
-  venue,
   eventStatus,
   EVENT_STATE_META,
   aiImportFromUrl,
   type DovEvent,
 } from '@/data/mockEvents'
-import { MOCK_VENUES } from '@/data/mockVenues'
+import { PLACE_OPTIONS, DEFAULT_PLACE_ID, areaPlace } from '@/data/mockVenues'
 
 const props = defineProps<{ id?: string }>()
 const router = useRouter()
@@ -40,7 +38,6 @@ function clone(): DovEvent {
     id: 'nová',
     title: empty(),
     subtitle: empty(),
-    venueId: 'areal',
     type: 'Festival',
     from: '',
     to: '',
@@ -55,7 +52,7 @@ function clone(): DovEvent {
     duration: '',
     performers: '',
     tags: [],
-    areaId: '',
+    areaId: DEFAULT_PLACE_ID,
     published: false,
   }
 }
@@ -66,19 +63,11 @@ function langFilled(code: LangCode): boolean {
   return form.title[code].trim().length > 0
 }
 
-const venueOptions = VENUES.map((v) => ({ value: v.id, label: v.label }))
 const typeOptions = EVENT_TYPES.map((t) => ({ value: t, label: t }))
-/** Výběr objektu v Areálu (kanonická vazba akce → objekt).
-    Reka Select nepovolí prázdnou hodnotu, proto sentinel + proxy na ''. */
-const AREA_NONE = '__none__'
-const areaOptions = [
-  { value: AREA_NONE, label: '— nepropojeno' },
-  ...MOCK_VENUES.map((v) => ({ value: v.id, label: v.title.cs })),
-]
-const areaModel = computed({
-  get: () => form.areaId || AREA_NONE,
-  set: (v: string) => (form.areaId = v === AREA_NONE ? '' : v),
-})
+/** Místo konání = objekt v Areálu (jedna kanonická vazba; barva v kalendáři
+    se odvozuje z objektu). Všechna místa mají neprázdné ID. */
+const placeOptions = PLACE_OPTIONS
+const place = computed(() => areaPlace(form.areaId))
 const status = computed(() => (form.from && form.to ? eventStatus(form) : null))
 
 /** Sekce detailu (podtržené záložky). */
@@ -116,7 +105,7 @@ function aiImport() {
     form.summary[SOURCE_LANG] = d.summary
     form.description[SOURCE_LANG] = d.description
     form.type = d.type
-    form.venueId = d.venueId
+    form.areaId = d.areaId
     form.from = d.from
     form.to = d.to
     form.time = d.time
@@ -310,26 +299,21 @@ function save() {
               <TabsContent value="when" class="space-y-4 outline-none">
                 <div class="grid gap-4 sm:grid-cols-2">
                   <div>
-                    <label class="mb-1.5 block text-[13px] font-600 text-graphite-800">Budova / místo</label>
-                    <AppSelect v-model="form.venueId" :options="venueOptions" />
+                    <label class="mb-1.5 flex items-center justify-between">
+                      <span class="text-[13px] font-600 text-graphite-800">Místo konání (objekt v areálu) <span class="text-brand-500">*</span></span>
+                      <span class="field-tag">event-area_id</span>
+                    </label>
+                    <AppSelect v-model="form.areaId" :options="placeOptions" />
                   </div>
                   <div>
                     <label class="mb-1.5 block text-[13px] font-600 text-graphite-800">Typ akce</label>
                     <AppSelect v-model="form.type" :options="typeOptions" />
                   </div>
                 </div>
-
-                <div>
-                  <label class="mb-1.5 flex items-center justify-between">
-                    <span class="text-[13px] font-600 text-graphite-800">Objekt v areálu</span>
-                    <span class="field-tag">event-area_id</span>
-                  </label>
-                  <AppSelect v-model="areaModel" :options="areaOptions" />
-                  <p class="mt-1.5 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
-                    <Icon name="map" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
-                    Napojí akci na objekt v modulu <span class="font-600 text-graphite-700">Areál</span> — akce se pak zobrazí v jeho detailu v sekci „Akce".
-                  </p>
-                </div>
+                <p class="flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
+                  <Icon name="map" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
+                  Místo = objekt v <span class="font-600 text-graphite-700">Areálu</span>. Podle něj se akce barevně zařadí do kalendáře a na webu se zobrazí v detailu objektu.
+                </p>
 
                 <div class="grid gap-4 sm:grid-cols-2">
                   <div>
@@ -481,8 +465,9 @@ function save() {
         <FormSection title="Zařazení" icon="calendar">
           <dl class="space-y-2.5 text-[13px]">
             <div class="flex items-center justify-between">
-              <dt class="text-steel-500">Budova</dt>
-              <dd><TagChip :label="venue(form.venueId).label" :color="venue(form.venueId).color" /></dd>
+              <dt class="text-steel-500">Místo</dt>
+              <dd v-if="place"><TagChip :label="place.title.cs" :color="place.color" /></dd>
+              <dd v-else class="text-steel-400">—</dd>
             </div>
             <div class="flex items-center justify-between">
               <dt class="text-steel-500">Typ</dt>
