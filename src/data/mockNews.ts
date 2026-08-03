@@ -73,7 +73,7 @@ function makeGallery(count: number, offset = 0): GalleryImage[] {
 type MLInput = Partial<Record<LangCode, string>>
 type RawNews = Omit<
   NewsItem,
-  'title' | 'summary' | 'text' | 'metaTitle' | 'metaDescription' | 'metaKeywords'
+  'title' | 'summary' | 'text' | 'metaTitle' | 'metaDescription' | 'metaKeywords' | 'tourIds'
 > & {
   title: MLInput
   summary: MLInput
@@ -81,6 +81,7 @@ type RawNews = Omit<
   metaTitle: MLInput
   metaDescription: MLInput
   metaKeywords: MLInput
+  tourIds?: string[]
 }
 
 /** Doplní všechny jazyky (chybějící = prázdný řetězec). */
@@ -93,6 +94,7 @@ const empty: MLInput = { cs: '', en: '', de: '' }
 const RAW: RawNews[] = [
   {
     id: 'n-2041',
+    tourIds: ['t-vysokopecni'],
     author: 'Jana Svobodová',
     title: {
       cs: 'Bolt Tower otevírá letní vyhlídkovou sezónu',
@@ -148,6 +150,7 @@ const RAW: RawNews[] = [
   },
   {
     id: 'n-2035',
+    tourIds: ['t-hlubina-den'],
     author: 'Jana Svobodová',
     title: { cs: 'Noční prohlídky Dolu Hlubina', en: 'Night tours of the Hlubina Mine', de: '' },
     summary: { cs: 'Zážitkové prohlídky bývalého černouhelného dolu při svitu lamp.', en: '', de: '' },
@@ -223,6 +226,7 @@ const RAW: RawNews[] = [
 /** Normalizace raw dat na plný datový model (doplní všechny jazyky). */
 export const MOCK_NEWS: NewsItem[] = RAW.map((r) => ({
   ...r,
+  tourIds: r.tourIds ?? [],
   title: toML(r.title),
   summary: toML(r.summary),
   text: toML(r.text),

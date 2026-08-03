@@ -68,6 +68,8 @@ export interface AreaObject {
   tags: string[]
   /** Přiřazené galerie (ID z modulu Galerie). */
   galleryIds: string[]
+  /** Nabízené prohlídky (ID z modulu Prohlídky). */
+  tourIds: string[]
   /** ID objektu v Colosseum (napojení prodeje vstupenek na prohlídku). */
   colosseumId: string
   /** Bezbariérový přístup. */
@@ -100,6 +102,7 @@ type RawVenue = {
   showOpeningHours: boolean
   published: boolean
   stats?: VenueStat[]
+  tourIds?: string[]
 }
 
 const RAW: RawVenue[] = [
@@ -126,7 +129,7 @@ const RAW: RawVenue[] = [
     color: '#ee703d',
     silhouette: 'bolt',
     tags: ['Atraktivity', 'Gastro'],
-    galleryIds: ['g-bolt'],
+    galleryIds: ['g-bolt'], tourIds: ['t-vysokopecni'],
     colosseumId: 'COL-BOLT-2011',
     accessible: true,
     openState: 'open',
@@ -142,7 +145,7 @@ const RAW: RawVenue[] = [
     color: '#7b5ea7',
     silhouette: 'gong',
     tags: ['Atraktivity'],
-    galleryIds: ['g-gong'],
+    galleryIds: ['g-gong'], tourIds: ['t-plynojem'],
     colosseumId: '',
     accessible: true,
     openState: 'open',
@@ -190,7 +193,7 @@ const RAW: RawVenue[] = [
     color: '#b04f20',
     silhouette: 'hlubina',
     tags: ['Atraktivity'],
-    galleryIds: ['g-hlubina'],
+    galleryIds: ['g-hlubina'], tourIds: ['t-hlubina-den', 't-hlubina-nocni'],
     colosseumId: 'COL-HLUB-3301',
     accessible: false,
     openState: 'seasonal',
@@ -271,6 +274,7 @@ export const MOCK_VENUES: AreaObject[] = RAW.map((r) => ({
   silhouette: r.silhouette,
   tags: r.tags,
   galleryIds: r.galleryIds,
+  tourIds: r.tourIds ?? [],
   colosseumId: r.colosseumId,
   accessible: r.accessible,
   openState: r.openState,
@@ -303,6 +307,7 @@ export function blankVenue(): AreaObject {
     silhouette: 'areal',
     tags: [],
     galleryIds: [],
+    tourIds: [],
     colosseumId: '',
     accessible: false,
     openState: 'open',

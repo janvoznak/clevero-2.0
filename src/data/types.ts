@@ -61,6 +61,8 @@ export interface NewsItem {
   /** Kategorie (průřezové, nezávislé na jazyce) — chová se stejně jako štítky.
       Zároveň párují aktualitu s objektem v Areálu. */
   categories: string[]
+  /** Související prohlídky (ID z modulu Prohlídky). */
+  tourIds: string[]
 }
 
 /** Předdefinovaný štítek s barvou (barva = hex, kvůli jednoduchosti mimo Tailwind shade). */

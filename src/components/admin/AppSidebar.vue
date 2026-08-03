@@ -44,7 +44,16 @@ const nav: NavEntry[] = [
   { kind: 'link', label: 'Dashboard', icon: 'dashboard', to: '/admin/dashboard' },
   { kind: 'link', label: 'Kalendář akcí', icon: 'calendar', to: '/admin/events' },
   { kind: 'link', label: 'Areál', icon: 'map', to: '/admin/area/list', match: '/admin/area' },
-  { kind: 'link', label: 'Vstupenky', icon: 'ticket', to: '/admin/tickets' },
+  {
+    kind: 'group',
+    key: 'prohlidky',
+    label: 'Prohlídky',
+    icon: 'ticket',
+    children: [
+      { label: 'Prohlídky', to: '/admin/tours', match: '/admin/tours' },
+      { label: 'Vstupenky', to: '/admin/tickets', match: '/admin/tickets' },
+    ],
+  },
   {
     kind: 'group',
     key: 'obsah',

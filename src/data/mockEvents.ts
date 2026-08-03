@@ -63,6 +63,8 @@ export interface DovEvent {
   tags: string[]
   /** Vazba na objekt v Areálu (ID objektu, '' = nepropojeno). */
   areaId: string
+  /** Související prohlídky (ID z modulu Prohlídky). */
+  tourIds: string[]
   published: boolean
 }
 
@@ -88,6 +90,7 @@ type RawEvent = {
   performers?: string
   tags?: string[]
   areaId?: string
+  tourIds?: string[]
 }
 function ml(cs: string): ML {
   return { cs, en: '', de: '', pl: '' }
@@ -136,6 +139,7 @@ export const MOCK_EVENTS: DovEvent[] = RAW_EVENTS.map((r) => ({
   performers: r.performers ?? '',
   tags: r.tags ?? [],
   areaId: r.areaId ?? '',
+  tourIds: r.tourIds ?? [],
   published: r.published,
 }))
 

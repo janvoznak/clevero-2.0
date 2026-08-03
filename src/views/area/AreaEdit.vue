@@ -21,6 +21,7 @@ import {
   type AreaObject,
 } from '@/data/mockVenues'
 import { MOCK_GALLERIES } from '@/data/mockGalleries'
+import { tourOptionsList } from '@/data/mockTours'
 
 const props = defineProps<{ id?: string }>()
 const router = useRouter()
@@ -60,6 +61,7 @@ function removeStat(i: number) {
 const galleryItems = computed<RelItem[]>(() =>
   MOCK_GALLERIES.map((g) => ({ id: g.id, label: g.name, sub: `${g.count} fotek`, thumb: g.cover })),
 )
+const tourItems = computed<RelItem[]>(() => tourOptionsList())
 
 
 /* ---------- AI překlad (prototyp) ---------- */
@@ -323,6 +325,22 @@ function save() {
           <p class="mt-2 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
             <Icon name="integration" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
             Přes toto ID se napojí prodej vstupenek na prohlídku objektu v systému Colosseum.
+          </p>
+        </FormSection>
+
+        <!-- Nabízené prohlídky (vazba na modul Prohlídky) -->
+        <FormSection title="Nabízené prohlídky" icon="ticket" tag="area-tours">
+          <RelationPicker
+            v-model="form.tourIds"
+            :items="tourItems"
+            add-label="Přidat prohlídku"
+            empty-label="Zatím žádné prohlídky."
+            search-placeholder="Hledat prohlídku…"
+            icon="ticket"
+          />
+          <p class="mt-2 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
+            <Icon name="ticket" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
+            Na webu si u objektu návštěvník vybere z těchto prohlídek (např. u Bolt Tower prohlídku Bolt Café).
           </p>
         </FormSection>
 
