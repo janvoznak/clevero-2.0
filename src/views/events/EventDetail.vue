@@ -9,6 +9,7 @@ import AppSwitch from '@/components/ui/AppSwitch.vue'
 import TagChip from '@/components/ui/TagChip.vue'
 import TagPicker from '@/components/admin/TagPicker.vue'
 import FormSection from '@/components/admin/FormSection.vue'
+import AiPanel from '@/components/admin/AiPanel.vue'
 import RichTextEditor from '@/components/admin/RichTextEditor.vue'
 import { LANGS, SOURCE_LANG } from '@/data/types'
 import type { LangCode, ML } from '@/data/types'
@@ -198,36 +199,29 @@ function save() {
     <div class="grid grid-cols-1 gap-6 px-8 py-6 xl:grid-cols-[minmax(0,1fr)_340px]">
       <!-- LEVÝ sloupec -->
       <div class="min-w-0 space-y-5">
-        <!-- AI import z odkazu (AI-first) -->
-        <div class="overflow-hidden rounded-xl border border-brand-200 bg-brand-50/60">
-          <div class="flex items-center gap-2 border-b border-brand-100 bg-brand-500/5 px-4 py-2.5">
-            <span class="grid h-6 w-6 place-items-center rounded-md bg-brand-500 text-white"><Icon name="sparkles" :size="14" /></span>
-            <span class="text-[13px] font-700 text-graphite-900">Založit akci z odkazu (AI)</span>
-            <span class="rounded bg-white px-1.5 py-0.5 font-mono text-[10px] text-brand-600">AI-first</span>
-          </div>
-          <div class="p-4">
-            <div class="flex flex-col gap-2 sm:flex-row">
-              <div class="relative flex-1">
-                <Icon name="link" :size="15" class="absolute left-3 top-1/2 -translate-y-1/2 text-steel-400" />
-                <input
-                  v-model="importUrl"
-                  type="text"
-                  placeholder="Vložte odkaz na akci konanou v DOV, např. https://racethestreets.eu/cs/udalosti/ostrava-2026"
-                  class="h-10 w-full rounded-md border border-steel-200 bg-white pl-9 pr-3 text-[13px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none"
-                  @keydown.enter.prevent="aiImport"
-                />
-              </div>
-              <AppButton variant="primary" :disabled="!importUrl.trim() || importing" @click="aiImport">
-                <Icon name="sparkles" :size="15" :class="importing && 'animate-pulse'" />
-                {{ importing ? 'Načítám…' : 'Načíst přes AI' }}
-              </AppButton>
+        <!-- AI import z odkazu (sjednocený AI blok) -->
+        <AiPanel title="Založit akci z odkazu" badge="AI-first" hint="Z odkazu na akci připraví AI celý obsah a vyplní pole.">
+          <div class="flex flex-col gap-2 sm:flex-row">
+            <div class="relative flex-1">
+              <Icon name="link" :size="15" class="absolute left-3 top-1/2 -translate-y-1/2 text-steel-400" />
+              <input
+                v-model="importUrl"
+                type="text"
+                placeholder="Vložte odkaz na akci konanou v DOV, např. https://racethestreets.eu/cs/udalosti/ostrava-2026"
+                class="h-10 w-full rounded-md border border-steel-200 bg-white pl-9 pr-3 text-[13px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none"
+                @keydown.enter.prevent="aiImport"
+              />
             </div>
-            <p class="mt-2 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
-              <Icon name="sparkles" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
-              AI z odkazu připraví název, popis, termín, místo, vstupné, věkové omezení, štítky i plakát. Vše pak zkontrolujete a upravíte.
-            </p>
+            <AppButton variant="primary" :disabled="!importUrl.trim() || importing" @click="aiImport">
+              <Icon name="sparkles" :size="15" :class="importing && 'animate-pulse'" />
+              {{ importing ? 'Načítám…' : 'Načíst přes AI' }}
+            </AppButton>
           </div>
-        </div>
+          <p class="mt-2 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
+            <Icon name="sparkles" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
+            AI z odkazu připraví název, popis, termín, místo, vstupné, věkové omezení, štítky i plakát. Vše pak zkontrolujete a upravíte.
+          </p>
+        </AiPanel>
 
         <!-- Obsahové sekce v podtržených záložkách -->
         <div class="rounded-lg border border-steel-200 bg-white">
