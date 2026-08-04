@@ -73,7 +73,7 @@ function makeGallery(count: number, offset = 0): GalleryImage[] {
 type MLInput = Partial<Record<LangCode, string>>
 type RawNews = Omit<
   NewsItem,
-  'title' | 'summary' | 'text' | 'metaTitle' | 'metaDescription' | 'metaKeywords' | 'tourIds'
+  'title' | 'summary' | 'text' | 'metaTitle' | 'metaDescription' | 'metaKeywords' | 'tourIds' | 'areaId'
 > & {
   title: MLInput
   summary: MLInput
@@ -82,6 +82,7 @@ type RawNews = Omit<
   metaDescription: MLInput
   metaKeywords: MLInput
   tourIds?: string[]
+  areaId?: string
 }
 
 /** Doplní všechny jazyky (chybějící = prázdný řetězec). */
@@ -94,6 +95,7 @@ const empty: MLInput = { cs: '', en: '', de: '' }
 const RAW: RawNews[] = [
   {
     id: 'n-2041',
+    areaId: 'v-bolt',
     tourIds: ['t-vysokopecni'],
     author: 'Jana Svobodová',
     title: {
@@ -128,6 +130,7 @@ const RAW: RawNews[] = [
   },
   {
     id: 'n-2038',
+    areaId: 'v-gong',
     author: 'Petr Dvořák',
     title: {
       cs: 'Colours of Ostrava 2026 — program v Gongu',
@@ -150,6 +153,7 @@ const RAW: RawNews[] = [
   },
   {
     id: 'n-2035',
+    areaId: 'v-hlubina',
     tourIds: ['t-hlubina-den'],
     author: 'Jana Svobodová',
     title: { cs: 'Noční prohlídky Dolu Hlubina', en: 'Night tours of the Hlubina Mine', de: '' },
@@ -169,6 +173,7 @@ const RAW: RawNews[] = [
   },
   {
     id: 'n-2030',
+    areaId: 'v-u6',
     author: 'Martin Kučera',
     title: { cs: 'Velký svět techniky — nová interaktivní expozice', en: '', de: '' },
     summary: { cs: 'Science and technology centrum U6 rozšiřuje expozici o robotiku.', en: '', de: '' },
@@ -227,6 +232,7 @@ const RAW: RawNews[] = [
 export const MOCK_NEWS: NewsItem[] = RAW.map((r) => ({
   ...r,
   tourIds: r.tourIds ?? [],
+  areaId: r.areaId ?? '',
   title: toML(r.title),
   summary: toML(r.summary),
   text: toML(r.text),

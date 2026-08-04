@@ -50,6 +50,8 @@ export interface TourSlot {
 export interface Tour {
   id: string
   categoryId: string
+  /** Místo konání — objekt v Areálu (kde prohlídka fyzicky probíhá). */
+  areaId: string
   title: ML
   /** Krátký perex do výpisu. */
   perex: ML
@@ -75,13 +77,16 @@ export interface Tour {
   slots: TourSlot[]
 }
 
-/* ---------- Vstupenka (podmodul Vstupenky) — z Colossea přes API ---------- */
+/* ---------- Vstupenka (podmodul Vstupenky) — z Colossea přes API ----------
+   Pozn.: obsazenost termínů (TourSlot.capacity/booked) i vstupenky jsou dvě
+   read-only projekce TÉHOŽ zdroje (Colosseum). V adminu se nic nepočítá ani
+   needituje — jen zobrazuje; konzistenci drží Colosseum. */
 export interface Ticket {
   id: string
   tourId: string
   customer: string
   email: string
-  /** Termín prohlídky (ISO). */
+  /** Termín prohlídky (ISO) — odpovídá `TourSlot.id` daného termínu. */
   slotDatetime: string
   /** Kdy byla vstupenka zakoupena (ISO). */
   purchasedAt: string
@@ -138,6 +143,7 @@ const RAW_TOURS: RawTour[] = [
   {
     id: 't-vysokopecni',
     categoryId: 'cat-dov',
+    areaId: 'v-bolt',
     title: 'Vysokopecní okruh vč. návštěvy Bolt Tower',
     perex: 'Komentovaná prohlídka Vysoké pece č. 1 o historii Vítkovic a výrobě surového železa (v polovině prohlídky rozchod na Bolt Tower).',
     description:
@@ -174,6 +180,7 @@ const RAW_TOURS: RawTour[] = [
   {
     id: 't-plynojem',
     categoryId: 'cat-dov',
+    areaId: 'v-gong',
     title: 'Prohlídka plynojemu Gong',
     perex: 'Komentovaná prohlídka bývalého plynojemu přeměněného v multifunkční aulu Gong.',
     description: '<p>Prohlídka unikátní stavby plynojemu a jeho proměny v multifunkční aulu.</p>',
@@ -191,6 +198,7 @@ const RAW_TOURS: RawTour[] = [
   {
     id: 't-hlubina-den',
     categoryId: 'cat-hornicke',
+    areaId: 'v-hlubina',
     title: 'Denní prohlídka Dolu Hlubina',
     perex: 'Komentovaná prohlídka hornického provozu a těžní věže dolu Hlubina.',
     description: '<p>Projděte si autentické prostory černouhelného dolu s průvodcem.</p>',
@@ -208,6 +216,7 @@ const RAW_TOURS: RawTour[] = [
   {
     id: 't-hlubina-nocni',
     categoryId: 'cat-hornicke',
+    areaId: 'v-hlubina',
     title: 'Noční prohlídka Dolu Hlubina',
     perex: 'Zážitková prohlídka dolu při svitu hornických lamp.',
     description: '<p>Vydejte se do útrob dolu po setmění — atmosférická prohlídka při svitu lamp.</p>',
@@ -299,6 +308,7 @@ export function blankTour(categoryId = 'cat-dov'): Tour {
   return {
     id: 'nová',
     categoryId,
+    areaId: '',
     title: ml(''),
     perex: ml(''),
     description: ml(''),

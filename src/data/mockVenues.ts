@@ -1,6 +1,6 @@
 import { imageFor, TAG_PALETTE } from './mockNews'
 import { defaultOpeningHours } from './mockPages'
-import type { ML, Tag } from './types'
+import type { ML, Tag, GalleryImage } from './types'
 import type { OpeningDay } from './mockPages'
 import type { ContentBlock } from './mockPages'
 
@@ -66,12 +66,12 @@ export interface AreaObject {
   silhouette: string
   /** Štítky (Gastro / Atraktivity / Ubytování / vlastní). */
   tags: string[]
-  /** Přiřazené galerie (ID z modulu Galerie). */
+  /** Základní fotky objektu (inline galerie — statické, mění se málo). */
+  photos: GalleryImage[]
+  /** Přiřazené fotogalerie z akcí (ID z modulu Galerie). */
   galleryIds: string[]
   /** Nabízené prohlídky (ID z modulu Prohlídky). */
   tourIds: string[]
-  /** ID objektu v Colosseum (napojení prodeje vstupenek na prohlídku). */
-  colosseumId: string
   /** Bezbariérový přístup. */
   accessible: boolean
   openState: OpenState
@@ -96,13 +96,18 @@ type RawVenue = {
   silhouette: string
   tags: string[]
   galleryIds: string[]
-  colosseumId: string
   accessible: boolean
   openState: OpenState
   showOpeningHours: boolean
   published: boolean
   stats?: VenueStat[]
   tourIds?: string[]
+  photos?: GalleryImage[]
+}
+
+/** Základní fotky objektu (prototyp — placeholdery přes imageFor). */
+function vphotos(n: number, offset: number): GalleryImage[] {
+  return Array.from({ length: n }, (_, i) => ({ id: `ph-${offset}-${i}`, src: imageFor(offset + i), alt: `Foto ${i + 1}`, isMain: i === 0 }))
 }
 
 const RAW: RawVenue[] = [
@@ -115,7 +120,6 @@ const RAW: RawVenue[] = [
     silhouette: 'areal',
     tags: ['Atraktivity'],
     galleryIds: ['g-areal'],
-    colosseumId: '',
     accessible: true,
     openState: 'open',
     showOpeningHours: false,
@@ -129,8 +133,7 @@ const RAW: RawVenue[] = [
     color: '#ee703d',
     silhouette: 'bolt',
     tags: ['Atraktivity', 'Gastro'],
-    galleryIds: ['g-bolt'], tourIds: ['t-vysokopecni'],
-    colosseumId: 'COL-BOLT-2011',
+    galleryIds: ['g-bolt'], tourIds: ['t-vysokopecni'], photos: vphotos(4, 0),
     accessible: true,
     openState: 'open',
     showOpeningHours: true,
@@ -146,7 +149,6 @@ const RAW: RawVenue[] = [
     silhouette: 'gong',
     tags: ['Atraktivity'],
     galleryIds: ['g-gong'], tourIds: ['t-plynojem'],
-    colosseumId: '',
     accessible: true,
     openState: 'open',
     showOpeningHours: false,
@@ -162,7 +164,6 @@ const RAW: RawVenue[] = [
     silhouette: 'galerie',
     tags: ['Atraktivity'],
     galleryIds: ['g-galerie'],
-    colosseumId: '',
     accessible: true,
     openState: 'open',
     showOpeningHours: true,
@@ -177,8 +178,7 @@ const RAW: RawVenue[] = [
     color: '#3b6fb0',
     silhouette: 'technika',
     tags: ['Atraktivity'],
-    galleryIds: ['g-u6', 'g-technika'],
-    colosseumId: 'COL-U6-1042',
+    galleryIds: ['g-u6', 'g-technika'], photos: vphotos(4, 4),
     accessible: true,
     openState: 'open',
     showOpeningHours: true,
@@ -193,8 +193,7 @@ const RAW: RawVenue[] = [
     color: '#b04f20',
     silhouette: 'hlubina',
     tags: ['Atraktivity'],
-    galleryIds: ['g-hlubina'], tourIds: ['t-hlubina-den', 't-hlubina-nocni'],
-    colosseumId: 'COL-HLUB-3301',
+    galleryIds: ['g-hlubina'], tourIds: ['t-hlubina-den', 't-hlubina-nocni'], photos: vphotos(3, 5),
     accessible: false,
     openState: 'seasonal',
     showOpeningHours: true,
@@ -210,7 +209,6 @@ const RAW: RawVenue[] = [
     silhouette: 'hopjump',
     tags: ['Atraktivity'],
     galleryIds: [],
-    colosseumId: '',
     accessible: true,
     openState: 'open',
     showOpeningHours: true,
@@ -225,7 +223,6 @@ const RAW: RawVenue[] = [
     silhouette: 'lezecka',
     tags: ['Atraktivity'],
     galleryIds: [],
-    colosseumId: '',
     accessible: false,
     openState: 'seasonal',
     showOpeningHours: true,
@@ -240,7 +237,6 @@ const RAW: RawVenue[] = [
     silhouette: 'areal',
     tags: ['Gastro'],
     galleryIds: ['g-gastro'],
-    colosseumId: '',
     accessible: true,
     openState: 'open',
     showOpeningHours: true,
@@ -255,7 +251,6 @@ const RAW: RawVenue[] = [
     silhouette: 'areal',
     tags: ['Ubytování'],
     galleryIds: ['g-hotel'],
-    colosseumId: '',
     accessible: true,
     openState: 'seasonal',
     showOpeningHours: false,
@@ -273,9 +268,9 @@ export const MOCK_VENUES: AreaObject[] = RAW.map((r) => ({
   color: r.color,
   silhouette: r.silhouette,
   tags: r.tags,
+  photos: r.photos ?? [],
   galleryIds: r.galleryIds,
   tourIds: r.tourIds ?? [],
-  colosseumId: r.colosseumId,
   accessible: r.accessible,
   openState: r.openState,
   openingHours: defaultOpeningHours(),
@@ -306,9 +301,9 @@ export function blankVenue(): AreaObject {
     color: '#64748b',
     silhouette: 'areal',
     tags: [],
+    photos: [],
     galleryIds: [],
     tourIds: [],
-    colosseumId: '',
     accessible: false,
     openState: 'open',
     openingHours: defaultOpeningHours(),

@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { TabsRoot, TabsList, TabsTrigger, TabsContent } from 'reka-ui'
 import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppSelect from '@/components/ui/AppSelect.vue'
 import FormSection from '@/components/admin/FormSection.vue'
 import RichTextEditor from '@/components/admin/RichTextEditor.vue'
 import GalleryManager from '@/components/admin/GalleryManager.vue'
@@ -14,8 +15,14 @@ import { LANGS, SOURCE_LANG } from '@/data/types'
 import type { LangCode, NewsItem, ML } from '@/data/types'
 import { MOCK_NEWS, publishState, STATE_META, PREDEFINED_TAGS, PREDEFINED_CATEGORIES } from '@/data/mockNews'
 import { tourOptionsList } from '@/data/mockTours'
+import { PLACE_OPTIONS } from '@/data/mockVenues'
 
 const tourItems = tourOptionsList()
+
+/** Výběr objektu v Areálu (stejně jako u akce; u novinky nepovinný).
+    Reka Select nepovolí prázdnou hodnotu → sentinel + proxy na ''. */
+const AREA_NONE = '__none__'
+const areaOptions = [{ value: AREA_NONE, label: '— nepropojeno' }, ...PLACE_OPTIONS]
 
 const props = defineProps<{ id?: string }>()
 const router = useRouter()
@@ -44,12 +51,17 @@ function clone(): NewsItem {
     attachments: [],
     tags: [],
     categories: [],
+    areaId: '',
     tourIds: [],
   }
 }
 
 const form = reactive<NewsItem>(clone())
 const activeLang = ref<LangCode>('cs')
+const areaModel = computed({
+  get: () => form.areaId || AREA_NONE,
+  set: (v: string) => (form.areaId = v === AREA_NONE ? '' : v),
+})
 
 /** Sekce detailu jako záložky (jiná vizuální rovina než jazykové mutace). */
 const activeSection = ref('basic')
@@ -489,7 +501,16 @@ function translateAll() {
           <TagPicker v-model="form.tags" :options="PREDEFINED_TAGS" />
         </FormSection>
 
-        <!-- Kategorie (stejné UI/UX jako štítky — sdílený TagPicker) -->
+        <!-- Objekt v areálu (kanonická vazba na modul Areál — stejně jako u akce) -->
+        <FormSection title="Objekt v areálu" icon="map" tag="news-area_id">
+          <AppSelect v-model="areaModel" :options="areaOptions" />
+          <p class="mt-2 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
+            <Icon name="map" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
+            Napojí aktualitu na objekt v areálu (např. Bolt Tower) — na webu se pak zobrazí u daného objektu. Nepovinné.
+          </p>
+        </FormSection>
+
+        <!-- Kategorie (obsahové štítky — sdílený TagPicker) -->
         <FormSection title="Kategorie" icon="layers" tag="news-categories">
           <TagPicker
             v-model="form.categories"
@@ -498,10 +519,6 @@ function translateAll() {
             empty-label="Zatím žádné kategorie."
             color-label="Barva kategorie"
           />
-          <p class="mt-2.5 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
-            <Icon name="map" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
-            Kategorie zároveň párují aktualitu s objektem v areálu (např. Bolt Tower).
-          </p>
         </FormSection>
 
         <!-- Související prohlídky (vazba na modul Prohlídky) -->

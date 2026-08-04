@@ -4,12 +4,14 @@ import type { ML, Tag } from './types'
 /** „Dnešek" prototypu — kvůli stavům a zvýraznění v kalendáři. */
 export const EVENTS_NOW = new Date('2026-07-28T12:00:00')
 
+/** Typy akcí. „Prohlídka" zde záměrně NENÍ — prohlídky jsou samostatný modul
+    Prohlídky (opakované termíny + Colosseum). Viz pravidlo Akce vs Prohlídka
+    ve STANDARDY-MODULU.md. */
 export const EVENT_TYPES = [
   'Festival',
   'Koncert',
   'Sportovní akce',
   'Výstava',
-  'Prohlídka',
   'Vzdělávací program',
   'Konference',
   'Stand-up',
@@ -102,14 +104,11 @@ const RAW_EVENTS: RawEvent[] = [
   { id: 'e-machac', title: 'David Macháč: Soukromé ráje', areaId: 'v-areal', type: 'Výstava', from: '2026-03-19', to: '2026-09-27', summary: 'Site-specific instalace v prostorách areálu.', image: imageFor(11), published: true },
   { id: 'e-salon', title: 'Letní salón 2', areaId: 'v-galerie', type: 'Výstava', from: '2026-06-23', to: '2026-08-28', summary: 'Přehlídka současné regionální tvorby.', image: imageFor(6), published: true },
 
-  // — Vzdělávací / prohlídky (konec července) —
+  // — Vzdělávací programy (konec července) —
   { id: 'e-tabor', areaId: 'v-u6', title: 'Letní příměstský tábor U6', type: 'Vzdělávací program', from: '2026-07-27', to: '2026-07-31', summary: 'Týdenní tábor plný experimentů ve Světě techniky.', image: imageFor(4), published: true, price: '2 900 Kč', ageLimit: '7–12 let', tags: ['Pro školy', 'Rodinné'] },
   { id: 'e-scienceshow', areaId: 'v-u6', title: 'Science Show: Živly', type: 'Vzdělávací program', from: '2026-07-29', to: '2026-07-29', time: '15:00', timeTo: '16:00', summary: 'Interaktivní představení o přírodních živlech.', image: imageFor(13), published: true, price: 'Vstup zdarma', duration: '60 min', tags: ['Rodinné', 'Zdarma'] },
-  { id: 'e-boltden', areaId: 'v-bolt', title: 'Komentovaná prohlídka Bolt Tower', type: 'Prohlídka', from: '2026-07-30', to: '2026-07-30', time: '11:00', summary: 'Výstup na vrchol vysoké pece s průvodcem.', image: imageFor(0), published: true, price: '180 Kč', duration: '45 min', tags: ['Komentováno', 'Industriál'] },
-
   // — Srpen: festivaly a akce (více budov v jeden den) —
   { id: 'e-plameny', title: 'Ostrava v plamenech 2026', areaId: 'v-areal', type: 'Festival', from: '2026-08-01', to: '2026-08-01', time: '18:00', summary: 'Ohnivá show a doprovodný program v celém areálu.', image: imageFor(1), published: true, price: 'od 290 Kč', tags: ['Venku', 'Hudba'] },
-  { id: 'e-hlubinanoc', areaId: 'v-hlubina', title: 'Noční prohlídka Dolu Hlubina', type: 'Prohlídka', from: '2026-08-01', to: '2026-08-01', time: '21:00', timeTo: '22:30', summary: 'Zážitková prohlídka dolu při svitu lamp.', image: imageFor(5), published: true, subtitle: 'Zážitková prohlídka při svitu hornických lamp', description: '<p>Vydejte se do útrob Dolu Hlubina po setmění. Komentovaná prohlídka vás provede autentickými prostorami dolu při svitu lamp a přiblíží každodennost horníků.</p><p>Kapacita je omezená, doporučujeme rezervaci předem.</p>', price: '220 Kč', ticketUrl: '/vstupenky/hlubina-noc', ageLimit: '10+', duration: '90 min', tags: ['Noční', 'Komentováno', 'Industriál'] },
   { id: 'e-race', title: 'Race the Streets', areaId: 'v-areal', type: 'Sportovní akce', from: '2026-08-07', to: '2026-08-08', summary: 'Městské závody napříč industriálním areálem.', image: imageFor(2), published: true, tags: ['Sport', 'Venku'] },
   { id: 'e-gongkoncert', areaId: 'v-gong', title: 'Letní koncert v Gongu', type: 'Koncert', from: '2026-08-07', to: '2026-08-07', time: '19:30', summary: 'Večerní koncert v multifunkční aule.', image: imageFor(8), published: true, price: 'od 490 Kč', tags: ['Hudba'] },
   { id: 'e-hopjump', title: 'HopJump večerní jam', areaId: 'v-hopjump', type: 'Sportovní akce', from: '2026-08-08', to: '2026-08-08', time: '20:00', summary: 'Trampolínový večer pro všechny věkové kategorie.', image: imageFor(9), published: true, tags: ['Sport', 'Rodinné'] },
