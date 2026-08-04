@@ -355,9 +355,9 @@ Každá vazba má **jednoho vlastníka** (modul, v jehož detailu se nastavuje).
 | Akce → prohlídky | Kalendář akcí (detail akce) | Prohlídky | `event.tourIds` (více) |
 | Novinka → prohlídky | Novinky (detail novinky) | Prohlídky | `news.tourIds` (více) |
 | Objekt → nabízené prohlídky | Areál (detail objektu) | Prohlídky | `venue.tourIds` (více) |
-| Objekt → fotogalerie z akcí | Areál (detail objektu) | Galerie | `venue.galleryIds` (více) |
+| Galerie → objekt | Galerie (detail galerie) | Areál („fotogalerie objektu") | `gallery.areaId` (jeden) |
 
-**Důsledek pro Areál:** detail objektu needituje seznam akcí ani novinek — ty se k objektu hlásí ze svých modulů (`areaId`). Areál je vlastníkem jen u „nabízených prohlídek" a „fotogalerií".
+**Důsledek pro Areál:** detail objektu needituje seznam akcí, novinek ani galerií — ty se k objektu hlásí ze svých modulů (`areaId`). Areál je vlastníkem jen u „nabízených prohlídek"; galerie se k objektu přiřazuje v modulu Galerie (`gallery.areaId`) a v Areálu se jen zrcadlí (read-only).
 
 ### 14b. Akce vs. Prohlídka — neplest
 

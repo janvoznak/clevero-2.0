@@ -22,6 +22,7 @@ import {
   OPEN_STATE_META,
   type AreaObject,
 } from '@/data/mockVenues'
+import { galleriesForVenue } from '@/data/mockGalleries'
 
 const router = useRouter()
 const rows = ref<AreaObject[]>([...MOCK_VENUES])
@@ -186,8 +187,8 @@ function confirmDelete() {
             </td>
             <!-- Galerie -->
             <td class="px-2 py-3 align-middle">
-              <span class="inline-flex items-center gap-1 text-[12px] text-steel-600" :title="`${v.galleryIds.length} galerií`">
-                <Icon name="gallery" :size="13" class="text-steel-400" /> {{ v.galleryIds.length }}
+              <span class="inline-flex items-center gap-1 text-[12px] text-steel-600" :title="`${galleriesForVenue(v.id).length} galerií`">
+                <Icon name="gallery" :size="13" class="text-steel-400" /> {{ galleriesForVenue(v.id).length }}
               </span>
             </td>
             <!-- Zveřejněno -->

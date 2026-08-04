@@ -21,7 +21,7 @@ import {
   blankVenue,
   type AreaObject,
 } from '@/data/mockVenues'
-import { MOCK_GALLERIES } from '@/data/mockGalleries'
+import { galleriesForVenue, galleryCover, galleryCount } from '@/data/mockGalleries'
 import { tourOptionsList } from '@/data/mockTours'
 
 const props = defineProps<{ id?: string }>()
@@ -58,10 +58,9 @@ function removeStat(i: number) {
   form.stats.splice(i, 1)
 }
 
-/* ---------- Galerie: položky pro RelationPicker ---------- */
-const galleryItems = computed<RelItem[]>(() =>
-  MOCK_GALLERIES.map((g) => ({ id: g.id, label: g.name, sub: `${g.count} fotek`, thumb: g.cover })),
-)
+/* ---------- Galerie určené pro tento objekt (read-only zrcadlo) ----------
+   Vazbu vlastní modul Galerie (Gallery.areaId) — tady se jen zobrazuje. */
+const venueGalleries = computed(() => galleriesForVenue(form.id))
 const tourItems = computed<RelItem[]>(() => tourOptionsList())
 
 
@@ -283,24 +282,32 @@ function save() {
                   <GalleryManager v-model="form.photos" />
                 </div>
 
-                <!-- Fotogalerie z akcí (přiřazené z modulu Galerie) -->
+                <!-- Fotogalerie z modulu Galerie (read-only zrcadlo — vazbu vlastní Galerie) -->
                 <div class="border-t border-steel-100 pt-5">
                   <div class="mb-1.5 flex items-center justify-between">
-                    <span class="text-[13px] font-600 text-graphite-800">Fotogalerie z akcí</span>
-                    <span class="field-tag">area-galleryIds</span>
+                    <span class="text-[13px] font-600 text-graphite-800">Fotogalerie objektu</span>
+                    <span class="field-tag">gallery-area_id</span>
                   </div>
                   <p class="mb-3 flex items-start gap-1.5 text-[12px] leading-relaxed text-steel-500">
                     <Icon name="gallery" :size="13" class="mt-0.5 shrink-0 text-steel-400" />
-                    Přiřaďte galerie z modulu <span class="font-600 text-graphite-700">Galerie</span> (např. z akcí). Samotné fotky se plní tam.
+                    Galerie určené pro tento objekt. Přiřazení se nastavuje v modulu
+                    <span class="font-600 text-graphite-700">Galerie</span> (detail galerie → „Objekt v areálu").
                   </p>
-                  <RelationPicker
-                    v-model="form.galleryIds"
-                    :items="galleryItems"
-                    add-label="Přiřadit galerii"
-                    empty-label="Zatím není přiřazena žádná galerie."
-                    search-placeholder="Hledat galerii…"
-                    icon="gallery"
-                  />
+                  <ul v-if="venueGalleries.length" class="grid gap-2 sm:grid-cols-2">
+                    <li v-for="g in venueGalleries" :key="g.id" class="flex items-center gap-2.5 rounded-lg border border-steel-200 bg-white px-2.5 py-2">
+                      <span class="grid h-9 w-12 shrink-0 place-items-center overflow-hidden rounded bg-steel-100 text-steel-400">
+                        <img v-if="galleryCover(g)" :src="galleryCover(g)" alt="" class="h-full w-full object-cover" />
+                        <Icon v-else name="image" :size="14" />
+                      </span>
+                      <span class="min-w-0">
+                        <span class="block truncate text-[13px] font-600 text-graphite-800">{{ g.name.cs }}</span>
+                        <span class="block font-mono text-[10.5px] text-steel-400">{{ galleryCount(g) }} fotek</span>
+                      </span>
+                    </li>
+                  </ul>
+                  <p v-else class="rounded-md bg-steel-50 px-3 py-4 text-center text-[12.5px] text-steel-500">
+                    Pro tento objekt zatím není určená žádná galerie.
+                  </p>
                 </div>
               </TabsContent>
 

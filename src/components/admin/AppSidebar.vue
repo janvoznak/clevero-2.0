@@ -60,7 +60,6 @@ const nav: NavEntry[] = [
     label: 'Obsah',
     icon: 'layers',
     children: [
-      { label: 'Blog', to: '/admin/blog' },
       { label: 'Aktuality', to: '/admin/news/list', match: '/admin/news' },
       { label: 'Stránky', to: '/admin/pages/list', match: '/admin/pages' },
       { label: 'Pop-up', to: '/admin/popups/list', match: '/admin/popups' },
