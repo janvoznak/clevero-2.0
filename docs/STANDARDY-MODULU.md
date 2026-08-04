@@ -336,3 +336,50 @@ AI má klientům usnadnit práci; v prototypu je ale vždy jen **UI + předstír
 - [ ] Mazání přes potvrzovací `Dialog`.
 - [ ] Prototypové prvky okomentované.
 - [ ] Položka v sidebaru, funkční routy, `vue-tsc` čistý, konzole bez chyb.
+
+---
+
+## 14. Vazby mezi moduly (architektura)
+
+Moduly Areál, Kalendář akcí, Novinky, Prohlídky a Galerie jsou provázané. Aby vazby dávaly smysl a nekřížily se, platí následující pravidla. (Vizuální přehled vazeb: samostatná mapa modulů — Artifact.)
+
+### 14a. Vlastník vazby — kde se vazba edituje
+
+Každá vazba má **jednoho vlastníka** (modul, v jehož detailu se nastavuje). Druhá strana ji jen zrcadlí (na webu, ne v editaci). Nikdy se stejná vazba needituje na obou stranách — jinak vznikne rozpor.
+
+| Vazba | Vlastník (edituje se zde) | Zrcadlí se (jen web) | Pole |
+|---|---|---|---|
+| Akce → objekt (místo konání) | Kalendář akcí (detail akce) | Areál (na webu „co se tu děje") | `event.areaId` (jeden) |
+| Novinka → objekt | Novinky (detail novinky) | Areál | `news.areaId` (jeden) |
+| Prohlídka → objekt (místo konání) | Prohlídky (detail prohlídky) | Areál („nabízené prohlídky") | `tour.areaId` (jeden) |
+| Akce → prohlídky | Kalendář akcí (detail akce) | Prohlídky | `event.tourIds` (více) |
+| Novinka → prohlídky | Novinky (detail novinky) | Prohlídky | `news.tourIds` (více) |
+| Objekt → nabízené prohlídky | Areál (detail objektu) | Prohlídky | `venue.tourIds` (více) |
+| Objekt → fotogalerie z akcí | Areál (detail objektu) | Galerie | `venue.galleryIds` (více) |
+
+**Důsledek pro Areál:** detail objektu needituje seznam akcí ani novinek — ty se k objektu hlásí ze svých modulů (`areaId`). Areál je vlastníkem jen u „nabízených prohlídek" a „fotogalerií".
+
+### 14b. Akce vs. Prohlídka — neplest
+
+- **Akce (Kalendář akcí)** = jednorázový/termínovaný program v kalendáři (koncert, festival, den otevřených dveří). Nemá vlastní prodej vstupenek v CMS.
+- **Prohlídka (Prohlídky)** = opakovaná placená prohlídka s termíny a vstupenkami z **Colossea** (přes ID).
+- Proto typ akce **není** „Prohlídka" (odstraněno z `EVENT_TYPES`) a nezakládají se akce, které jen duplikují prohlídku. Když má „akce" prodávat vstupenky na konkrétní termíny → je to prohlídka, nebo akce, která má **navázanou prohlídku** (`event.tourIds`) přebírající prodej.
+
+### 14c. Termíny a vstupenky = jen Colosseum (read-only)
+
+Termíny prohlídek (`TourSlot`) a vstupenky (`Ticket`) jsou **read-only projekce z Colossea** (přes API, tady mock). V CMS se needitují — jen zobrazují. Proto:
+
+- **Termíny prohlídek se nepromítají do Kalendáře akcí.** Kalendář akcí = kurátorský program (akce), ne rozvrh prohlídkových slotů. Sloty žijí ve své prohlídce (sekce „Nejbližší termíny") a na webu v Colosseum widgetu.
+
+### 14d. Taxonomie — čtyři různé věci, neslévat
+
+Napříč moduly existují čtyři nezávislé „štítkové" mechanismy s odlišným účelem:
+
+| Mechanismus | Kde | Účel |
+|---|---|---|
+| Štítky (`TagPicker`) | Novinky, Areál, akce | Volné obsahové štítky pro filtrování/web (např. Gastro, Atraktivity, Ubytování u objektu). |
+| Kategorie novinky (`categories`) | Novinky | Obsahová rubrika novinky — **jen obsah, ne vazba na objekt** (ta je přes `areaId`). |
+| Kategorie prohlídek (`TourCategory`) | Prohlídky | Organizační seskupení prohlídek (Dolní Vítkovice / Hornické muzeum) s vlastním detailem. |
+| Typ akce (`EVENT_TYPES`) | Kalendář akcí | Druh programu (koncert, festival…) — bez „Prohlídka". |
+
+Nová „kategorizace" → nejdřív ověř, že nespadá pod jeden z těchto čtyř; needitovat objekt přes kategorie novinky apod.

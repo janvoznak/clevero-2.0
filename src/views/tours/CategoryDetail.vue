@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { TabsRoot, TabsList, TabsTrigger } from 'reka-ui'
+import { TabsRoot, TabsList, TabsTrigger, TabsContent } from 'reka-ui'
 import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppSwitch from '@/components/ui/AppSwitch.vue'
@@ -33,6 +33,13 @@ function clone(): TourCategory {
 }
 const form = reactive<TourCategory>(clone())
 const activeLang = ref<LangCode>('cs')
+
+/** Sekce detailu kategorie (podtržené záložky). */
+const activeSection = ref('info')
+const sections = [
+  { value: 'info', label: 'Základní informace', icon: 'page' },
+  { value: 'tours', label: 'Prohlídky v kategorii', icon: 'ticket' },
+]
 function langFilled(code: LangCode): boolean {
   return form.name[code].trim().length > 0
 }
@@ -119,77 +126,95 @@ function onTourAction(key: string, t: Tour) {
     <div class="grid grid-cols-1 gap-6 px-8 py-6 xl:grid-cols-[minmax(0,1fr)_340px]">
       <!-- LEVÝ sloupec -->
       <div class="min-w-0 space-y-5">
-        <FormSection title="Kategorie" icon="ticket" tag="ML">
-          <div class="space-y-4">
-            <div>
-              <label class="mb-1.5 flex items-center justify-between">
-                <span class="text-[13px] font-600 text-graphite-800">Název kategorie <span class="text-brand-500">*</span></span>
-                <span class="field-tag">category-name · {{ activeLang.toUpperCase() }}</span>
-              </label>
-              <input v-model="form.name[activeLang]" type="text" placeholder="Např. Dolní Vítkovice" class="h-11 w-full rounded-md border border-steel-200 px-3.5 text-[15px] font-500 text-graphite-900 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
-            </div>
-            <div>
-              <label class="mb-1.5 flex items-center justify-between">
-                <span class="text-[13px] font-600 text-graphite-800">Popis kategorie</span>
-                <span class="field-tag">category-description · {{ activeLang.toUpperCase() }}</span>
-              </label>
-              <RichTextEditor v-model="form.description[activeLang]" />
-            </div>
-          </div>
-        </FormSection>
+        <div class="rounded-lg border border-steel-200 bg-white">
+          <TabsRoot v-model="activeSection">
+            <TabsList class="flex flex-wrap gap-1.5 overflow-x-auto border-b border-steel-200 bg-steel-50/60 px-3 pt-2" aria-label="Sekce kategorie">
+              <TabsTrigger
+                v-for="s in sections"
+                :key="s.value"
+                :value="s.value"
+                class="-mb-px inline-flex shrink-0 items-center gap-2 rounded-t-md border-b-2 border-transparent px-4 py-2.5 text-[13px] font-600 text-steel-500 outline-none transition-colors hover:bg-steel-100 hover:text-graphite-800 data-[state=active]:border-brand-500 data-[state=active]:bg-brand-50 data-[state=active]:text-brand-700"
+              >
+                <Icon :name="s.icon" :size="16" />
+                {{ s.label }}
+                <span v-if="s.value === 'tours' && isEdit" class="rounded-full bg-steel-200 px-1.5 font-mono text-[10px] text-steel-600">{{ tours.length }}</span>
+              </TabsTrigger>
+            </TabsList>
 
-        <!-- Prohlídky v kategorii -->
-        <FormSection title="Prohlídky v kategorii" icon="ticket" tag="tours">
-          <div v-if="!isEdit" class="rounded-md bg-steel-50 px-4 py-6 text-center text-[13px] text-steel-500">
-            Nejdřív kategorii uložte, poté do ní přidáte prohlídky.
-          </div>
-          <template v-else>
-            <div class="mb-3 flex justify-end">
-              <AppButton variant="primary" size="sm" @click="goNewTour"><Icon name="plus" :size="15" /> Nová prohlídka</AppButton>
+            <div class="p-5">
+              <!-- Sekce: Základní informace -->
+              <TabsContent value="info" class="space-y-4 outline-none">
+                <div>
+                  <label class="mb-1.5 flex items-center justify-between">
+                    <span class="text-[13px] font-600 text-graphite-800">Název kategorie <span class="text-brand-500">*</span></span>
+                    <span class="field-tag">category-name · {{ activeLang.toUpperCase() }}</span>
+                  </label>
+                  <input v-model="form.name[activeLang]" type="text" placeholder="Např. Dolní Vítkovice" class="h-11 w-full rounded-md border border-steel-200 px-3.5 text-[15px] font-500 text-graphite-900 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
+                </div>
+                <div>
+                  <label class="mb-1.5 flex items-center justify-between">
+                    <span class="text-[13px] font-600 text-graphite-800">Popis kategorie</span>
+                    <span class="field-tag">category-description · {{ activeLang.toUpperCase() }}</span>
+                  </label>
+                  <RichTextEditor v-model="form.description[activeLang]" />
+                </div>
+              </TabsContent>
+
+              <!-- Sekce: Prohlídky v kategorii -->
+              <TabsContent value="tours" class="outline-none">
+                <div v-if="!isEdit" class="rounded-md bg-steel-50 px-4 py-6 text-center text-[13px] text-steel-500">
+                  Nejdřív kategorii uložte, poté do ní přidáte prohlídky.
+                </div>
+                <template v-else>
+                  <div class="mb-3 flex justify-end">
+                    <AppButton variant="primary" size="sm" @click="goNewTour"><Icon name="plus" :size="15" /> Nová prohlídka</AppButton>
+                  </div>
+                  <div class="overflow-hidden rounded-lg border border-steel-200">
+                    <table class="w-full border-collapse text-left">
+                      <thead>
+                        <tr class="border-b border-steel-200 bg-steel-50 text-[11px] uppercase tracking-wider text-steel-500">
+                          <th class="px-3 py-2.5 font-600">Prohlídka</th>
+                          <th class="w-32 px-2 py-2.5 font-600">Dostupnost</th>
+                          <th class="w-28 px-2 py-2.5 font-600">Volná místa</th>
+                          <th class="w-12 px-2 py-2.5 text-right font-600"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="t in tours" :key="t.id" class="group border-b border-steel-100 transition-colors last:border-0 hover:bg-steel-50/60">
+                          <td class="px-3 py-2.5 align-middle">
+                            <button class="flex items-center gap-2.5 text-left" @click="goTour(t.id)">
+                              <span class="h-8 w-11 shrink-0 overflow-hidden rounded bg-steel-100"><img v-if="t.image" :src="t.image" alt="" class="h-full w-full object-cover" /></span>
+                              <span class="min-w-0">
+                                <span class="block truncate text-[13.5px] font-600 text-graphite-900 group-hover:text-brand-600">{{ t.title.cs }}</span>
+                                <span v-if="!t.published" class="text-[11px] text-steel-400">Koncept</span>
+                              </span>
+                            </button>
+                          </td>
+                          <td class="px-2 py-2.5 align-middle">
+                            <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-600" :class="[AVAILABILITY_META[availability(t)].bg, AVAILABILITY_META[availability(t)].text]">
+                              <span class="h-1.5 w-1.5 rounded-full" :class="AVAILABILITY_META[availability(t)].dot" />
+                              {{ AVAILABILITY_META[availability(t)].label }}
+                            </span>
+                          </td>
+                          <td class="px-2 py-2.5 align-middle text-[13px] text-graphite-700">
+                            <span v-if="upcomingSlots(t).length" class="tabular-nums">{{ freeSeats(t) }} <span class="text-steel-400">/ nejbližší termíny</span></span>
+                            <span v-else class="text-steel-300">—</span>
+                          </td>
+                          <td class="px-2 py-2.5 text-right align-middle">
+                            <div class="flex justify-end"><RowActionsMenu :actions="tourActions" label="Akce s prohlídkou" @select="(key) => onTourAction(key, t)" /></div>
+                          </td>
+                        </tr>
+                        <tr v-if="tours.length === 0">
+                          <td colspan="4" class="px-3 py-8 text-center text-[13px] text-steel-500">Zatím žádné prohlídky. Přidejte první.</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </template>
+              </TabsContent>
             </div>
-            <div class="overflow-hidden rounded-lg border border-steel-200">
-              <table class="w-full border-collapse text-left">
-                <thead>
-                  <tr class="border-b border-steel-200 bg-steel-50 text-[11px] uppercase tracking-wider text-steel-500">
-                    <th class="px-3 py-2.5 font-600">Prohlídka</th>
-                    <th class="w-32 px-2 py-2.5 font-600">Dostupnost</th>
-                    <th class="w-28 px-2 py-2.5 font-600">Volná místa</th>
-                    <th class="w-12 px-2 py-2.5 text-right font-600"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="t in tours" :key="t.id" class="group border-b border-steel-100 transition-colors last:border-0 hover:bg-steel-50/60">
-                    <td class="px-3 py-2.5 align-middle">
-                      <button class="flex items-center gap-2.5 text-left" @click="goTour(t.id)">
-                        <span class="h-8 w-11 shrink-0 overflow-hidden rounded bg-steel-100"><img v-if="t.image" :src="t.image" alt="" class="h-full w-full object-cover" /></span>
-                        <span class="min-w-0">
-                          <span class="block truncate text-[13.5px] font-600 text-graphite-900 group-hover:text-brand-600">{{ t.title.cs }}</span>
-                          <span v-if="!t.published" class="text-[11px] text-steel-400">Koncept</span>
-                        </span>
-                      </button>
-                    </td>
-                    <td class="px-2 py-2.5 align-middle">
-                      <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-600" :class="[AVAILABILITY_META[availability(t)].bg, AVAILABILITY_META[availability(t)].text]">
-                        <span class="h-1.5 w-1.5 rounded-full" :class="AVAILABILITY_META[availability(t)].dot" />
-                        {{ AVAILABILITY_META[availability(t)].label }}
-                      </span>
-                    </td>
-                    <td class="px-2 py-2.5 align-middle text-[13px] text-graphite-700">
-                      <span v-if="upcomingSlots(t).length" class="tabular-nums">{{ freeSeats(t) }} <span class="text-steel-400">/ nejbližší termíny</span></span>
-                      <span v-else class="text-steel-300">—</span>
-                    </td>
-                    <td class="px-2 py-2.5 text-right align-middle">
-                      <div class="flex justify-end"><RowActionsMenu :actions="tourActions" label="Akce s prohlídkou" @select="(key) => onTourAction(key, t)" /></div>
-                    </td>
-                  </tr>
-                  <tr v-if="tours.length === 0">
-                    <td colspan="4" class="px-3 py-8 text-center text-[13px] text-steel-500">Zatím žádné prohlídky. Přidejte první.</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </template>
-        </FormSection>
+          </TabsRoot>
+        </div>
       </div>
 
       <!-- PRAVÝ rail -->

@@ -25,10 +25,15 @@ import {
   type PriceTier,
   type TourHighlight,
 } from '@/data/mockTours'
+import { PLACE_OPTIONS } from '@/data/mockVenues'
 
 const props = defineProps<{ id?: string }>()
 const router = useRouter()
 const route = useRoute()
+
+/** Místo konání = objekt v Areálu (nepovinné → sentinel + proxy na ''). */
+const AREA_NONE = '__none__'
+const placeOptions = [{ value: AREA_NONE, label: '— neurčeno' }, ...PLACE_OPTIONS]
 
 const isEdit = computed(() => !!props.id)
 const source = computed(() => MOCK_TOURS.find((t) => t.id === props.id))
@@ -70,6 +75,14 @@ function addTier() {
 function removeTier(i: number) {
   form.priceTiers.splice(i, 1)
 }
+
+/* ---------- Místo konání (objekt v Areálu) ---------- */
+const areaModel = computed<string>({
+  get: () => form.areaId || AREA_NONE,
+  set: (v) => {
+    form.areaId = v === AREA_NONE ? '' : v
+  },
+})
 
 /* ---------- Colosseum (read-only) ---------- */
 const slots = computed(() => upcomingSlots(form))
@@ -332,6 +345,16 @@ function backToCategory() {
               <AppSelect v-model="form.categoryId" :options="CATEGORY_OPTIONS" />
             </div>
           </div>
+        </FormSection>
+
+        <!-- Místo konání = objekt v Areálu -->
+        <FormSection title="Místo konání" icon="map" tag="tour-area_id">
+          <label class="mb-1.5 block text-[13px] font-600 text-graphite-800">Objekt v areálu</label>
+          <AppSelect v-model="areaModel" :options="placeOptions" />
+          <p class="mt-2 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
+            <Icon name="map" :size="13" class="mt-0.5 shrink-0" />
+            <span>Kde prohlídka reálně začíná. Propíše se do detailu objektu na webu (nabízené prohlídky).</span>
+          </p>
         </FormSection>
 
         <!-- Propojení Colosseum -->

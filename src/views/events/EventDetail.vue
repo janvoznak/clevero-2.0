@@ -444,6 +444,10 @@ function save() {
             search-placeholder="Hledat prohlídku…"
             icon="ticket"
           />
+          <p class="mt-2 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
+            <Icon name="ticket" :size="13" class="mt-0.5 shrink-0" />
+            <span>Akce je pouze program v kalendáři. Prodej vstupenek a rezervace termínů běží přes navázanou prohlídku (Colosseum) — pro vstupenkovou akci vždy propoj prohlídku.</span>
+          </p>
         </FormSection>
 
         <!-- Jazykové mutace + AI překlad -->

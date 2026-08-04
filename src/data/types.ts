@@ -58,9 +58,10 @@ export interface NewsItem {
   attachments: Attachment[]
   /** Štítky (průřezové, nezávislé na jazyce) — z předdefinovaných nebo vlastní. */
   tags: string[]
-  /** Kategorie (průřezové, nezávislé na jazyce) — chová se stejně jako štítky.
-      Zároveň párují aktualitu s objektem v Areálu. */
+  /** Kategorie (průřezové, nezávislé na jazyce) — obsahové štítky. */
   categories: string[]
+  /** Vazba na objekt v Areálu (ID objektu, '' = nepropojeno). */
+  areaId: string
   /** Související prohlídky (ID z modulu Prohlídky). */
   tourIds: string[]
 }

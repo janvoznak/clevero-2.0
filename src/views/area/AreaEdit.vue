@@ -11,6 +11,7 @@ import ContentBuilder from '@/components/admin/ContentBuilder.vue'
 import OpeningHoursEditor from '@/components/admin/OpeningHoursEditor.vue'
 import TagPicker from '@/components/admin/TagPicker.vue'
 import RelationPicker, { type RelItem } from '@/components/admin/RelationPicker.vue'
+import GalleryManager from '@/components/admin/GalleryManager.vue'
 import { LANGS, SOURCE_LANG } from '@/data/types'
 import type { LangCode, ML } from '@/data/types'
 import {
@@ -268,19 +269,39 @@ function save() {
               </TabsContent>
 
               <!-- Sekce: Galerie -->
-              <TabsContent value="gallery" class="outline-none">
-                <p class="mb-3 flex items-start gap-1.5 text-[12.5px] leading-relaxed text-steel-500">
-                  <Icon name="gallery" :size="14" class="mt-0.5 shrink-0 text-steel-400" />
-                  Přiřaďte jednu nebo více galerií z modulu <span class="font-600 text-graphite-700">Galerie</span>. Samotné fotky se spravují tam.
-                </p>
-                <RelationPicker
-                  v-model="form.galleryIds"
-                  :items="galleryItems"
-                  add-label="Přiřadit galerii"
-                  empty-label="Zatím není přiřazena žádná galerie."
-                  search-placeholder="Hledat galerii…"
-                  icon="gallery"
-                />
+              <TabsContent value="gallery" class="space-y-6 outline-none">
+                <!-- Základní fotky objektu (inline, statické) -->
+                <div>
+                  <div class="mb-1.5 flex items-center justify-between">
+                    <span class="text-[13px] font-600 text-graphite-800">Základní fotky objektu</span>
+                    <span class="field-tag">area-photos</span>
+                  </div>
+                  <p class="mb-3 flex items-start gap-1.5 text-[12px] leading-relaxed text-steel-500">
+                    <Icon name="image" :size="13" class="mt-0.5 shrink-0 text-steel-400" />
+                    Hlavní fotky budovy přímo tady — mění se málo. První (★) je hlavní.
+                  </p>
+                  <GalleryManager v-model="form.photos" />
+                </div>
+
+                <!-- Fotogalerie z akcí (přiřazené z modulu Galerie) -->
+                <div class="border-t border-steel-100 pt-5">
+                  <div class="mb-1.5 flex items-center justify-between">
+                    <span class="text-[13px] font-600 text-graphite-800">Fotogalerie z akcí</span>
+                    <span class="field-tag">area-galleryIds</span>
+                  </div>
+                  <p class="mb-3 flex items-start gap-1.5 text-[12px] leading-relaxed text-steel-500">
+                    <Icon name="gallery" :size="13" class="mt-0.5 shrink-0 text-steel-400" />
+                    Přiřaďte galerie z modulu <span class="font-600 text-graphite-700">Galerie</span> (např. z akcí). Samotné fotky se plní tam.
+                  </p>
+                  <RelationPicker
+                    v-model="form.galleryIds"
+                    :items="galleryItems"
+                    add-label="Přiřadit galerii"
+                    empty-label="Zatím není přiřazena žádná galerie."
+                    search-placeholder="Hledat galerii…"
+                    icon="gallery"
+                  />
+                </div>
               </TabsContent>
 
               <!-- Sekce: Otevírací doba -->
@@ -311,23 +332,6 @@ function save() {
           <TagPicker v-model="form.tags" :options="PREDEFINED_AREA_TAGS" />
         </FormSection>
 
-        <!-- Propojení Colosseum -->
-        <FormSection title="Propojení Colosseum" icon="integration" tag="area-colosseum_id">
-          <div class="relative">
-            <Icon name="ticket" :size="15" class="absolute left-3 top-1/2 -translate-y-1/2 text-steel-400" />
-            <input
-              v-model="form.colosseumId"
-              type="text"
-              placeholder="ID objektu v Colosseum"
-              class="h-10 w-full rounded-md border border-steel-200 pl-9 pr-3 font-mono text-[13px] text-graphite-800 placeholder:font-sans placeholder:text-steel-400 focus:border-brand-500 focus:outline-none"
-            />
-          </div>
-          <p class="mt-2 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
-            <Icon name="integration" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
-            Přes toto ID se napojí prodej vstupenek na prohlídku objektu v systému Colosseum.
-          </p>
-        </FormSection>
-
         <!-- Nabízené prohlídky (vazba na modul Prohlídky) -->
         <FormSection title="Nabízené prohlídky" icon="ticket" tag="area-tours">
           <RelationPicker
@@ -340,7 +344,7 @@ function save() {
           />
           <p class="mt-2 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
             <Icon name="ticket" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
-            Na webu si u objektu návštěvník vybere z těchto prohlídek (např. u Bolt Tower prohlídku Bolt Café).
+            Na webu si u objektu návštěvník vybere z těchto prohlídek. <strong class="font-600 text-graphite-700">Prodej vstupenek</strong> se řídí přes napojení jednotlivých prohlídek na Colosseum (ID se zadává u prohlídky, ne zde).
           </p>
         </FormSection>
 
