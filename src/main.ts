@@ -23,6 +23,7 @@ import GallerySectionDetail from './views/galleries/GallerySectionDetail.vue'
 import GalleryEdit from './views/galleries/GalleryEdit.vue'
 import FaqList from './views/faq/FaqList.vue'
 import FaqEdit from './views/faq/FaqEdit.vue'
+import Dashboard from './views/dashboard/Dashboard.vue'
 import Placeholder from './views/Placeholder.vue'
 
 const router = createRouter({
@@ -32,7 +33,8 @@ const router = createRouter({
       path: '/',
       component: AdminLayout,
       children: [
-        { path: '', redirect: '/admin/news/list' },
+        { path: '', redirect: '/admin/dashboard' },
+        { path: 'admin/dashboard', name: 'dashboard', component: Dashboard },
         { path: 'admin/news/list', name: 'news-list', component: NewsList },
         { path: 'admin/news/new', name: 'news-new', component: NewsEdit },
         { path: 'admin/news/:id/edit', name: 'news-edit', component: NewsEdit, props: true },
