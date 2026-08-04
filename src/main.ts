@@ -18,6 +18,11 @@ import ToursList from './views/tours/ToursList.vue'
 import CategoryDetail from './views/tours/CategoryDetail.vue'
 import TourEdit from './views/tours/TourEdit.vue'
 import TicketsList from './views/tours/TicketsList.vue'
+import GalleriesList from './views/galleries/GalleriesList.vue'
+import GallerySectionDetail from './views/galleries/GallerySectionDetail.vue'
+import GalleryEdit from './views/galleries/GalleryEdit.vue'
+import FaqList from './views/faq/FaqList.vue'
+import FaqEdit from './views/faq/FaqEdit.vue'
 import Placeholder from './views/Placeholder.vue'
 
 const router = createRouter({
@@ -51,6 +56,14 @@ const router = createRouter({
         { path: 'admin/tours/category/new', name: 'category-new', component: CategoryDetail },
         { path: 'admin/tours/category/:id', name: 'category-edit', component: CategoryDetail, props: true },
         { path: 'admin/tours/:id/edit', name: 'tour-edit', component: TourEdit, props: true },
+        { path: 'admin/galleries', name: 'galleries-list', component: GalleriesList },
+        { path: 'admin/galleries/new', name: 'gallery-new', component: GalleryEdit },
+        { path: 'admin/galleries/section/new', name: 'gallery-section-new', component: GallerySectionDetail },
+        { path: 'admin/galleries/section/:id', name: 'gallery-section-edit', component: GallerySectionDetail, props: true },
+        { path: 'admin/galleries/:id/edit', name: 'gallery-edit', component: GalleryEdit, props: true },
+        { path: 'admin/faq', name: 'faq-list', component: FaqList },
+        { path: 'admin/faq/new', name: 'faq-new', component: FaqEdit },
+        { path: 'admin/faq/:id/edit', name: 'faq-edit', component: FaqEdit, props: true },
         { path: 'admin/:section+', name: 'placeholder', component: Placeholder },
       ],
     },
