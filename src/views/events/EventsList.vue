@@ -16,7 +16,7 @@ import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import TagChip from '@/components/ui/TagChip.vue'
-import CalVenues from '@/components/admin/calendar/CalVenues.vue'
+import EventTimeline from '@/components/admin/calendar/EventTimeline.vue'
 import {
   MOCK_EVENTS,
   EVENT_TYPES,
@@ -247,7 +247,7 @@ function goNew() {
 
       <!-- KALENDÁŘ (časová osa dle budov) -->
       <TabsContent value="calendar" class="outline-none">
-        <CalVenues :events="visible" @select="goDetail" />
+        <EventTimeline :events="visible" navigable show-hint @select="goDetail" />
       </TabsContent>
     </TabsRoot>
   </div>

@@ -4,31 +4,34 @@ import { useRouter } from 'vue-router'
 import { DialogRoot, DialogPortal, DialogOverlay, DialogContent, DialogTitle, DialogDescription, DialogClose } from 'reka-ui'
 import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
-import { MOCK_NEWS, publishState } from '@/data/mockNews'
-import { MOCK_POPUPS, popupState } from '@/data/mockPopups'
-import { MOCK_FAQ } from '@/data/mockFaq'
 import {
   VISITS_SPARK,
   VISITS_TODAY,
   VISITS_TREND,
-  ACTIVITY,
-  SCHEDULED,
+  TICKETS_WEEK,
+  TICKETS_TREND,
+  ESHOP_PRODUCTS_WEEK,
+  ESHOP_PRODUCTS_TREND,
+  REVENUE_WEEK,
+  REVENUE_TREND,
+  RECENT,
+  ATTENTION,
+  ATTENTION_SEVERITY,
+  type AttentionItem,
 } from '@/data/mockDashboard'
+import { MOCK_EVENTS, eventStatus, EVENTS_NOW } from '@/data/mockEvents'
+import EventTimeline from '@/components/admin/calendar/EventTimeline.vue'
 
 const router = useRouter()
 
 /* ============================================================
-   KPI dlaždice — počítané z reálných mock dat modulů.
+   KPI dlaždice — provozní metriky (návštěvnost, vstupenky, e-shop).
    ============================================================ */
-const newsPublished = computed(() => MOCK_NEWS.filter((n) => publishState(n) === 'active').length)
-const popupsActive = computed(() => MOCK_POPUPS.filter((p) => popupState(p) === 'active').length)
-const faqPublished = computed(() => MOCK_FAQ.filter((f) => f.published).length)
-
 const kpis = computed(() => [
   { key: 'visits', label: 'Návštěvy dnes', value: VISITS_TODAY.toLocaleString('cs-CZ'), trend: VISITS_TREND, icon: 'dashboard', accentBg: 'bg-brand-50', accentText: 'text-brand-600', spark: true },
-  { key: 'news', label: 'Publikované aktuality', value: String(newsPublished.value), sub: `z ${MOCK_NEWS.length} celkem`, icon: 'news', accentBg: 'bg-forge-500/10', accentText: 'text-forge-600' },
-  { key: 'popups', label: 'Aktivní pop-up okna', value: String(popupsActive.value), sub: `z ${MOCK_POPUPS.length} celkem`, icon: 'popup', accentBg: 'bg-amber-500/10', accentText: 'text-amber-600' },
-  { key: 'faq', label: 'Dotazy ve FAQ', value: String(MOCK_FAQ.length), sub: `${faqPublished.value} zveřejněných`, icon: 'faq', accentBg: 'bg-steel-100', accentText: 'text-graphite-700' },
+  { key: 'tickets', label: 'Prodané vstupenky', value: TICKETS_WEEK.toLocaleString('cs-CZ'), trend: TICKETS_TREND, sub: 'tento týden', icon: 'ticket', accentBg: 'bg-forge-500/10', accentText: 'text-forge-600' },
+  { key: 'eshop', label: 'Prodané produkty', value: ESHOP_PRODUCTS_WEEK.toLocaleString('cs-CZ'), trend: ESHOP_PRODUCTS_TREND, sub: 'e-shop · tento týden', icon: 'box', accentBg: 'bg-amber-500/10', accentText: 'text-amber-600' },
+  { key: 'revenue', label: 'Tržby', value: `${REVENUE_WEEK.toLocaleString('cs-CZ')} Kč`, trend: REVENUE_TREND, sub: 'e-shop + vstupenky · 7 dní', icon: 'grant', accentBg: 'bg-steel-100', accentText: 'text-graphite-700' },
 ])
 
 /* Sparkline (inline SVG — prototyp, statická vizualizace návštěv za 7 dní). */
@@ -162,6 +165,72 @@ function resetChat() {
   messages.splice(0, messages.length)
 }
 
+/* ============================================================
+   „Vyžaduje pozornost" — akcentovaná sekce s podněty od AI.
+   ============================================================ */
+const attention = reactive<AttentionItem[]>([...ATTENTION])
+const actionCount = computed(() => attention.filter((a) => a.severity === 'action').length)
+
+/** Kompaktní seznam: defaultně jen několik, zbytek za „zobrazit vše". */
+const ATTENTION_LIMIT = 4
+const showAllAttention = ref(false)
+const visibleAttention = computed(() =>
+  showAllAttention.value ? attention : attention.slice(0, ATTENTION_LIMIT),
+)
+/** Rozbalená položka (detail + AI návrh + barometr). Jen jedna naráz. */
+const expandedAttention = ref<string | null>(null)
+function toggleAttention(id: string) {
+  expandedAttention.value = expandedAttention.value === id ? null : id
+}
+function openAttention(a: AttentionItem) {
+  router.push(a.to)
+}
+function hideAttention(a: AttentionItem) {
+  const i = attention.findIndex((x) => x.id === a.id)
+  if (i >= 0) attention.splice(i, 1)
+}
+function healthBar(s: number): string {
+  return s < 50 ? 'bg-danger-500' : s < 80 ? 'bg-amber-500' : 'bg-forge-500'
+}
+function healthText(s: number): string {
+  return s < 50 ? 'text-danger-600' : s < 80 ? 'text-amber-600' : 'text-forge-600'
+}
+
+/** Iniciály uživatele pro avatar v aktivitě. */
+function initials(name: string): string {
+  const clean = name.replace(/^Systém.*/i, 'S')
+  return clean
+    .split(/[\s·]+/)
+    .filter(Boolean)
+    .map((w) => w[0] ?? '')
+    .slice(0, 2)
+    .join('')
+    .toUpperCase()
+}
+
+/* ============================================================
+   Kalendář akcí — timeline „co běží teď a co se blíží".
+   Ganttovský přehled: řádek = akce, pruh = její trvání, svislice = dnes.
+   Barva pruhu podle objektu (Areál), stav přes eventStatus.
+   ============================================================ */
+const CAL_DAYS = 14
+const CAL_START_MS = new Date(EVENTS_NOW.getFullYear(), EVENTS_NOW.getMonth(), EVENTS_NOW.getDate()).getTime()
+const CAL_END_MS = CAL_START_MS + CAL_DAYS * 86_400_000
+
+/** Akce viditelné v okně kalendáře (pro počty v legendě). */
+const calEvents = computed(() =>
+  MOCK_EVENTS.filter((e) => {
+    const from = new Date(e.from + 'T00:00:00').getTime()
+    const to = new Date(e.to + 'T23:59:59').getTime()
+    return to >= CAL_START_MS && from <= CAL_END_MS && eventStatus(e, EVENTS_NOW) !== 'past'
+  }),
+)
+const ongoingCount = computed(() => calEvents.value.filter((e) => eventStatus(e, EVENTS_NOW) === 'ongoing').length)
+const upcomingCount = computed(() => calEvents.value.filter((e) => eventStatus(e, EVENTS_NOW) === 'upcoming').length)
+function openEvent(e: { id: string }) {
+  router.push(`/admin/events/${e.id}`)
+}
+
 /* Rychlé akce (zkratky do editorů modulů). */
 const quickActions = [
   { label: 'Nová aktualita', icon: 'news', route: 'news-new' },
@@ -171,6 +240,30 @@ const quickActions = [
   { label: 'Nová prohlídka', icon: 'ticket', route: 'tour-new' },
   { label: 'Nová akce', icon: 'calendar', route: 'event-new' },
 ]
+
+/* ============================================================
+   Widgety dashboardu — pořadí + drag&drop řazení (prototyp).
+   Sekce s čísly je jeden widget. Přesun tažením za úchyt.
+   ============================================================ */
+const widgets = ref<string[]>(['attention', 'stats', 'calendar', 'recent', 'quick'])
+const dragKey = ref<string | null>(null)
+const overKey = ref<string | null>(null)
+function onWidgetDragStart(key: string) {
+  dragKey.value = key
+}
+function onWidgetDrop(target: string) {
+  if (dragKey.value && dragKey.value !== target) {
+    const arr = widgets.value.filter((k) => k !== dragKey.value)
+    arr.splice(arr.indexOf(target), 0, dragKey.value)
+    widgets.value = arr
+  }
+  dragKey.value = null
+  overKey.value = null
+}
+function onWidgetDragEnd() {
+  dragKey.value = null
+  overKey.value = null
+}
 </script>
 
 <template>
@@ -225,8 +318,114 @@ const quickActions = [
       </div>
     </section>
 
-    <!-- ============ KPI dlaždice ============ -->
-    <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+    <!-- ============ Widgety dashboardu (drag&drop řazení přes úchyt) ============ -->
+    <div class="flex flex-col gap-6">
+
+    <!-- Widget: Vyžaduje pozornost -->
+    <section
+      v-if="attention.length"
+      class="overflow-hidden rounded-2xl border border-amber-500/40 bg-white shadow-md ring-1 ring-amber-500/10 transition-[box-shadow,opacity]"
+      :style="{ order: widgets.indexOf('attention') }"
+      :class="[overKey === 'attention' && dragKey && dragKey !== 'attention' ? 'ring-2 ring-brand-400' : '', dragKey === 'attention' ? 'opacity-40' : '']"
+      @dragenter.prevent="dragKey && (overKey = 'attention')"
+      @dragover.prevent
+      @drop="onWidgetDrop('attention')"
+      @dragend="onWidgetDragEnd"
+    >
+      <header class="flex items-center gap-2.5 border-b border-amber-500/20 bg-amber-50/70 px-4 py-2.5">
+        <button draggable="true" class="grid h-6 w-6 shrink-0 cursor-grab place-items-center rounded text-steel-400 transition-colors hover:bg-steel-100 hover:text-graphite-700 active:cursor-grabbing" aria-label="Přesunout widget" @dragstart="onWidgetDragStart('attention')" @click.stop><Icon name="grip" :size="15" /></button>
+        <span class="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-amber-500/15 text-amber-600"><Icon name="bell" :size="15" /></span>
+        <h2 class="font-display text-[14px] font-700 text-graphite-900">Vyžaduje pozornost</h2>
+        <span class="flex items-center gap-1 font-mono text-[10.5px] text-steel-400"><Icon name="sparkles" :size="11" class="text-brand-500" /> AI</span>
+        <span class="ml-auto flex items-center gap-2">
+          <span v-if="actionCount" class="inline-flex items-center rounded-full bg-danger-500/10 px-2 py-0.5 text-[10.5px] font-700 text-danger-600">{{ actionCount }} nutné</span>
+          <span class="font-mono text-[11px] text-steel-400">{{ attention.length }}</span>
+        </span>
+      </header>
+
+      <ul class="divide-y divide-steel-100">
+        <li v-for="a in visibleAttention" :key="a.id" class="border-l-[3px]" :class="ATTENTION_SEVERITY[a.severity].rail">
+          <!-- Kompaktní řádek (celý je přepínač rozbalení) -->
+          <div class="flex items-center gap-3 px-4 py-2.5">
+            <button class="flex min-w-0 flex-1 items-center gap-3 text-left" @click="toggleAttention(a.id)">
+              <span class="h-2 w-2 shrink-0 rounded-full" :class="ATTENTION_SEVERITY[a.severity].dot" />
+              <Icon :name="a.icon" :size="16" class="shrink-0 text-steel-400" />
+              <span class="truncate text-[13px] font-600 text-graphite-900">{{ a.title }}</span>
+              <span class="hidden shrink-0 font-mono text-[10px] uppercase tracking-wide text-steel-400 md:inline">{{ a.source }}</span>
+            </button>
+            <AppButton variant="primary" size="sm" @click="openAttention(a)">{{ a.actionLabel }}</AppButton>
+            <button
+              class="grid h-7 w-7 shrink-0 place-items-center rounded-md text-steel-400 transition-colors hover:bg-steel-100 hover:text-graphite-700"
+              :aria-label="expandedAttention === a.id ? 'Sbalit' : 'Rozbalit'"
+              @click="toggleAttention(a.id)"
+            >
+              <Icon name="chevronDown" :size="16" class="transition-transform" :class="expandedAttention === a.id && 'rotate-180'" />
+            </button>
+          </div>
+
+          <!-- Detail (rozbalený): popis + barometr + AI návrh -->
+          <Transition
+            enter-active-class="transition duration-150 ease-out" enter-from-class="opacity-0 -translate-y-1"
+            leave-active-class="transition duration-100 ease-in" leave-to-class="opacity-0"
+          >
+            <div v-show="expandedAttention === a.id" class="px-4 pb-3.5 pl-[38px]">
+              <p class="text-[12.5px] leading-relaxed text-steel-500">{{ a.detail }}</p>
+
+              <div v-if="a.health" class="mt-2 max-w-sm">
+                <div class="flex items-center justify-between text-[11px]">
+                  <span class="text-steel-500">Připravenost k publikaci</span>
+                  <span class="font-mono font-700" :class="healthText(a.health.score)">{{ a.health.score }} %</span>
+                </div>
+                <div class="mt-1 h-2 overflow-hidden rounded-full bg-steel-100">
+                  <div class="h-full rounded-full transition-all" :class="healthBar(a.health.score)" :style="{ width: a.health.score + '%' }" />
+                </div>
+                <div class="mt-2 flex flex-wrap items-center gap-1.5">
+                  <span class="text-[11px] text-steel-500">Chybí:</span>
+                  <span v-for="m in a.health.missing" :key="m" class="inline-flex items-center gap-1 rounded bg-steel-100 px-1.5 py-0.5 text-[10.5px] text-steel-600">
+                    <Icon name="x" :size="10" class="text-danger-500" /> {{ m }}
+                  </span>
+                </div>
+              </div>
+
+              <div class="mt-2.5 flex flex-wrap items-center justify-between gap-2">
+                <p class="inline-flex items-start gap-1.5 rounded-md bg-brand-50 px-2.5 py-1.5 text-[12px] leading-relaxed text-graphite-700">
+                  <Icon name="sparkles" :size="14" class="mt-0.5 shrink-0 text-brand-500" />
+                  <span><span class="font-700 text-brand-700">AI návrh:</span> {{ a.ai }}</span>
+                </p>
+                <button class="text-[11.5px] font-500 text-steel-400 transition-colors hover:text-steel-600" @click="hideAttention(a)">Skrýt podnět</button>
+              </div>
+            </div>
+          </Transition>
+        </li>
+      </ul>
+
+      <!-- Přepínač zobrazení zbytku -->
+      <button
+        v-if="attention.length > ATTENTION_LIMIT"
+        class="flex w-full items-center justify-center gap-1.5 border-t border-steel-100 py-2.5 text-[12.5px] font-600 text-steel-500 transition-colors hover:bg-steel-50 hover:text-graphite-800"
+        @click="showAllAttention = !showAllAttention"
+      >
+        <Icon :name="showAllAttention ? 'chevronLeft' : 'chevronDown'" :size="14" />
+        {{ showAllAttention ? 'Zobrazit méně' : `Zobrazit vše (${attention.length})` }}
+      </button>
+    </section>
+
+    <!-- Widget: Klíčová čísla (celý blok = jeden widget) -->
+    <section
+      class="transition-opacity"
+      :style="{ order: widgets.indexOf('stats') }"
+      :class="[overKey === 'stats' && dragKey && dragKey !== 'stats' ? 'rounded-2xl ring-2 ring-brand-400' : '', dragKey === 'stats' ? 'opacity-40' : '']"
+      @dragenter.prevent="dragKey && (overKey = 'stats')"
+      @dragover.prevent
+      @drop="onWidgetDrop('stats')"
+      @dragend="onWidgetDragEnd"
+    >
+      <div class="mb-3 flex items-center gap-2 px-1">
+        <button draggable="true" class="grid h-6 w-6 shrink-0 cursor-grab place-items-center rounded text-steel-400 transition-colors hover:bg-steel-100 hover:text-graphite-700 active:cursor-grabbing" aria-label="Přesunout widget" @dragstart="onWidgetDragStart('stats')" @click.stop><Icon name="grip" :size="15" /></button>
+        <Icon name="dashboard" :size="16" class="text-steel-400" />
+        <h2 class="font-display text-[15px] font-700 text-graphite-900">Klíčová čísla</h2>
+      </div>
+      <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
       <div
         v-for="k in kpis"
         :key="k.key"
@@ -237,11 +436,12 @@ const quickActions = [
           <span class="grid h-8 w-8 place-items-center rounded-lg" :class="[k.accentBg, k.accentText]"><Icon :name="k.icon" :size="16" /></span>
         </div>
         <div class="mt-3 flex items-end justify-between gap-2">
-          <div>
-            <p class="font-display text-[30px] font-800 leading-none text-graphite-900 tabular-nums">{{ k.value }}</p>
-            <p v-if="k.sub" class="mt-1.5 text-[11.5px] text-steel-400">{{ k.sub }}</p>
-            <p v-else-if="k.trend !== undefined" class="mt-1.5 inline-flex items-center gap-1 text-[11.5px] font-600 text-forge-600">
-              ▲ {{ k.trend }} % <span class="font-400 text-steel-400">vs. minulý týden</span>
+          <div class="min-w-0">
+            <p class="font-display text-[28px] font-800 leading-none text-graphite-900 tabular-nums">{{ k.value }}</p>
+            <p class="mt-1.5 flex items-center gap-1.5 text-[11.5px]">
+              <span v-if="k.trend !== undefined" class="inline-flex items-center gap-0.5 font-600 text-forge-600">▲ {{ k.trend }} %</span>
+              <span v-if="k.sub" class="truncate text-steel-400">{{ k.sub }}</span>
+              <span v-else class="text-steel-400">vs. minulý týden</span>
             </p>
           </div>
           <svg v-if="k.spark" viewBox="0 0 100 32" class="h-10 w-24 shrink-0" preserveAspectRatio="none">
@@ -251,63 +451,105 @@ const quickActions = [
           </svg>
         </div>
       </div>
-    </div>
-
-    <!-- ============ Dvousloupcový obsah ============ -->
-    <div class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
-      <!-- Poslední aktivita -->
-      <div class="rounded-xl border border-steel-200 bg-white">
-        <div class="flex items-center justify-between border-b border-steel-100 px-5 py-3.5">
-          <h2 class="flex items-center gap-2 font-display text-[15px] font-700 text-graphite-900"><Icon name="clock" :size="17" class="text-steel-400" /> Poslední aktivita</h2>
-          <span class="font-mono text-[11px] text-steel-400">{{ ACTIVITY.length }}</span>
-        </div>
-        <ul>
-          <li v-for="a in ACTIVITY" :key="a.id" class="flex items-center gap-3 border-b border-steel-50 px-5 py-3 last:border-0 hover:bg-steel-50/50">
-            <span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg" :class="[a.bg, a.tint]"><Icon :name="a.icon" :size="17" /></span>
-            <div class="min-w-0 flex-1">
-              <p class="truncate text-[13.5px] font-600 text-graphite-900">{{ a.title }}</p>
-              <p class="text-[11.5px] text-steel-500"><span class="font-600 text-steel-600">{{ a.module }}</span> · {{ a.action }}</p>
-            </div>
-            <span class="shrink-0 font-mono text-[11px] text-steel-400">{{ a.time }}</span>
-          </li>
-        </ul>
       </div>
+    </section>
 
-      <!-- Rail -->
-      <aside class="space-y-6">
-        <div class="rounded-xl border border-steel-200 bg-white p-4">
-          <h2 class="mb-3 flex items-center gap-2 font-display text-[15px] font-700 text-graphite-900"><Icon name="plus" :size="16" class="text-steel-400" /> Rychlé akce</h2>
-          <div class="grid grid-cols-2 gap-2">
-            <button
-              v-for="q in quickActions"
-              :key="q.route"
-              class="flex items-center gap-2 rounded-lg border border-steel-200 px-3 py-2.5 text-left text-[12.5px] font-600 text-graphite-700 transition-colors hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700"
-              @click="router.push({ name: q.route })"
-            >
-              <Icon :name="q.icon" :size="16" class="shrink-0 text-brand-500" /> {{ q.label }}
-            </button>
-          </div>
+    <!-- Widget: Kalendář akcí -->
+    <section
+      class="overflow-hidden rounded-2xl border border-steel-200 bg-white shadow-sm transition-[box-shadow,opacity]"
+      :style="{ order: widgets.indexOf('calendar') }"
+      :class="[overKey === 'calendar' && dragKey && dragKey !== 'calendar' ? 'ring-2 ring-brand-400' : '', dragKey === 'calendar' ? 'opacity-40' : '']"
+      @dragenter.prevent="dragKey && (overKey = 'calendar')"
+      @dragover.prevent
+      @drop="onWidgetDrop('calendar')"
+      @dragend="onWidgetDragEnd"
+    >
+      <header class="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-steel-100 px-5 py-3.5">
+        <button draggable="true" class="grid h-6 w-6 shrink-0 cursor-grab place-items-center rounded text-steel-400 transition-colors hover:bg-steel-100 hover:text-graphite-700 active:cursor-grabbing" aria-label="Přesunout widget" @dragstart="onWidgetDragStart('calendar')" @click.stop><Icon name="grip" :size="15" /></button>
+        <h2 class="flex items-center gap-2 font-display text-[15px] font-700 text-graphite-900"><Icon name="calendar" :size="17" class="text-steel-400" /> Kalendář akcí</h2>
+        <div class="flex items-center gap-3 text-[11.5px] font-600">
+          <span class="inline-flex items-center gap-1.5 text-forge-600"><span class="h-2 w-2 rounded-full bg-forge-500" /> {{ ongoingCount }} probíhá</span>
+          <span class="inline-flex items-center gap-1.5 text-brand-600"><span class="h-2 w-2 rounded-full bg-brand-500" /> {{ upcomingCount }} se blíží</span>
         </div>
+        <button class="ml-auto inline-flex items-center gap-1 text-[12.5px] font-600 text-steel-500 transition-colors hover:text-brand-600" @click="router.push({ name: 'events-list' })">
+          Otevřít kalendář <Icon name="chevronRight" :size="14" />
+        </button>
+      </header>
 
-        <div class="rounded-xl border border-steel-200 bg-white p-4">
-          <h2 class="mb-3 flex items-center gap-2 font-display text-[15px] font-700 text-graphite-900"><Icon name="calendar" :size="16" class="text-steel-400" /> Naplánováno</h2>
-          <ul class="space-y-2.5">
-            <li v-for="s in SCHEDULED" :key="s.id" class="flex items-start gap-2.5">
-              <span class="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-md bg-steel-100 text-steel-500"><Icon :name="s.icon" :size="14" /></span>
-              <div class="min-w-0 flex-1">
-                <p class="truncate text-[13px] font-600 text-graphite-800">{{ s.title }}</p>
-                <p class="mt-0.5 text-[11.5px]">
-                  <span class="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 font-600" :class="s.kind === 'ending' ? 'bg-amber-500/10 text-amber-600' : 'bg-forge-500/10 text-forge-600'">
-                    <span class="h-1.5 w-1.5 rounded-full" :class="s.kind === 'ending' ? 'bg-amber-500' : 'bg-forge-500'" />
-                    {{ s.kind === 'ending' ? 'končí' : 'start' }} {{ s.date }}
-                  </span>
-                </p>
-              </div>
-            </li>
-          </ul>
-        </div>
-      </aside>
+      <div class="px-5 py-4">
+        <EventTimeline :events="MOCK_EVENTS" :window-days="CAL_DAYS" compact @select="openEvent" />
+      </div>
+    </section>
+
+    <!-- Widget: Naposledy vytvořeno (autor vlastní sloupec, plná šířka) -->
+    <section
+      class="overflow-hidden rounded-2xl border border-steel-200 bg-white shadow-sm transition-[box-shadow,opacity]"
+      :style="{ order: widgets.indexOf('recent') }"
+      :class="[overKey === 'recent' && dragKey && dragKey !== 'recent' ? 'ring-2 ring-brand-400' : '', dragKey === 'recent' ? 'opacity-40' : '']"
+      @dragenter.prevent="dragKey && (overKey = 'recent')"
+      @dragover.prevent
+      @drop="onWidgetDrop('recent')"
+      @dragend="onWidgetDragEnd"
+    >
+      <header class="flex items-center gap-2.5 border-b border-steel-100 px-5 py-3.5">
+        <button draggable="true" class="grid h-6 w-6 shrink-0 cursor-grab place-items-center rounded text-steel-400 transition-colors hover:bg-steel-100 hover:text-graphite-700 active:cursor-grabbing" aria-label="Přesunout widget" @dragstart="onWidgetDragStart('recent')" @click.stop><Icon name="grip" :size="15" /></button>
+        <h2 class="flex items-center gap-2 font-display text-[15px] font-700 text-graphite-900"><Icon name="clock" :size="17" class="text-steel-400" /> Naposledy vytvořeno</h2>
+        <span class="ml-auto font-mono text-[11px] text-steel-400">{{ RECENT.length }}</span>
+      </header>
+      <!-- záhlaví sloupců -->
+      <div class="hidden grid-cols-[minmax(0,1fr)_220px_150px_28px] gap-3 border-b border-steel-100 px-5 py-2 font-mono text-[10px] uppercase tracking-wide text-steel-400 sm:grid">
+        <span>Obsah</span>
+        <span>Autor</span>
+        <span>Vytvořeno</span>
+        <span></span>
+      </div>
+      <ul>
+        <li v-for="r in RECENT" :key="r.id">
+          <button class="group grid w-full grid-cols-[minmax(0,1fr)_220px_150px_28px] items-center gap-3 border-b border-steel-50 px-5 py-3 text-left transition-colors last:border-0 hover:bg-steel-50/60" @click="router.push(r.to)">
+            <span class="flex min-w-0 items-center gap-3">
+              <span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg" :class="[r.bg, r.tint]"><Icon :name="r.icon" :size="17" /></span>
+              <span class="min-w-0">
+                <span class="block truncate text-[13.5px] font-600 text-graphite-900 group-hover:text-brand-600">{{ r.title }}</span>
+                <span class="block truncate text-[11.5px] font-600 text-steel-500">{{ r.module }}</span>
+              </span>
+            </span>
+            <span class="flex min-w-0 items-center gap-2">
+              <span class="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-steel-200 text-[9px] font-700 text-steel-600">{{ initials(r.user) }}</span>
+              <span class="truncate text-[12.5px] text-graphite-700">{{ r.user }}</span>
+            </span>
+            <span class="font-mono text-[11.5px] text-steel-400">{{ r.date }}</span>
+            <Icon name="chevronRight" :size="15" class="justify-self-end text-steel-300 transition-colors group-hover:text-brand-500" />
+          </button>
+        </li>
+      </ul>
+    </section>
+
+    <!-- Widget: Rychlé akce (úzký pás, dlaždice v řadě) -->
+    <section
+      class="rounded-2xl border border-steel-200 bg-white px-4 py-3 shadow-sm transition-[box-shadow,opacity]"
+      :style="{ order: widgets.indexOf('quick') }"
+      :class="[overKey === 'quick' && dragKey && dragKey !== 'quick' ? 'ring-2 ring-brand-400' : '', dragKey === 'quick' ? 'opacity-40' : '']"
+      @dragenter.prevent="dragKey && (overKey = 'quick')"
+      @dragover.prevent
+      @drop="onWidgetDrop('quick')"
+      @dragend="onWidgetDragEnd"
+    >
+      <div class="flex flex-wrap items-center gap-2">
+        <button draggable="true" class="grid h-6 w-6 shrink-0 cursor-grab place-items-center rounded text-steel-400 transition-colors hover:bg-steel-100 hover:text-graphite-700 active:cursor-grabbing" aria-label="Přesunout widget" @dragstart="onWidgetDragStart('quick')" @click.stop><Icon name="grip" :size="15" /></button>
+        <span class="mr-1 flex items-center gap-1.5 text-[13px] font-700 text-graphite-900"><Icon name="plus" :size="15" class="text-steel-400" /> Rychlé akce</span>
+        <button
+          v-for="q in quickActions"
+          :key="q.route"
+          class="inline-flex items-center gap-2 rounded-lg border border-steel-200 px-3 py-2 text-[12.5px] font-600 text-graphite-700 transition-colors hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700"
+          @click="router.push({ name: q.route })"
+        >
+          <Icon :name="q.icon" :size="16" class="shrink-0 text-brand-500" /> {{ q.label }}
+        </button>
+      </div>
+    </section>
+
     </div>
+    <!-- /widgety -->
 
     <!-- ============ AI agent — dialog (defaultně zavřený) ============ -->
     <DialogRoot v-model:open="agentOpen">
