@@ -24,6 +24,8 @@ import GalleryEdit from './views/galleries/GalleryEdit.vue'
 import FaqList from './views/faq/FaqList.vue'
 import FaqEdit from './views/faq/FaqEdit.vue'
 import Dashboard from './views/dashboard/Dashboard.vue'
+import ProgramsList from './views/programs/ProgramsList.vue'
+import ProgramEdit from './views/programs/ProgramEdit.vue'
 import Placeholder from './views/Placeholder.vue'
 
 const router = createRouter({
@@ -66,6 +68,9 @@ const router = createRouter({
         { path: 'admin/faq', name: 'faq-list', component: FaqList },
         { path: 'admin/faq/new', name: 'faq-new', component: FaqEdit },
         { path: 'admin/faq/:id/edit', name: 'faq-edit', component: FaqEdit, props: true },
+        { path: 'admin/education', name: 'programs-list', component: ProgramsList },
+        { path: 'admin/education/new', name: 'program-new', component: ProgramEdit },
+        { path: 'admin/education/:id/edit', name: 'program-edit', component: ProgramEdit, props: true },
         { path: 'admin/:section+', name: 'placeholder', component: Placeholder },
       ],
     },
