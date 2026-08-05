@@ -29,7 +29,8 @@ const activeLang = ref<LangCode>('cs')
 const activeSection = ref('basic')
 const sections = [
   { value: 'basic', label: 'Základní informace', icon: 'education' },
-  { value: 'params', label: 'Parametry programu', icon: 'layers' },
+  { value: 'zarazeni', label: 'Zařazení', icon: 'layers' },
+  { value: 'params', label: 'Parametry programu', icon: 'reference' },
 ]
 function langFilled(code: LangCode): boolean {
   return form.title[code].trim().length > 0
@@ -151,6 +152,32 @@ function save() {
                 </div>
               </TabsContent>
 
+              <!-- Zařazení -->
+              <TabsContent value="zarazeni" class="space-y-5 outline-none">
+                <p class="mb-1 text-[12.5px] text-steel-500">Zařazení programu — podle něj se na webu filtruje.</p>
+                <div>
+                  <label class="mb-1.5 flex items-center justify-between">
+                    <span class="text-[13px] font-600 text-graphite-800">Stupeň školy</span>
+                    <span class="field-tag">program-categories</span>
+                  </label>
+                  <TagPicker v-model="form.categories" :options="SCHOOL_LEVELS" add-label="Přidat stupeň" empty-label="Zatím žádný stupeň." color-label="Barva" />
+                </div>
+                <div>
+                  <label class="mb-1.5 flex items-center justify-between">
+                    <span class="text-[13px] font-600 text-graphite-800">Ročníky</span>
+                    <span class="field-tag">program-grades</span>
+                  </label>
+                  <TagPicker v-model="form.grades" :options="GRADES" add-label="Přidat ročník" empty-label="Zatím žádné ročníky." color-label="Barva" />
+                </div>
+                <div>
+                  <label class="mb-1.5 flex items-center justify-between">
+                    <span class="text-[13px] font-600 text-graphite-800">Zaměření</span>
+                    <span class="field-tag">program-focus</span>
+                  </label>
+                  <TagPicker v-model="form.focus" :options="FOCUS_AREAS" add-label="Přidat zaměření" empty-label="Zatím žádné zaměření." color-label="Barva zaměření" />
+                </div>
+              </TabsContent>
+
               <!-- Parametry programu -->
               <TabsContent value="params" class="outline-none">
                 <p class="mb-4 flex items-center gap-2 text-[12.5px] text-steel-500">
@@ -204,17 +231,6 @@ function save() {
               Odkaz se generuje v systému <span class="font-600 text-graphite-700">DOVIS</span> a vloží se sem. Na webu se u programu zobrazí jako tlačítko „{{ form.reservationLabel || 'Rezervace' }}".
             </p>
           </div>
-        </FormSection>
-
-        <!-- Zařazení -->
-        <FormSection title="Stupeň školy" icon="layers" tag="program-categories">
-          <TagPicker v-model="form.categories" :options="SCHOOL_LEVELS" add-label="Přidat stupeň" empty-label="Zatím žádný stupeň." color-label="Barva" />
-        </FormSection>
-        <FormSection title="Ročníky" icon="filter" tag="program-grades">
-          <TagPicker v-model="form.grades" :options="GRADES" add-label="Přidat ročník" empty-label="Zatím žádné ročníky." color-label="Barva" />
-        </FormSection>
-        <FormSection title="Zaměření" icon="reference" tag="program-focus">
-          <TagPicker v-model="form.focus" :options="FOCUS_AREAS" add-label="Přidat zaměření" empty-label="Zatím žádné zaměření." color-label="Barva zaměření" />
         </FormSection>
 
         <!-- Obrázek -->
