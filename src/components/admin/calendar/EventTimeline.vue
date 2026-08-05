@@ -130,12 +130,18 @@ function fmtRange(e: DovEvent): string {
 
 <template>
   <div>
-    <!-- Navigace (jen navigable) -->
-    <div v-if="navigable" class="mb-4 flex items-center justify-between gap-3">
-      <h3 class="font-display text-[15px] font-700 tracking-tight text-graphite-900">{{ rangeLabel }}</h3>
-      <div class="flex items-center gap-1.5">
+    <!-- Navigace (jen navigable) — „Dnes" (transparentní) + rozmezí MEZI šipkami -->
+    <div v-if="navigable" class="mb-4 flex items-center justify-end gap-2">
+      <button
+        class="h-9 rounded-md px-3 text-[13px] font-600 text-steel-500 transition-colors hover:bg-steel-100 hover:text-graphite-800 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-steel-500"
+        :disabled="offset === 0"
+        @click="offset = 0"
+      >
+        Dnes
+      </button>
+      <div class="flex items-center gap-1">
         <button class="grid h-9 w-9 place-items-center rounded-md border border-steel-200 text-graphite-700 transition-colors hover:bg-steel-50" aria-label="Předchozí období" @click="offset--"><Icon name="chevronLeft" :size="16" /></button>
-        <button class="h-9 rounded-md border border-steel-200 px-3.5 text-[13px] font-600 text-graphite-700 transition-colors hover:bg-steel-50 disabled:opacity-45 disabled:hover:bg-transparent" :disabled="offset === 0" @click="offset = 0">Dnes</button>
+        <span class="min-w-[152px] text-center font-mono text-[12.5px] font-600 tabular-nums text-graphite-700">{{ rangeLabel }}</span>
         <button class="grid h-9 w-9 place-items-center rounded-md border border-steel-200 text-graphite-700 transition-colors hover:bg-steel-50" aria-label="Následující období" @click="offset++"><Icon name="chevronRight" :size="16" /></button>
       </div>
     </div>
