@@ -9,6 +9,7 @@ import AppSwitch from '@/components/ui/AppSwitch.vue'
 import TagChip from '@/components/ui/TagChip.vue'
 import TagPicker from '@/components/admin/TagPicker.vue'
 import FormSection from '@/components/admin/FormSection.vue'
+import PublishCard from '@/components/admin/PublishCard.vue'
 import AiPanel from '@/components/admin/AiPanel.vue'
 import RelationPicker from '@/components/admin/RelationPicker.vue'
 import RichTextEditor from '@/components/admin/RichTextEditor.vue'
@@ -412,6 +413,7 @@ function save() {
 
       <!-- PRAVÝ rail -->
       <aside class="space-y-5 xl:sticky xl:top-[76px] xl:self-start">
+        <PublishCard meta-only updated-by="Petr Dvořák" />
         <FormSection title="Publikace" icon="eye">
           <div class="space-y-3">
             <div class="flex items-center justify-between rounded-md bg-steel-50 px-3 py-2.5">

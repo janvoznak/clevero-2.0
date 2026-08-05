@@ -6,6 +6,7 @@ import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import FormSection from '@/components/admin/FormSection.vue'
+import PublishCard from '@/components/admin/PublishCard.vue'
 import RichTextEditor from '@/components/admin/RichTextEditor.vue'
 import GalleryManager from '@/components/admin/GalleryManager.vue'
 import AttachmentsManager from '@/components/admin/AttachmentsManager.vue'
@@ -437,6 +438,8 @@ function translateAll() {
 
       <!-- PRAVÝ rail: publikace + přehled -->
       <aside class="space-y-5 xl:sticky xl:top-[92px] xl:self-start">
+        <PublishCard meta-only updated-by="Jana Svobodová" />
+
         <!-- Publikace -->
         <FormSection title="Publikace" icon="calendar" tag="news-dateFrom / dateTo">
           <div class="space-y-4">

@@ -5,6 +5,7 @@ import { TabsRoot, TabsList, TabsTrigger, TabsContent } from 'reka-ui'
 import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import FormSection from '@/components/admin/FormSection.vue'
+import PublishCard from '@/components/admin/PublishCard.vue'
 import RichTextEditor from '@/components/admin/RichTextEditor.vue'
 import TagPicker from '@/components/admin/TagPicker.vue'
 import { LANGS, SOURCE_LANG } from '@/data/types'
@@ -204,6 +205,8 @@ function save() {
 
       <!-- PRAVÝ rail -->
       <aside class="space-y-5 xl:sticky xl:top-[76px] xl:self-start">
+        <PublishCard updated-by="Hana Svrčková" />
+
         <!-- Štítky -->
         <FormSection title="Štítky" icon="filter" tag="program-tags">
           <TagPicker v-model="form.tags" :options="PROGRAM_TAGS" add-label="Přidat štítek" empty-label="Zatím žádné štítky." color-label="Barva štítku" />

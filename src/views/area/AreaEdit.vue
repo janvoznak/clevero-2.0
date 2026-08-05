@@ -7,6 +7,7 @@ import AppButton from '@/components/ui/AppButton.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import AppSwitch from '@/components/ui/AppSwitch.vue'
 import FormSection from '@/components/admin/FormSection.vue'
+import PublishCard from '@/components/admin/PublishCard.vue'
 import ContentBuilder from '@/components/admin/ContentBuilder.vue'
 import OpeningHoursEditor from '@/components/admin/OpeningHoursEditor.vue'
 import TagPicker from '@/components/admin/TagPicker.vue'
@@ -327,12 +328,7 @@ function save() {
 
       <!-- PRAVÝ rail -->
       <aside class="space-y-5 xl:sticky xl:top-[76px] xl:self-start">
-        <FormSection title="Publikace" icon="eye">
-          <div class="flex items-center justify-between rounded-md border border-steel-200 px-3 py-2.5">
-            <AppSwitch v-model="form.published" label="Zveřejnit na webu" aria-label="Zveřejnit na webu" />
-            <span class="field-tag">area-published</span>
-          </div>
-        </FormSection>
+        <PublishCard :published="form.published" updated-by="Jan Voznak" />
 
         <!-- Štítky (sdílený TagPicker jako Aktuality) -->
         <FormSection title="Štítky" icon="filter" tag="area-tags">

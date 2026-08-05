@@ -365,11 +365,22 @@ Každá vazba má **jednoho vlastníka** (modul, v jehož detailu se nastavuje).
 - **Prohlídka (Prohlídky)** = opakovaná placená prohlídka s termíny a vstupenkami z **Colossea** (přes ID).
 - Proto typ akce **není** „Prohlídka" (odstraněno z `EVENT_TYPES`) a nezakládají se akce, které jen duplikují prohlídku. Když má „akce" prodávat vstupenky na konkrétní termíny → je to prohlídka, nebo akce, která má **navázanou prohlídku** (`event.tourIds`) přebírající prodej.
 
-### 14c. Termíny a vstupenky = jen Colosseum (read-only)
+### 14c. Napojení na Colosseum (read-only import)
 
-Termíny prohlídek (`TourSlot`) a vstupenky (`Ticket`) jsou **read-only projekce z Colossea** (přes API, tady mock). V CMS se needitují — jen zobrazují. Proto:
+Colosseum je externí systém pro vstupenky a e-shop. Data se z něj **jen čtou** (přes API; v prototypu mock) a hezky zobrazují v našem webu/CMS; **nákup, košík i vouchery se odbavují v Colosseu** (odkaz do websale). Ceny jednotlivých typů vstupenek (dospělý, dítě…) API neposílá. Uživatelské účty neřešíme; věrnostní program zůstává odkazem; služby (do)prodeje na místě nenapojujeme.
 
-- **Termíny prohlídek se nepromítají do Kalendáře akcí.** Kalendář akcí = kurátorský program (akce), ne rozvrh prohlídkových slotů. Sloty žijí ve své prohlídce (sekce „Nejbližší termíny") a na webu v Colosseum widgetu.
+Co se z Colossea importuje a kam patří:
+
+| Data z Colossea | Kam v CMS | Poznámka |
+|---|---|---|
+| Okruhy (časované i nečasované), termíny, kapacita, volná místa | Prohlídky | Rozcestník + dostupnost; odkaz „do košíku" vede do Colossea. |
+| Zboží (ID, název, cena, sklad) + vouchery | Produkty (e-shop) | Popis, obrázky a členění se doplňují v CMS (Colosseum je nemá). Přínos = synchronizace dostupnosti. |
+| Tábory + jejich termíny (`titlesEx` / `eventsEx`) | Kalendář akcí | Read-only projekce akcí. |
+| Objekty s naplánovanými prohlídkami (`venues`) | Areál | Objekty bez prohlídek (např. Malý svět techniky) se zadají ručně. |
+
+- **Termíny prohlídek (`TourSlot`) a vstupenky (`Ticket`) se needitují** — jen zobrazují. Sloty žijí ve své prohlídce (sekce „Nejbližší termíny") a na webu v Colosseum widgetu; **do Kalendáře akcí se nepromítají** (Kalendář = kurátorský program). Výjimka: **tábory** jsou samostatná entita Colossea a do Kalendáře akcí se importují.
+- U e-shopu má administrace mít **nástěnku** upozorňující na čerstvě importovaný **produkt bez popisu**.
+- Balíčky: prezentovat spíš přes dominantní aktualitu na úvodu než samostatnou zastrčenou sekcí (dle domluvy s klientem).
 
 ### 14d. Taxonomie — čtyři různé věci, neslévat
 

@@ -14,6 +14,7 @@ import AppButton from '@/components/ui/AppButton.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import AppSwitch from '@/components/ui/AppSwitch.vue'
 import FormSection from '@/components/admin/FormSection.vue'
+import PublishCard from '@/components/admin/PublishCard.vue'
 import ContentBuilder from '@/components/admin/ContentBuilder.vue'
 import GalleryManager from '@/components/admin/GalleryManager.vue'
 import AttachmentsManager from '@/components/admin/AttachmentsManager.vue'
@@ -593,6 +594,8 @@ function translateAll() {
           @add-child-new="onAddChildNew"
           @add-link-new="onAddLinkNew"
         />
+
+        <PublishCard meta-only updated-by="Jan Voznak" />
 
         <FormSection title="Publikace" icon="globe">
           <div class="space-y-3">
