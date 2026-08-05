@@ -19,6 +19,7 @@ import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppSwitch from '@/components/ui/AppSwitch.vue'
 import FormSection from '@/components/admin/FormSection.vue'
+import PublishCard from '@/components/admin/PublishCard.vue'
 import RichTextEditor from '@/components/admin/RichTextEditor.vue'
 import PopupPositionPicker from '@/components/admin/popup/PopupPositionPicker.vue'
 import PopupSizePreview from '@/components/admin/popup/PopupSizePreview.vue'
@@ -416,6 +417,8 @@ function applyTemplate(tpl: PopupTemplate) {
 
       <!-- PRAVÝ rail -->
       <aside class="space-y-5 xl:sticky xl:top-[92px] xl:self-start">
+        <PublishCard meta-only updated-by="Jan Voznak" />
+
         <!-- Zobrazování -->
         <FormSection title="Zobrazování" icon="calendar" tag="popup-from / popup-to">
           <div class="space-y-4">

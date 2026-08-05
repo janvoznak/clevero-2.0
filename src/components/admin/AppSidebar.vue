@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { nextTick, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import {
   DropdownMenuRoot,
   DropdownMenuTrigger,
@@ -19,6 +19,7 @@ import Icon from '@/components/ui/Icon.vue'
 import NewRecordDialog from '@/components/admin/NewRecordDialog.vue'
 
 const route = useRoute()
+const router = useRouter()
 
 interface NavLink {
   label: string
@@ -35,6 +36,10 @@ interface GroupEntry {
   label: string
   icon: string
   children: NavLink[]
+  /** Nechat pořadí položek dle definice (neřadit abecedně). */
+  keepOrder?: boolean
+  /** Cíl při kliknutí na hlavičku skupiny (rovnou navede, ne jen rozbalí). */
+  to?: string
 }
 type NavEntry = LinkEntry | GroupEntry
 
@@ -42,7 +47,18 @@ type NavEntry = LinkEntry | GroupEntry
    Zatím funkční jen Aktuality; ostatní jsou placeholder. */
 const nav: NavEntry[] = [
   { kind: 'link', label: 'Dashboard', icon: 'dashboard', to: '/admin/dashboard' },
-  { kind: 'link', label: 'Kalendář akcí', icon: 'calendar', to: '/admin/events' },
+  {
+    kind: 'group',
+    key: 'kalendar',
+    label: 'Kalendář akcí',
+    icon: 'calendar',
+    keepOrder: true,
+    to: '/admin/events',
+    children: [
+      { label: 'Přehled akcí', to: '/admin/events', match: '/admin/events' },
+      { label: 'Nová akce', to: '/admin/events/new', match: '/admin/events/new' },
+    ],
+  },
   { kind: 'link', label: 'Areál', icon: 'map', to: '/admin/area/list', match: '/admin/area' },
   {
     kind: 'group',
@@ -115,7 +131,7 @@ const nav: NavEntry[] = [
 
 /** Moduly uvnitř skupin řadíme abecedně (česky). */
 nav.forEach((e) => {
-  if (e.kind === 'group') e.children.sort((a, b) => a.label.localeCompare(b.label, 'cs'))
+  if (e.kind === 'group' && !e.keepOrder) e.children.sort((a, b) => a.label.localeCompare(b.label, 'cs'))
 })
 
 function isActive(link: NavLink): boolean {
@@ -123,6 +139,20 @@ function isActive(link: NavLink): boolean {
 }
 function groupActive(g: GroupEntry): boolean {
   return g.children.some(isActive)
+}
+/** Klik na hlavičku skupiny s `to` rovnou navede na cíl a skupinu nechá rozbalenou
+ *  (uživatel nemusí klikat dvakrát). Bez `to` se skupina jen přepíná (accordion). */
+function onGroupTrigger(g: GroupEntry) {
+  if (!g.to) return
+  router.push(g.to).catch(() => {})
+  nextTick(() => (openGroup.value = g.key))
+}
+/** Aktivní je jen dítě s nejdelší shodou cesty (aby na /events/new nesvítil i „Přehled"). */
+function childActive(g: GroupEntry, c: NavLink): boolean {
+  const matches = g.children.filter((x) => route.path.startsWith(x.match ?? x.to))
+  if (!matches.length) return false
+  const best = matches.reduce((a, b) => ((b.match ?? b.to).length > (a.match ?? a.to).length ? b : a))
+  return (c.match ?? c.to) === (best.match ?? best.to)
 }
 
 /** Klíč skupiny obsahující aktivní stránku (jinak '' = nic otevřené). */
@@ -240,6 +270,7 @@ const linkBase =
               <AccordionTrigger
                 class="group flex w-full items-center gap-3 rounded-md px-2.5 py-2 text-[13.5px] font-600 outline-none transition-colors hover:bg-white/10"
                 :class="groupActive(entry) ? 'text-white' : 'text-white/85 hover:text-white'"
+                @click="onGroupTrigger(entry)"
               >
                 <Icon :name="entry.icon" :size="18" class="text-white/70 group-hover:text-white" />
                 <span class="flex-1 text-left">{{ entry.label }}</span>
@@ -256,7 +287,7 @@ const linkBase =
                   <RouterLink
                     :to="c.to"
                     class="group relative flex items-center rounded-md py-1.5 pl-3 pr-2.5 text-[13px] font-500 transition-colors"
-                    :class="isActive(c) ? 'bg-white/15 font-600 text-white' : 'text-white/70 hover:bg-white/10 hover:text-white'"
+                    :class="childActive(entry, c) ? 'bg-white/15 font-600 text-white' : 'text-white/70 hover:bg-white/10 hover:text-white'"
                   >
                     {{ c.label }}
                   </RouterLink>

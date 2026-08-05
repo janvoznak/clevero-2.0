@@ -7,6 +7,7 @@ import NewsList from './views/news/NewsList.vue'
 import NewsEdit from './views/news/NewsEdit.vue'
 import EventsList from './views/events/EventsList.vue'
 import EventDetail from './views/events/EventDetail.vue'
+import EventWizard from './views/events/EventWizard.vue'
 import PopupList from './views/popups/PopupList.vue'
 import PopupEdit from './views/popups/PopupEdit.vue'
 import PopupEditCanvas from './views/popups/PopupEditCanvas.vue'
@@ -41,7 +42,7 @@ const router = createRouter({
         { path: 'admin/news/new', name: 'news-new', component: NewsEdit },
         { path: 'admin/news/:id/edit', name: 'news-edit', component: NewsEdit, props: true },
         { path: 'admin/events', name: 'events-list', component: EventsList },
-        { path: 'admin/events/new', name: 'event-new', component: EventDetail },
+        { path: 'admin/events/new', name: 'event-new', component: EventWizard },
         { path: 'admin/events/:id', name: 'event-detail', component: EventDetail, props: true },
         { path: 'admin/popups/list', name: 'popups-list', component: PopupList },
         { path: 'admin/popups/new', name: 'popup-new', component: PopupEdit },

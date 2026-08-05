@@ -7,6 +7,7 @@ import AppButton from '@/components/ui/AppButton.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import AppSwitch from '@/components/ui/AppSwitch.vue'
 import FormSection from '@/components/admin/FormSection.vue'
+import PublishCard from '@/components/admin/PublishCard.vue'
 import RichTextEditor from '@/components/admin/RichTextEditor.vue'
 import AiPanel from '@/components/admin/AiPanel.vue'
 import { LANGS, SOURCE_LANG } from '@/data/types'
@@ -205,20 +206,7 @@ const answerPlain = computed(() => form.answer[activeLang.value].replace(/<[^>]*
       <!-- PRAVÝ rail -->
       <aside class="space-y-5 xl:sticky xl:top-[92px] xl:self-start">
         <!-- Zveřejnění -->
-        <FormSection title="Zveřejnění" icon="eye" tag="faq-published">
-          <div class="space-y-3">
-            <div class="flex items-center justify-between rounded-md bg-steel-50 px-3 py-2.5">
-              <span class="text-[12.5px] font-500 text-steel-600">Aktuální stav</span>
-              <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-600" :class="[FAQ_STATE_META[state].bg, FAQ_STATE_META[state].text]">
-                <span class="h-1.5 w-1.5 rounded-full" :class="FAQ_STATE_META[state].dot" />
-                {{ FAQ_STATE_META[state].label }}
-              </span>
-            </div>
-            <div class="flex items-center justify-between rounded-md border border-steel-200 px-3 py-2.5">
-              <AppSwitch v-model="form.published" label="Zveřejnit na webu" aria-label="Zveřejnit na webu" />
-            </div>
-          </div>
-        </FormSection>
+        <PublishCard :published="form.published" updated-by="Martin Kučera" />
 
         <!-- Kategorie -->
         <FormSection title="Kategorie" icon="layers" tag="faq-category">

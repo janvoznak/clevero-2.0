@@ -6,6 +6,7 @@ import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppSwitch from '@/components/ui/AppSwitch.vue'
 import FormSection from '@/components/admin/FormSection.vue'
+import PublishCard from '@/components/admin/PublishCard.vue'
 import RichTextEditor from '@/components/admin/RichTextEditor.vue'
 import RowActionsMenu from '@/components/admin/RowActionsMenu.vue'
 import { LANGS, SOURCE_LANG } from '@/data/types'
@@ -222,12 +223,7 @@ function fmtDate(d: string | null): string {
 
       <!-- PRAVÝ rail -->
       <aside class="space-y-5 xl:sticky xl:top-[76px] xl:self-start">
-        <FormSection title="Zveřejnění" icon="eye">
-          <div class="flex items-center justify-between rounded-md border border-steel-200 px-3 py-2.5">
-            <AppSwitch v-model="form.published" label="Zveřejnit na webu" aria-label="Zveřejnit na webu" />
-            <span class="field-tag">section-published</span>
-          </div>
-        </FormSection>
+        <PublishCard :published="form.published" updated-by="Petr Dvořák" />
 
         <FormSection title="Náhledový obrázek" icon="image" tag="section-cover">
           <div class="flex items-center gap-4">
