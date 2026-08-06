@@ -18,8 +18,9 @@ const name = computed(() => {
       </div>
       <h1 class="font-display text-xl font-700 capitalize text-graphite-900">{{ name }}</h1>
       <p class="mt-2 text-[13.5px] leading-relaxed text-steel-500">
-        Tento modul zatím není součástí prototypu. Prototypujeme postupně po modulech — aktuálně je
-        hotový modul <RouterLink to="/admin/news/list" class="font-600 text-brand-600 underline underline-offset-2">Aktuality</RouterLink>.
+        Tento modul zatím není součástí prototypu. Prototypujeme postupně po modulech — hotové moduly
+        (Aktuality, Kalendář akcí, Areál, Prohlídky, Galerie, Produkty a další) otevřete z levého menu
+        nebo z <RouterLink to="/admin/dashboard" class="font-600 text-brand-600 underline underline-offset-2">Dashboardu</RouterLink>.
       </p>
     </div>
   </div>
