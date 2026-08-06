@@ -28,8 +28,10 @@ import {
 } from '@/data/mockEvents'
 import { PLACE_OPTIONS, DEFAULT_PLACE_ID, areaPlace } from '@/data/mockVenues'
 import { tourOptionsList } from '@/data/mockTours'
+import { galleryOptionsList } from '@/data/mockGalleries'
 
 const tourItems = tourOptionsList()
+const galleryItems = galleryOptionsList()
 
 const props = defineProps<{ id?: string }>()
 const router = useRouter()
@@ -63,6 +65,7 @@ function clone(): DovEvent {
     tags: [],
     areaId: DEFAULT_PLACE_ID,
     tourIds: [],
+    galleryIds: [],
     published: false,
   }
 }
@@ -97,6 +100,7 @@ const sections = [
   { value: 'when', label: 'Termín a místo', icon: 'calendar' },
   { value: 'tickets', label: 'Vstupenky a detaily', icon: 'ticket' },
   { value: 'media', label: 'Plakát', icon: 'image' },
+  { value: 'gallery', label: 'Galerie', icon: 'gallery' },
 ]
 
 /* ---------- Toast ---------- */
@@ -479,9 +483,12 @@ function save() {
                 </div>
               </TabsContent>
 
-              <!-- Sekce: Plakát -->
+              <!-- Sekce: Plakát (jeden hlavní vizuál akce) -->
               <TabsContent value="media" class="outline-none">
-                <p class="mb-3 text-[12.5px] text-steel-500">Hlavní vizuál / plakát akce. Zobrazí se v detailu i ve výpisu.</p>
+                <p class="mb-3 flex items-start gap-1.5 text-[12.5px] leading-relaxed text-steel-500">
+                  <Icon name="image" :size="13" class="mt-0.5 shrink-0 text-steel-400" />
+                  <span>Jeden <strong class="font-600 text-graphite-700">hlavní vizuál / plakát</strong> akce — zobrazí se v detailu, ve výpisu i při sdílení. Víc fotek (např. z minulého ročníku) se připojuje v záložce <strong class="font-600 text-graphite-700">Galerie</strong>.</span>
+                </p>
                 <div class="flex items-center gap-4">
                   <span class="h-28 w-44 shrink-0 overflow-hidden rounded-lg bg-steel-100">
                     <img v-if="form.image" :src="form.image" alt="" class="h-full w-full object-cover" />
@@ -496,6 +503,29 @@ function save() {
                     </button>
                   </div>
                 </div>
+              </TabsContent>
+
+              <!-- Sekce: Galerie (odkaz na alba z modulu Galerie) -->
+              <TabsContent value="gallery" class="outline-none">
+                <div class="mb-1.5 flex items-center justify-between">
+                  <span class="text-[13px] font-600 text-graphite-800">Připojené fotogalerie</span>
+                  <span class="field-tag">event-gallery_ids</span>
+                </div>
+                <p class="mb-3 flex items-start gap-1.5 text-[12px] leading-relaxed text-steel-500">
+                  <Icon name="gallery" :size="13" class="mt-0.5 shrink-0 text-steel-400" />
+                  Vyber existující galerie z modulu <span class="font-600 text-graphite-700">Galerie</span> (např. „fotky z minulého ročníku"). Fotky se nahrávají tam — tady se jen připojí a zobrazí v detailu akce na webu.
+                </p>
+                <RelationPicker
+                  v-model="form.galleryIds"
+                  :items="galleryItems"
+                  add-label="Připojit galerii"
+                  empty-label="Zatím žádná galerie."
+                  search-placeholder="Hledat galerii…"
+                  icon="gallery"
+                  item-route-name="gallery-edit"
+                  create-route-name="gallery-new"
+                  create-label="Založit novou galerii"
+                />
               </TabsContent>
             </div>
           </TabsRoot>

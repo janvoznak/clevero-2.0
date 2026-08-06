@@ -18,9 +18,11 @@ import {
 } from '@/data/mockEvents'
 import { PLACE_OPTIONS, DEFAULT_PLACE_ID, areaPlace } from '@/data/mockVenues'
 import { tourOptionsList } from '@/data/mockTours'
+import { galleryOptionsList } from '@/data/mockGalleries'
 
 const router = useRouter()
 const tourItems = tourOptionsList()
+const galleryItems = galleryOptionsList()
 const typeOptions = EVENT_TYPES.map((t) => ({ value: t, label: t }))
 
 const empty = (): ML => ({ cs: '', en: '', de: '', pl: '' })
@@ -28,7 +30,7 @@ const form = reactive<DovEvent>({
   id: 'nová', title: empty(), subtitle: empty(), type: 'Festival',
   from: '', to: '', time: '', timeTo: '', summary: empty(), description: empty(),
   image: '', price: '', ticketUrl: '', ticketMode: 'none', ageLimit: '', duration: '', performers: '',
-  tags: [], areaId: DEFAULT_PLACE_ID, tourIds: [], published: false,
+  tags: [], areaId: DEFAULT_PLACE_ID, tourIds: [], galleryIds: [], published: false,
 })
 
 /* ---------- Kroky ---------- */
@@ -413,6 +415,12 @@ const canFinish = computed(() => !!form.title.cs.trim() && !!form.from && !!form
             </span>
             <button class="inline-flex items-center gap-2 rounded-md border border-dashed border-steel-300 px-3.5 py-2.5 text-[13px] font-500 text-graphite-700 transition-colors hover:border-brand-400 hover:bg-brand-50/40 hover:text-brand-600"><Icon name="upload" :size="16" /> Nahrát plakát</button>
           </div>
+        </div>
+
+        <div class="rounded-2xl border border-steel-200 bg-white p-5">
+          <h3 class="mb-1.5 flex items-center gap-2 text-[13px] font-700 text-graphite-900"><Icon name="gallery" :size="15" class="text-steel-400" /> Fotogalerie</h3>
+          <p class="mb-3 text-[12px] leading-relaxed text-steel-500">Připoj existující galerie z modulu Galerie (např. „fotky z minulého ročníku"). Fotky se nahrávají tam.</p>
+          <RelationPicker v-model="form.galleryIds" :items="galleryItems" add-label="Připojit galerii" empty-label="Zatím žádná galerie." search-placeholder="Hledat galerii…" icon="gallery" item-route-name="gallery-edit" create-route-name="gallery-new" create-label="Založit novou galerii" />
         </div>
       </div>
 

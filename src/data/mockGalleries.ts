@@ -186,6 +186,17 @@ export function sectionOptions(): { value: string; label: string }[] {
   return MOCK_SECTIONS.map((s) => ({ value: s.id, label: s.name.cs }))
 }
 
+/** Položky pro výběr galerií v jiných modulech (Kalendář akcí) —
+    kompatibilní s `RelItem` sdílené `RelationPicker`. */
+export function galleryOptionsList(): { id: string; label: string; sub: string; thumb: string }[] {
+  return MOCK_GALLERIES.map((g) => ({
+    id: g.id,
+    label: g.name.cs,
+    sub: `${galleryCount(g)} fotek${section(g.sectionId)?.name.cs ? ' · ' + section(g.sectionId)!.name.cs : ''}`,
+    thumb: galleryCover(g),
+  }))
+}
+
 /* ---------- Prázdné entity (Nová sekce / Nové album) ---------- */
 export function blankSection(): GallerySection {
   return {
