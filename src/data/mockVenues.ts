@@ -68,8 +68,6 @@ export interface AreaObject {
   tags: string[]
   /** Základní fotky objektu (inline galerie — statické, mění se málo). */
   photos: GalleryImage[]
-  /** Nabízené prohlídky (ID z modulu Prohlídky). */
-  tourIds: string[]
   /** Bezbariérový přístup. */
   accessible: boolean
   openState: OpenState
@@ -98,7 +96,6 @@ type RawVenue = {
   showOpeningHours: boolean
   published: boolean
   stats?: VenueStat[]
-  tourIds?: string[]
   photos?: GalleryImage[]
 }
 
@@ -129,7 +126,7 @@ const RAW: RawVenue[] = [
     color: '#ee703d',
     silhouette: 'bolt',
     tags: ['Atraktivity', 'Gastro'],
-    tourIds: ['t-vysokopecni'], photos: vphotos(4, 0),
+    photos: vphotos(4, 0),
     accessible: true,
     openState: 'open',
     showOpeningHours: true,
@@ -144,7 +141,6 @@ const RAW: RawVenue[] = [
     color: '#7b5ea7',
     silhouette: 'gong',
     tags: ['Atraktivity'],
-    tourIds: ['t-plynojem'],
     accessible: true,
     openState: 'open',
     showOpeningHours: false,
@@ -188,7 +184,7 @@ const RAW: RawVenue[] = [
     color: '#b04f20',
     silhouette: 'hlubina',
     tags: ['Atraktivity'],
-    tourIds: ['t-hlubina-den', 't-hlubina-nocni'], photos: vphotos(3, 5),
+    photos: vphotos(3, 5),
     accessible: false,
     openState: 'seasonal',
     showOpeningHours: true,
@@ -260,7 +256,6 @@ export const MOCK_VENUES: AreaObject[] = RAW.map((r) => ({
   silhouette: r.silhouette,
   tags: r.tags,
   photos: r.photos ?? [],
-  tourIds: r.tourIds ?? [],
   accessible: r.accessible,
   openState: r.openState,
   openingHours: defaultOpeningHours(),
@@ -292,7 +287,6 @@ export function blankVenue(): AreaObject {
     silhouette: 'areal',
     tags: [],
     photos: [],
-    tourIds: [],
     accessible: false,
     openState: 'open',
     openingHours: defaultOpeningHours(),

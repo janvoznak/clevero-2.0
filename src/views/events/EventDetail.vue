@@ -20,6 +20,7 @@ import {
   MOCK_EVENTS,
   EVENT_TYPES,
   PREDEFINED_EVENT_TAGS,
+  TICKET_MODE_OPTIONS,
   eventStatus,
   EVENT_STATE_META,
   aiImportFromUrl,
@@ -55,6 +56,7 @@ function clone(): DovEvent {
     image: '',
     price: '',
     ticketUrl: '',
+    ticketMode: 'none',
     ageLimit: '',
     duration: '',
     performers: '',
@@ -78,6 +80,15 @@ const typeOptions = EVENT_TYPES.map((t) => ({ value: t, label: t }))
 const placeOptions = PLACE_OPTIONS
 const place = computed(() => areaPlace(form.areaId))
 const status = computed(() => (form.from && form.to ? eventStatus(form) : null))
+
+/* Proklik / založení objektu v Areálu z výběru místa konání (nový panel). */
+function openPlace() {
+  if (!form.areaId) return
+  window.open(router.resolve({ name: 'area-edit', params: { id: form.areaId } }).href, '_blank')
+}
+function createPlace() {
+  window.open(router.resolve({ name: 'area-new' }).href, '_blank')
+}
 
 /** Sekce detailu (podtržené záložky). */
 const activeSection = ref('content')
@@ -121,6 +132,7 @@ function aiImport() {
     form.timeTo = d.timeTo
     form.price = d.price
     form.ticketUrl = d.ticketUrl
+    form.ticketMode = d.ticketMode
     form.ageLimit = d.ageLimit
     form.duration = d.duration
     form.performers = d.performers
@@ -306,6 +318,14 @@ function save() {
                       <span class="field-tag">event-area_id</span>
                     </label>
                     <AppSelect v-model="form.areaId" :options="placeOptions" />
+                    <div class="mt-1.5 flex items-center gap-3 text-[11.5px]">
+                      <button v-if="form.areaId" type="button" class="inline-flex items-center gap-1 font-600 text-brand-600 transition-colors hover:text-brand-700" @click="openPlace">
+                        <Icon name="externalLink" :size="12" /> Otevřít objekt
+                      </button>
+                      <button type="button" class="inline-flex items-center gap-1 font-600 text-steel-500 transition-colors hover:text-brand-600" @click="createPlace">
+                        <Icon name="plus" :size="12" /> Nový objekt
+                      </button>
+                    </div>
                   </div>
                   <div>
                     <label class="mb-1.5 block text-[13px] font-600 text-graphite-800">Typ akce</label>
@@ -389,14 +409,64 @@ function save() {
                   </div>
                 </div>
 
-                <div>
-                  <label class="mb-1.5 flex items-center justify-between">
-                    <span class="text-[13px] font-600 text-graphite-800">Odkaz na vstupenky / rezervaci</span>
-                    <span class="field-tag">event-ticket_url</span>
-                  </label>
-                  <div class="relative">
-                    <Icon name="ticket" :size="15" class="absolute left-3 top-1/2 -translate-y-1/2 text-steel-400" />
-                    <input v-model="form.ticketUrl" type="text" placeholder="/vstupenky/… nebo https://…" class="h-10 w-full rounded-md border border-steel-200 pl-9 pr-3 text-[13.5px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
+                <!-- Prodej vstupenek — přepínač určuje, co se u akce vyplňuje -->
+                <div class="rounded-md border border-steel-200 p-4">
+                  <div class="mb-2.5 flex items-center justify-between">
+                    <span class="text-[13px] font-600 text-graphite-800">Prodej vstupenek</span>
+                    <span class="field-tag">event-ticket_mode</span>
+                  </div>
+                  <div class="inline-flex flex-wrap rounded-md border border-steel-200 bg-steel-50 p-1">
+                    <button
+                      v-for="opt in TICKET_MODE_OPTIONS"
+                      :key="opt.value"
+                      type="button"
+                      class="inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-[12.5px] font-600 outline-none transition-colors"
+                      :class="form.ticketMode === opt.value ? 'bg-white text-brand-700 shadow-sm' : 'text-steel-500 hover:text-graphite-800'"
+                      @click="form.ticketMode = opt.value"
+                    >
+                      <Icon :name="opt.icon" :size="14" />
+                      {{ opt.label }}
+                    </button>
+                  </div>
+                  <p class="mt-2 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
+                    <Icon name="help" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
+                    {{ TICKET_MODE_OPTIONS.find((o) => o.value === form.ticketMode)?.hint }}
+                  </p>
+
+                  <!-- Colosseum → navázaná prohlídka -->
+                  <div v-if="form.ticketMode === 'colosseum'" class="mt-3 border-t border-steel-100 pt-3">
+                    <p class="mb-2 flex items-center gap-2 text-[12.5px] font-600 text-graphite-800"><Icon name="ticket" :size="14" class="text-steel-400" /> Navázaná prohlídka (prodej přes Colosseum) <span class="field-tag">event-tours</span></p>
+                    <RelationPicker
+                      v-model="form.tourIds"
+                      :items="tourItems"
+                      add-label="Přidat prohlídku"
+                      empty-label="Zatím žádná prohlídka."
+                      search-placeholder="Hledat prohlídku…"
+                      icon="ticket"
+                      item-route-name="tour-edit"
+                      create-route-name="tour-new"
+                      create-label="Založit novou prohlídku"
+                    />
+                    <p class="mt-2 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
+                      <Icon name="ticket" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
+                      <span>Dostupnost termínů i košík táhne <strong class="font-600 text-graphite-700">navázaná prohlídka</strong> z Colossea. Pro vstupenkovou akci vždy propoj alespoň jednu prohlídku.</span>
+                    </p>
+                  </div>
+
+                  <!-- Externí odkaz -->
+                  <div v-else-if="form.ticketMode === 'external'" class="mt-3 border-t border-steel-100 pt-3">
+                    <label class="mb-1.5 flex items-center justify-between">
+                      <span class="text-[12.5px] font-600 text-graphite-800">Odkaz na externí prodej</span>
+                      <span class="field-tag">event-ticket_url</span>
+                    </label>
+                    <div class="relative">
+                      <Icon name="link" :size="15" class="absolute left-3 top-1/2 -translate-y-1/2 text-steel-400" />
+                      <input v-model="form.ticketUrl" type="text" placeholder="https://… (web pořadatele / nájemce)" class="h-10 w-full rounded-md border border-steel-200 pl-9 pr-3 text-[13.5px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
+                    </div>
+                    <p class="mt-2 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
+                      <Icon name="link" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
+                      <span>Web jen odkáže ven — prodej i vstupenky řeší pořadatel / nájemce (žádné napojení na Colosseum).</span>
+                    </p>
                   </div>
                 </div>
 
@@ -406,23 +476,6 @@ function save() {
                     <span class="field-tag">event-performers</span>
                   </label>
                   <input v-model="form.performers" type="text" placeholder="Jména oddělená čárkou" class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13.5px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
-                </div>
-
-                <!-- Související prohlídky (dříve v pravém railu) -->
-                <div class="rounded-md border border-steel-200 p-4">
-                  <p class="mb-3 flex items-center gap-2 text-[13px] font-600 text-graphite-800"><Icon name="ticket" :size="15" class="text-steel-400" /> Související prohlídky <span class="field-tag">event-tours</span></p>
-                  <RelationPicker
-                    v-model="form.tourIds"
-                    :items="tourItems"
-                    add-label="Přidat prohlídku"
-                    empty-label="Zatím žádné prohlídky."
-                    search-placeholder="Hledat prohlídku…"
-                    icon="ticket"
-                  />
-                  <p class="mt-2 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
-                    <Icon name="ticket" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
-                    <span>Akce je pouze program v kalendáři. Prodej vstupenek a rezervace termínů běží přes navázanou prohlídku (Colosseum) — pro vstupenkovou akci vždy propoj prohlídku.</span>
-                  </p>
                 </div>
               </TabsContent>
 

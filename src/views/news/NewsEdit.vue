@@ -29,6 +29,15 @@ const areaOptions = [{ value: AREA_NONE, label: '— nepropojeno' }, ...PLACE_OP
 const props = defineProps<{ id?: string }>()
 const router = useRouter()
 
+/* Proklik / založení objektu v Areálu z výběru (nový panel — zachová práci). */
+function openPlace() {
+  if (!form.areaId) return
+  window.open(router.resolve({ name: 'area-edit', params: { id: form.areaId } }).href, '_blank')
+}
+function createPlace() {
+  window.open(router.resolve({ name: 'area-new' }).href, '_blank')
+}
+
 const isEdit = computed(() => !!props.id)
 const source = computed(() => MOCK_NEWS.find((n) => n.id === props.id))
 
@@ -344,6 +353,14 @@ function translateAll() {
                     <span class="field-tag">news-area_id</span>
                   </label>
                   <AppSelect v-model="areaModel" :options="areaOptions" />
+                  <div class="mt-1.5 flex items-center gap-3 text-[11.5px]">
+                    <button v-if="form.areaId" type="button" class="inline-flex items-center gap-1 font-600 text-brand-600 transition-colors hover:text-brand-700" @click="openPlace">
+                      <Icon name="externalLink" :size="12" /> Otevřít objekt
+                    </button>
+                    <button type="button" class="inline-flex items-center gap-1 font-600 text-steel-500 transition-colors hover:text-brand-600" @click="createPlace">
+                      <Icon name="plus" :size="12" /> Nový objekt
+                    </button>
+                  </div>
                 </div>
                 <div>
                   <label class="mb-1.5 flex items-center justify-between">
@@ -357,7 +374,7 @@ function translateAll() {
                     <span class="text-[13px] font-600 text-graphite-800">Související prohlídky</span>
                     <span class="field-tag">news-tours</span>
                   </label>
-                  <RelationPicker v-model="form.tourIds" :items="tourItems" add-label="Přidat prohlídku" empty-label="Zatím žádné prohlídky." search-placeholder="Hledat prohlídku…" icon="ticket" />
+                  <RelationPicker v-model="form.tourIds" :items="tourItems" add-label="Přidat prohlídku" empty-label="Zatím žádné prohlídky." search-placeholder="Hledat prohlídku…" icon="ticket" item-route-name="tour-edit" create-route-name="tour-new" create-label="Založit novou prohlídku" />
                 </div>
               </div>
             </div>

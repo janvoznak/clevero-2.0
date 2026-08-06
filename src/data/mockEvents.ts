@@ -17,6 +17,19 @@ export const EVENT_TYPES = [
   'Stand-up',
 ]
 
+/** Způsob prodeje vstupenek u akce. Určuje, co operátor u akce vidí a jak se
+    akce chová na webu:
+    - 'colosseum' → vstupenky přebírá navázaná prohlídka (dostupnost + košík z Colossea),
+    - 'external'  → prodej řeší pořadatel/nájemce na vlastním webu (jen odkaz),
+    - 'none'      → akce nemá online prodej (vstup zdarma / na místě). */
+export type TicketMode = 'colosseum' | 'external' | 'none'
+
+export const TICKET_MODE_OPTIONS: { value: TicketMode; label: string; hint: string; icon: string }[] = [
+  { value: 'colosseum', label: 'Přes Colosseum', hint: 'Vstupenky prodává navázaná prohlídka — dostupnost i košík táhne Colosseum.', icon: 'ticket' },
+  { value: 'external', label: 'Externí odkaz', hint: 'Prodej řeší pořadatel / nájemce na svém webu — web jen odkáže.', icon: 'link' },
+  { value: 'none', label: 'Zdarma / bez prodeje', hint: 'Akce nemá online prodej vstupenek (vstup zdarma nebo na místě).', icon: 'check' },
+]
+
 /** Předdefinované štítky akcí s barvami — stejný model jako v Aktualitách
     (sdílený `TagPicker`). Uživatel může přidat i vlastní. */
 export const PREDEFINED_EVENT_TAGS: Tag[] = [
@@ -53,8 +66,10 @@ export interface DovEvent {
   image: string
   /** Vstupné (krátký text, např. „Vstup zdarma" / „od 390 Kč"). */
   price: string
-  /** Odkaz na prodej vstupenek / rezervaci. */
+  /** Odkaz na prodej vstupenek / rezervaci (jen pro `ticketMode === 'external'`). */
   ticketUrl: string
+  /** Způsob prodeje vstupenek — řídí, co se u akce edituje i zobrazuje na webu. */
+  ticketMode: TicketMode
   /** Věkové omezení (např. „15+"). */
   ageLimit: string
   /** Délka akce (např. „60 min"). */
@@ -87,6 +102,7 @@ type RawEvent = {
   description?: string
   price?: string
   ticketUrl?: string
+  ticketMode?: TicketMode
   ageLimit?: string
   duration?: string
   performers?: string
@@ -133,6 +149,7 @@ export const MOCK_EVENTS: DovEvent[] = RAW_EVENTS.map((r) => ({
   image: r.image,
   price: r.price ?? '',
   ticketUrl: r.ticketUrl ?? '',
+  ticketMode: r.ticketMode ?? (r.tourIds?.length ? 'colosseum' : r.ticketUrl ? 'external' : 'none'),
   ageLimit: r.ageLimit ?? '',
   duration: r.duration ?? '',
   performers: r.performers ?? '',
@@ -200,6 +217,7 @@ export interface EventDraft {
   timeTo: string
   price: string
   ticketUrl: string
+  ticketMode: TicketMode
   ageLimit: string
   duration: string
   performers: string
@@ -229,6 +247,7 @@ export function aiImportFromUrl(url: string): EventDraft {
       timeTo: '18:00',
       price: 'od 390 Kč',
       ticketUrl: url,
+      ticketMode: 'external',
       ageLimit: '12+ (děti v doprovodu)',
       duration: 'celodenní program',
       performers: '',
@@ -253,6 +272,7 @@ export function aiImportFromUrl(url: string): EventDraft {
       timeTo: '20:30',
       price: 'Vstup zdarma (nutná rezervace)',
       ticketUrl: url,
+      ticketMode: 'external',
       ageLimit: '15+',
       duration: '90 min',
       performers: '',
@@ -275,6 +295,7 @@ export function aiImportFromUrl(url: string): EventDraft {
     timeTo: '',
     price: '',
     ticketUrl: url,
+    ticketMode: 'external',
     ageLimit: '',
     duration: '',
     performers: '',

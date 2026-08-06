@@ -6,6 +6,7 @@
  * položkami (miniatura + popisek). Prototyp — data přicházejí přes `items`.
  */
 import { computed, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { PopoverRoot, PopoverTrigger, PopoverPortal, PopoverContent } from 'reka-ui'
 import Icon from '@/components/ui/Icon.vue'
 
@@ -28,14 +29,33 @@ const props = withDefaults(
     searchPlaceholder?: string
     /** Ikona pro položky bez miniatury. */
     icon?: string
+    /** Route (name) detailu vybrané položky — zapne proklik „otevřít" (nový panel). */
+    itemRouteName?: string
+    /** Route (name) pro založení nové položky — zapne „+ Založit nový" (nový panel). */
+    createRouteName?: string
+    /** Popisek tlačítka pro založení nové položky. */
+    createLabel?: string
   }>(),
   {
     addLabel: 'Přidat',
     emptyLabel: 'Zatím nic nepřiřazeno.',
     searchPlaceholder: 'Hledat…',
     icon: 'reference',
+    createLabel: 'Založit nový',
   },
 )
+const router = useRouter()
+
+/** Otevřít detail vybrané položky v novém panelu (zachová rozdělanou práci). */
+function openItem(id: string) {
+  if (!props.itemRouteName) return
+  window.open(router.resolve({ name: props.itemRouteName, params: { id } }).href, '_blank')
+}
+/** Založit novou položku v cílovém modulu (nový panel). */
+function createNew() {
+  if (!props.createRouteName) return
+  window.open(router.resolve({ name: props.createRouteName }).href, '_blank')
+}
 const model = defineModel<string[]>({ default: () => [] })
 
 const search = ref('')
@@ -75,6 +95,15 @@ function remove(id: string) {
           <span class="block truncate text-[13px] font-600 text-graphite-800">{{ it.label }}</span>
           <span v-if="it.sub" class="block truncate text-[11.5px] text-steel-500">{{ it.sub }}</span>
         </span>
+        <button
+          v-if="itemRouteName"
+          type="button"
+          class="grid h-6 w-6 shrink-0 place-items-center rounded-md text-steel-400 transition-colors hover:bg-brand-50 hover:text-brand-600"
+          title="Otevřít detail v novém panelu"
+          @click="openItem(it.id)"
+        >
+          <Icon name="externalLink" :size="13" />
+        </button>
         <button
           type="button"
           class="grid h-6 w-6 shrink-0 place-items-center rounded-md text-steel-400 transition-colors hover:bg-danger-500/10 hover:text-danger-600"
@@ -129,6 +158,16 @@ function remove(id: string) {
             </button>
             <p v-if="!filtered.length" class="px-2 py-3 text-center text-[12.5px] text-steel-400">Nic nenalezeno.</p>
           </div>
+          <button
+            v-if="createRouteName"
+            type="button"
+            class="mt-1 flex w-full items-center gap-2.5 rounded-md border-t border-steel-100 px-1.5 pb-0.5 pt-2 text-left text-[12.5px] font-600 text-brand-600 outline-none transition-colors hover:text-brand-700"
+            @click="createNew"
+          >
+            <span class="grid h-8 w-11 shrink-0 place-items-center rounded bg-brand-50 text-brand-500"><Icon name="plus" :size="15" /></span>
+            <span class="flex-1">{{ createLabel }}</span>
+            <Icon name="externalLink" :size="12" class="shrink-0 text-steel-400" />
+          </button>
         </PopoverContent>
       </PopoverPortal>
     </PopoverRoot>
