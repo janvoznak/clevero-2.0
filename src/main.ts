@@ -77,6 +77,7 @@ const router = createRouter({
         { path: 'admin/education/new', name: 'program-new', component: ProgramEdit },
         { path: 'admin/education/:id/edit', name: 'program-edit', component: ProgramEdit, props: true },
         { path: 'admin/products', name: 'products-list', component: ProductsList },
+        { path: 'admin/products/new', name: 'product-new', component: ProductEdit },
         { path: 'admin/products/:id/edit', name: 'product-edit', component: ProductEdit, props: true },
         { path: 'admin/product-categories', name: 'product-categories-list', component: ProductCategoriesList },
         { path: 'admin/product-categories/new', name: 'product-category-new', component: ProductCategoryDetail },

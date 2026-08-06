@@ -32,22 +32,23 @@ const router = useRouter()
 
 const categoryItems = categoryOptionsList()
 
+const isNew = computed(() => !props.id)
 const source = computed(() => MOCK_PRODUCTS.find((p) => p.id === props.id))
 const empty = (): ML => ({ cs: '', en: '', de: '', pl: '' })
 function clone(): Product {
   const s = source.value
   if (s) return JSON.parse(JSON.stringify(s))
-  // Fallback (produkty se zakládají importem z Colossea, ne ručně).
+  // Nový produkt zakládaný ručně v CMS — nespárovaný (ID doplní párování s Colosseem).
   return {
-    id: 'neznámý',
+    id: 'nový',
     type: 'goods',
     colosseumId: '',
-    name: 'Neznámý produkt',
+    name: '',
     price: 0,
     stock: 0,
     colosseumImage: '',
-    importedAt: '2026-08-05T09:00',
-    syncedAt: '2026-08-05T09:00',
+    importedAt: '2026-08-06T09:00',
+    syncedAt: '',
     nameOverride: empty(),
     description: empty(),
     gallery: [],
@@ -194,10 +195,10 @@ function save() {
         <div class="min-w-0 flex-1">
           <div class="flex items-center gap-2">
             <span class="field-tag rounded bg-steel-100 px-1.5 py-0.5">product</span>
-            <span class="font-mono text-[11px] text-steel-400">/admin/products/{{ form.id }}/edit</span>
+            <span class="font-mono text-[11px] text-steel-400">{{ isNew ? '/admin/products/new' : `/admin/products/${form.id}/edit` }}</span>
           </div>
           <h1 class="truncate font-display text-[19px] font-700 leading-tight tracking-tight text-graphite-900">
-            {{ displayName(form) || 'Bez názvu' }}
+            {{ isNew ? 'Nový produkt' : (displayName(form) || 'Bez názvu') }}
           </h1>
         </div>
 
@@ -220,7 +221,7 @@ function save() {
         <AppButton variant="secondary" @click="router.push({ name: 'products-list' })">Zrušit</AppButton>
         <AppButton variant="primary" @click="save">
           <Icon :name="saved ? 'check' : 'save'" :size="16" />
-          {{ saved ? 'Uloženo' : 'Uložit produkt' }}
+          {{ saved ? (isNew ? 'Vytvořeno' : 'Uloženo') : (isNew ? 'Vytvořit produkt' : 'Uložit produkt') }}
         </AppButton>
       </div>
 
@@ -268,8 +269,8 @@ function save() {
                   <span class="field-tag rounded bg-steel-100 px-1.5 py-0.5">ML</span>
                 </p>
                 <div class="space-y-4">
-                  <!-- Název z Colossea (read-only referenční) -->
-                  <div class="flex items-center gap-3 rounded-md border border-steel-200 bg-steel-50 px-3.5 py-2.5">
+                  <!-- Název z Colossea (read-only referenční) — jen u spárovaného produktu -->
+                  <div v-if="form.name" class="flex items-center gap-3 rounded-md border border-steel-200 bg-steel-50 px-3.5 py-2.5">
                     <Icon name="integration" :size="16" class="shrink-0 text-brand-500" />
                     <div class="min-w-0 flex-1">
                       <p class="field-tag">Název v Colosseu (jen čtení)</p>
@@ -279,13 +280,13 @@ function save() {
 
                   <div>
                     <label class="mb-1.5 flex items-center justify-between">
-                      <span class="text-[13px] font-600 text-graphite-800">Název pro web</span>
+                      <span class="text-[13px] font-600 text-graphite-800">Název pro web <span v-if="isNew" class="text-brand-500">*</span></span>
                       <span class="field-tag">product-name_override · {{ activeLang.toUpperCase() }}</span>
                     </label>
                     <input
                       v-model="form.nameOverride[activeLang]"
                       type="text"
-                      :placeholder="activeLang === 'cs' ? form.name : 'Přeložený název pro tuto mutaci'"
+                      :placeholder="activeLang === 'cs' ? (form.name || 'Název produktu') : 'Přeložený název pro tuto mutaci'"
                       class="h-11 w-full rounded-md border border-steel-200 px-3.5 text-[15px] font-500 text-graphite-900 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none"
                     />
                     <p class="mt-1 text-[11.5px] text-steel-500">Prázdné = na webu se použije název z Colossea.</p>
