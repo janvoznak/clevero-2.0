@@ -113,6 +113,17 @@ export const ATTENTION: AttentionItem[] = [
     to: '/admin/integrations/colosseum',
   },
   {
+    id: 'at-products-no-description',
+    severity: 'review',
+    icon: 'box',
+    source: 'Produkty · e-shop',
+    title: '3 produkty bez popisu po importu z Colossea',
+    detail: 'Čerstvě naimportované zboží „Tričko DOV", „Sada odznaků industriál" a „Hodnotový voucher 500 Kč" nemá popis — na webu působí nedodělaně.',
+    ai: 'Navrhnu popis z názvu a typu produktu, doplním obrázky a přeložím do EN/DE/PL.',
+    actionLabel: 'Doplnit popisy',
+    to: '/admin/products?filter=no-description',
+  },
+  {
     id: 'at-contact-form',
     severity: 'action',
     icon: 'mail',

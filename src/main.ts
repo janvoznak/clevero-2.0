@@ -27,6 +27,10 @@ import FaqEdit from './views/faq/FaqEdit.vue'
 import Dashboard from './views/dashboard/Dashboard.vue'
 import ProgramsList from './views/programs/ProgramsList.vue'
 import ProgramEdit from './views/programs/ProgramEdit.vue'
+import ProductsList from './views/products/ProductsList.vue'
+import ProductEdit from './views/products/ProductEdit.vue'
+import ProductCategoriesList from './views/products/ProductCategoriesList.vue'
+import ProductCategoryDetail from './views/products/ProductCategoryDetail.vue'
 import Placeholder from './views/Placeholder.vue'
 
 const router = createRouter({
@@ -72,6 +76,11 @@ const router = createRouter({
         { path: 'admin/education', name: 'programs-list', component: ProgramsList },
         { path: 'admin/education/new', name: 'program-new', component: ProgramEdit },
         { path: 'admin/education/:id/edit', name: 'program-edit', component: ProgramEdit, props: true },
+        { path: 'admin/products', name: 'products-list', component: ProductsList },
+        { path: 'admin/products/:id/edit', name: 'product-edit', component: ProductEdit, props: true },
+        { path: 'admin/product-categories', name: 'product-categories-list', component: ProductCategoriesList },
+        { path: 'admin/product-categories/new', name: 'product-category-new', component: ProductCategoryDetail },
+        { path: 'admin/product-categories/:id', name: 'product-category-edit', component: ProductCategoryDetail, props: true },
         { path: 'admin/:section+', name: 'placeholder', component: Placeholder },
       ],
     },
