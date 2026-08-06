@@ -82,6 +82,8 @@ export interface DovEvent {
   areaId: string
   /** Související prohlídky (ID z modulu Prohlídky). */
   tourIds: string[]
+  /** Připojené fotogalerie (ID z modulu Galerie) — např. „fotky z minulého ročníku". */
+  galleryIds: string[]
   published: boolean
 }
 
@@ -109,6 +111,7 @@ type RawEvent = {
   tags?: string[]
   areaId?: string
   tourIds?: string[]
+  galleryIds?: string[]
 }
 function ml(cs: string): ML {
   return { cs, en: '', de: '', pl: '' }
@@ -124,7 +127,7 @@ const RAW_EVENTS: RawEvent[] = [
   { id: 'e-tabor', areaId: 'v-u6', title: 'Letní příměstský tábor U6', type: 'Vzdělávací program', from: '2026-07-27', to: '2026-07-31', summary: 'Týdenní tábor plný experimentů ve Světě techniky.', image: imageFor(4), published: true, price: '2 900 Kč', ageLimit: '7–12 let', tags: ['Pro školy', 'Rodinné'] },
   { id: 'e-scienceshow', areaId: 'v-u6', title: 'Science Show: Živly', type: 'Vzdělávací program', from: '2026-07-29', to: '2026-07-29', time: '15:00', timeTo: '16:00', summary: 'Interaktivní představení o přírodních živlech.', image: imageFor(13), published: true, price: 'Vstup zdarma', duration: '60 min', tags: ['Rodinné', 'Zdarma'] },
   // — Srpen: festivaly a akce (více budov v jeden den) —
-  { id: 'e-plameny', title: 'Ostrava v plamenech 2026', areaId: 'v-areal', type: 'Festival', from: '2026-08-01', to: '2026-08-01', time: '18:00', summary: 'Ohnivá show a doprovodný program v celém areálu.', image: imageFor(1), published: true, price: 'od 290 Kč', tags: ['Venku', 'Hudba'] },
+  { id: 'e-plameny', title: 'Ostrava v plamenech 2026', areaId: 'v-areal', type: 'Festival', from: '2026-08-01', to: '2026-08-01', time: '18:00', summary: 'Ohnivá show a doprovodný program v celém areálu.', image: imageFor(1), published: true, price: 'od 290 Kč', tags: ['Venku', 'Hudba'], galleryIds: ['g-akce'] },
   { id: 'e-race', title: 'Race the Streets', areaId: 'v-areal', type: 'Sportovní akce', from: '2026-08-07', to: '2026-08-08', summary: 'Městské závody napříč industriálním areálem.', image: imageFor(2), published: true, tags: ['Sport', 'Venku'] },
   { id: 'e-gongkoncert', areaId: 'v-gong', title: 'Letní koncert v Gongu', type: 'Koncert', from: '2026-08-07', to: '2026-08-07', time: '19:30', summary: 'Večerní koncert v multifunkční aule.', image: imageFor(8), published: true, price: 'od 490 Kč', tags: ['Hudba'] },
   { id: 'e-hopjump', title: 'HopJump večerní jam', areaId: 'v-hopjump', type: 'Sportovní akce', from: '2026-08-08', to: '2026-08-08', time: '20:00', summary: 'Trampolínový večer pro všechny věkové kategorie.', image: imageFor(9), published: true, tags: ['Sport', 'Rodinné'] },
@@ -156,6 +159,7 @@ export const MOCK_EVENTS: DovEvent[] = RAW_EVENTS.map((r) => ({
   tags: r.tags ?? [],
   areaId: r.areaId ?? '',
   tourIds: r.tourIds ?? [],
+  galleryIds: r.galleryIds ?? [],
   published: r.published,
 }))
 

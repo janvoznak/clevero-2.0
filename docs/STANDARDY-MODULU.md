@@ -354,6 +354,7 @@ Každá vazba má **jednoho vlastníka** (modul, v jehož detailu se nastavuje).
 | Prohlídka → objekt (místo konání) | Prohlídky (detail prohlídky) | Areál („nabízené prohlídky") | `tour.areaId` (jeden) |
 | Akce → prohlídky | Kalendář akcí (detail akce) | Prohlídky | `event.tourIds` (více) |
 | Novinka → prohlídky | Novinky (detail novinky) | Prohlídky | `news.tourIds` (více) |
+| Akce → galerie | Kalendář akcí (detail akce, záložka Galerie) | Galerie | `event.galleryIds` (více) |
 | Galerie → objekt | Galerie (detail galerie) | Areál („fotogalerie objektu") | `gallery.areaId` (jeden) |
 
 > **Nabízené prohlídky u objektu se needitují — jsou odvozené.** Dřívější `venue.tourIds` byl zrušen: „nabízené prohlídky" = všechny prohlídky, které mají daný objekt jako **místo konání** (`tour.areaId`). Jediný zdroj pravdy je tedy `tour.areaId` (nastavuje se v Prohlídkách); Areál je jen zrcadlí (read-only, `toursForVenue(areaId)`). Tím zmizela dvojí správa i riziko rozporu.
