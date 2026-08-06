@@ -499,6 +499,9 @@ function save() {
                       empty-label="Zatím bez členění."
                       search-placeholder="Hledat kategorii…"
                       icon="layers"
+                      item-route-name="product-category-edit"
+                      create-route-name="product-category-new"
+                      create-label="Nová kategorie produktů"
                     />
                     <p class="mt-2 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
                       <Icon name="layers" :size="13" class="mt-0.5 shrink-0 text-brand-500" />

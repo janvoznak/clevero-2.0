@@ -354,16 +354,27 @@ Každá vazba má **jednoho vlastníka** (modul, v jehož detailu se nastavuje).
 | Prohlídka → objekt (místo konání) | Prohlídky (detail prohlídky) | Areál („nabízené prohlídky") | `tour.areaId` (jeden) |
 | Akce → prohlídky | Kalendář akcí (detail akce) | Prohlídky | `event.tourIds` (více) |
 | Novinka → prohlídky | Novinky (detail novinky) | Prohlídky | `news.tourIds` (více) |
-| Objekt → nabízené prohlídky | Areál (detail objektu) | Prohlídky | `venue.tourIds` (více) |
 | Galerie → objekt | Galerie (detail galerie) | Areál („fotogalerie objektu") | `gallery.areaId` (jeden) |
 
-**Důsledek pro Areál:** detail objektu needituje seznam akcí, novinek ani galerií — ty se k objektu hlásí ze svých modulů (`areaId`). Areál je vlastníkem jen u „nabízených prohlídek"; galerie se k objektu přiřazuje v modulu Galerie (`gallery.areaId`) a v Areálu se jen zrcadlí (read-only).
+> **Nabízené prohlídky u objektu se needitují — jsou odvozené.** Dřívější `venue.tourIds` byl zrušen: „nabízené prohlídky" = všechny prohlídky, které mají daný objekt jako **místo konání** (`tour.areaId`). Jediný zdroj pravdy je tedy `tour.areaId` (nastavuje se v Prohlídkách); Areál je jen zrcadlí (read-only, `toursForVenue(areaId)`). Tím zmizela dvojí správa i riziko rozporu.
+
+**Důsledek pro Areál:** detail objektu needituje **žádnou** vazbu — akce, novinky, galerie i nabízené prohlídky se k objektu hlásí ze svých modulů (`areaId` / `tour.areaId`) a v Areálu se jen zrcadlí (read-only).
 
 ### 14b. Akce vs. Prohlídka — neplest
 
 - **Akce (Kalendář akcí)** = jednorázový/termínovaný program v kalendáři (koncert, festival, den otevřených dveří). Nemá vlastní prodej vstupenek v CMS.
 - **Prohlídka (Prohlídky)** = opakovaná placená prohlídka s termíny a vstupenkami z **Colossea** (přes ID).
 - Proto typ akce **není** „Prohlídka" (odstraněno z `EVENT_TYPES`) a nezakládají se akce, které jen duplikují prohlídku. Když má „akce" prodávat vstupenky na konkrétní termíny → je to prohlídka, nebo akce, která má **navázanou prohlídku** (`event.tourIds`) přebírající prodej.
+
+**Prodej vstupenek u akce — jeden přepínač (`event.ticketMode`).** Aby operátor nemusel hádat, jak akce prodává vstupenky, řídí to jediné pole `ticketMode` (`TICKET_MODE_OPTIONS`), které v editoru podmíněně odkryje jen relevantní pole:
+
+| `ticketMode` | Co se u akce zobrazí | Web |
+|---|---|---|
+| `colosseum` | výběr **navázané prohlídky** (`event.tourIds`) | dostupnost i košík táhne prohlídka z Colossea |
+| `external` | pole **`event.ticketUrl`** (odkaz na web pořadatele/nájemce) | jen odkaz ven, žádné napojení na Colosseum |
+| `none` | nic (vstup zdarma / na místě) | bez online prodeje |
+
+Tím je „interní vs. externí akce" z mapy modulů skutečná datová vlastnost, ne jen dojem z vyplněného URL.
 
 ### 14c. Napojení na Colosseum (read-only import)
 

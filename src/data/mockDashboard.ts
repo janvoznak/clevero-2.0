@@ -157,4 +157,16 @@ export const ATTENTION: AttentionItem[] = [
     to: '/admin/news/n-2024/edit',
     health: { score: 45, missing: ['hlavní obrázek', 'delší text', 'překlady EN/DE/PL'] },
   },
+  {
+    id: 'at-tour-health',
+    severity: 'tip',
+    icon: 'ticket',
+    source: 'Prohlídky · kontrola AI',
+    title: 'Prohlídka není připravená k publikaci',
+    detail: '„Noční prohlídka Dolu Hlubina" nemá fotku ani propojení na Colosseum — na webu by se zobrazila bez obrázku a bez prodeje vstupenek.',
+    ai: 'Navrhnu úvodní fotku a doplním popis; ID pro Colosseum vyžádám u provozu.',
+    actionLabel: 'Doplnit prohlídku',
+    to: '/admin/tours/t-hlubina-nocni/edit',
+    health: { score: 55, missing: ['hlavní fotka', 'Colosseum ID', 'ceník'] },
+  },
 ]

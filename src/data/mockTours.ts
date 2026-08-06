@@ -265,6 +265,13 @@ export function tour(id: string): Tour | undefined {
 export function toursForCategory(categoryId: string): Tour[] {
   return MOCK_TOURS.filter((t) => t.categoryId === categoryId)
 }
+/** Prohlídky „nabízené" u objektu = ty, které tu mají místo konání (`tour.areaId`).
+    Odvozeno z Prohlídek — v Areálu se nabízené prohlídky needitují, jen zrcadlí
+    (jediný zdroj pravdy je `tour.areaId`, nastavovaný v modulu Prohlídky). */
+export function toursForVenue(areaId: string): Tour[] {
+  if (!areaId) return []
+  return MOCK_TOURS.filter((t) => t.areaId === areaId)
+}
 export function remaining(s: TourSlot): number {
   return Math.max(0, s.capacity - s.booked)
 }

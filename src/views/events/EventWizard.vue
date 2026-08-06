@@ -13,7 +13,7 @@ import RichTextEditor from '@/components/admin/RichTextEditor.vue'
 import { SOURCE_LANG } from '@/data/types'
 import type { ML } from '@/data/types'
 import {
-  EVENT_TYPES, PREDEFINED_EVENT_TAGS, eventStatus, EVENT_STATE_META,
+  EVENT_TYPES, PREDEFINED_EVENT_TAGS, TICKET_MODE_OPTIONS, eventStatus, EVENT_STATE_META,
   eventTagColor, aiImportFromUrl, type DovEvent,
 } from '@/data/mockEvents'
 import { PLACE_OPTIONS, DEFAULT_PLACE_ID, areaPlace } from '@/data/mockVenues'
@@ -27,7 +27,7 @@ const empty = (): ML => ({ cs: '', en: '', de: '', pl: '' })
 const form = reactive<DovEvent>({
   id: 'nová', title: empty(), subtitle: empty(), type: 'Festival',
   from: '', to: '', time: '', timeTo: '', summary: empty(), description: empty(),
-  image: '', price: '', ticketUrl: '', ageLimit: '', duration: '', performers: '',
+  image: '', price: '', ticketUrl: '', ticketMode: 'none', ageLimit: '', duration: '', performers: '',
   tags: [], areaId: DEFAULT_PLACE_ID, tourIds: [], published: false,
 })
 
@@ -70,6 +70,7 @@ function aiImport() {
     form.timeTo = d.timeTo
     form.price = d.price
     form.ticketUrl = d.ticketUrl
+    form.ticketMode = d.ticketMode
     form.ageLimit = d.ageLimit
     form.duration = d.duration
     form.performers = d.performers
@@ -117,6 +118,15 @@ function discard() {
 function finish() {
   fireToast('Akce vytvořena a přidána do kalendáře')
   window.setTimeout(() => router.push({ name: 'events-list' }), 700)
+}
+
+/* Proklik / založení objektu v Areálu z výběru místa konání (nový panel). */
+function openPlace() {
+  if (!form.areaId) return
+  window.open(router.resolve({ name: 'area-edit', params: { id: form.areaId } }).href, '_blank')
+}
+function createPlace() {
+  window.open(router.resolve({ name: 'area-new' }).href, '_blank')
 }
 
 /* ---------- Odvozené pro náhled ---------- */
@@ -295,6 +305,14 @@ const canFinish = computed(() => !!form.title.cs.trim() && !!form.from && !!form
           <div>
             <label class="mb-1.5 flex items-center justify-between"><span class="text-[13px] font-600 text-graphite-800">Místo konání (objekt v areálu) <span class="text-brand-500">*</span></span><span class="field-tag">event-area_id</span></label>
             <AppSelect v-model="form.areaId" :options="PLACE_OPTIONS" />
+            <div class="mt-1.5 flex items-center gap-3 text-[11.5px]">
+              <button v-if="form.areaId" type="button" class="inline-flex items-center gap-1 font-600 text-brand-600 transition-colors hover:text-brand-700" @click="openPlace">
+                <Icon name="externalLink" :size="12" /> Otevřít objekt
+              </button>
+              <button type="button" class="inline-flex items-center gap-1 font-600 text-steel-500 transition-colors hover:text-brand-600" @click="createPlace">
+                <Icon name="plus" :size="12" /> Nový objekt
+              </button>
+            </div>
           </div>
           <div class="grid gap-4 sm:grid-cols-2">
             <div>
@@ -341,28 +359,49 @@ const canFinish = computed(() => !!form.title.cs.trim() && !!form.from && !!form
               <input v-model="form.ageLimit" type="text" placeholder="např. 15+" class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13.5px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
             </div>
             <div class="sm:col-span-2">
-              <label class="mb-1.5 block text-[13px] font-600 text-graphite-800">Odkaz na vstupenky / rezervaci</label>
-              <div class="relative">
-                <Icon name="ticket" :size="15" class="absolute left-3 top-1/2 -translate-y-1/2 text-steel-400" />
-                <input v-model="form.ticketUrl" type="text" placeholder="/vstupenky/… nebo https://…" class="h-10 w-full rounded-md border border-steel-200 pl-9 pr-3 text-[13.5px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
-              </div>
-            </div>
-            <div class="sm:col-span-2">
               <label class="mb-1.5 block text-[13px] font-600 text-graphite-800">Účinkující / lektoři</label>
               <input v-model="form.performers" type="text" placeholder="Jména oddělená čárkou" class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13.5px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
             </div>
           </div>
+
+          <!-- Prodej vstupenek — přepínač -->
+          <div class="mt-5 border-t border-steel-100 pt-4">
+            <label class="mb-2 block text-[13px] font-600 text-graphite-800">Prodej vstupenek</label>
+            <div class="inline-flex flex-wrap rounded-md border border-steel-200 bg-steel-50 p-1">
+              <button
+                v-for="opt in TICKET_MODE_OPTIONS"
+                :key="opt.value"
+                type="button"
+                class="inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-[12.5px] font-600 outline-none transition-colors"
+                :class="form.ticketMode === opt.value ? 'bg-white text-brand-700 shadow-sm' : 'text-steel-500 hover:text-graphite-800'"
+                @click="form.ticketMode = opt.value"
+              >
+                <Icon :name="opt.icon" :size="14" />
+                {{ opt.label }}
+              </button>
+            </div>
+            <p class="mt-2 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
+              <Icon name="help" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
+              {{ TICKET_MODE_OPTIONS.find((o) => o.value === form.ticketMode)?.hint }}
+            </p>
+
+            <div v-if="form.ticketMode === 'colosseum'" class="mt-3">
+              <label class="mb-1.5 block text-[12.5px] font-600 text-graphite-800">Navázaná prohlídka (prodej přes Colosseum)</label>
+              <RelationPicker v-model="form.tourIds" :items="tourItems" add-label="Přidat prohlídku" empty-label="Zatím žádná." search-placeholder="Hledat prohlídku…" icon="ticket" item-route-name="tour-edit" create-route-name="tour-new" create-label="Založit novou prohlídku" />
+            </div>
+            <div v-else-if="form.ticketMode === 'external'" class="mt-3">
+              <label class="mb-1.5 block text-[12.5px] font-600 text-graphite-800">Odkaz na externí prodej</label>
+              <div class="relative">
+                <Icon name="link" :size="15" class="absolute left-3 top-1/2 -translate-y-1/2 text-steel-400" />
+                <input v-model="form.ticketUrl" type="text" placeholder="https://… (web pořadatele / nájemce)" class="h-10 w-full rounded-md border border-steel-200 pl-9 pr-3 text-[13.5px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div class="grid gap-5 sm:grid-cols-2">
-          <div class="rounded-2xl border border-steel-200 bg-white p-5">
-            <h3 class="mb-3 flex items-center gap-2 text-[13px] font-700 text-graphite-900"><Icon name="filter" :size="15" class="text-steel-400" /> Štítky</h3>
-            <TagPicker v-model="form.tags" :options="PREDEFINED_EVENT_TAGS" />
-          </div>
-          <div class="rounded-2xl border border-steel-200 bg-white p-5">
-            <h3 class="mb-3 flex items-center gap-2 text-[13px] font-700 text-graphite-900"><Icon name="ticket" :size="15" class="text-steel-400" /> Související prohlídky</h3>
-            <RelationPicker v-model="form.tourIds" :items="tourItems" add-label="Přidat prohlídku" empty-label="Zatím žádné." search-placeholder="Hledat prohlídku…" icon="ticket" />
-          </div>
+        <div class="rounded-2xl border border-steel-200 bg-white p-5">
+          <h3 class="mb-3 flex items-center gap-2 text-[13px] font-700 text-graphite-900"><Icon name="filter" :size="15" class="text-steel-400" /> Štítky</h3>
+          <TagPicker v-model="form.tags" :options="PREDEFINED_EVENT_TAGS" />
         </div>
 
         <div class="rounded-2xl border border-steel-200 bg-white p-6">

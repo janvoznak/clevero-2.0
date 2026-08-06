@@ -11,7 +11,6 @@ import PublishCard from '@/components/admin/PublishCard.vue'
 import ContentBuilder from '@/components/admin/ContentBuilder.vue'
 import OpeningHoursEditor from '@/components/admin/OpeningHoursEditor.vue'
 import TagPicker from '@/components/admin/TagPicker.vue'
-import RelationPicker, { type RelItem } from '@/components/admin/RelationPicker.vue'
 import GalleryManager from '@/components/admin/GalleryManager.vue'
 import LangMutationsCard from '@/components/admin/LangMutationsCard.vue'
 import { LANGS, SOURCE_LANG } from '@/data/types'
@@ -24,7 +23,7 @@ import {
   type AreaObject,
 } from '@/data/mockVenues'
 import { galleriesForVenue, galleryCover, galleryCount } from '@/data/mockGalleries'
-import { tourOptionsList } from '@/data/mockTours'
+import { toursForVenue, availability, AVAILABILITY_META, category } from '@/data/mockTours'
 
 const props = defineProps<{ id?: string }>()
 const router = useRouter()
@@ -75,7 +74,14 @@ function goToGallery() {
 /* ---------- Galerie určené pro tento objekt (read-only zrcadlo) ----------
    Vazbu vlastní modul Galerie (Gallery.areaId) — tady se jen zobrazuje. */
 const venueGalleries = computed(() => galleriesForVenue(form.id))
-const tourItems = computed<RelItem[]>(() => tourOptionsList())
+
+/* ---------- Nabízené prohlídky = odvozené z místa konání (read-only) ----------
+   Jediný zdroj pravdy je `tour.areaId` (nastavuje se v modulu Prohlídky).
+   Areál nabízené prohlídky needituje, jen zrcadlí — žádná dvojí správa. */
+const venueTours = computed(() => toursForVenue(form.id))
+function goToTour(id: string) {
+  router.push({ name: 'tour-edit', params: { id } })
+}
 
 
 /* ---------- AI překlad (prototyp) ---------- */
@@ -293,20 +299,46 @@ function save() {
                 </div>
               </TabsContent>
 
-              <!-- Sekce: Prohlídky (nabízené prohlídky u objektu) -->
+              <!-- Sekce: Prohlídky (nabízené prohlídky — odvozené, read-only) -->
               <TabsContent value="tours" class="outline-none">
-                <p class="mb-4 flex items-center gap-2 text-[12.5px] text-steel-500">
-                  Prohlídky nabízené u tohoto objektu — na webu si z nich návštěvník vybere.
-                  <span class="field-tag rounded bg-steel-100 px-1.5 py-0.5">area-tours</span>
+                <div class="mb-1.5 flex items-center justify-between">
+                  <span class="text-[13px] font-600 text-graphite-800">Nabízené prohlídky</span>
+                  <span class="field-tag">tour-area_id</span>
+                </div>
+                <p class="mb-3 flex items-start gap-1.5 text-[12px] leading-relaxed text-steel-500">
+                  <Icon name="ticket" :size="13" class="mt-0.5 shrink-0 text-steel-400" />
+                  Odvozeno automaticky — jsou to prohlídky, které mají tento objekt jako
+                  <span class="font-600 text-graphite-700">místo konání</span>. Nastavuje se v modulu
+                  <span class="font-600 text-graphite-700">Prohlídky</span> (detail prohlídky → „Místo konání"), tady se jen zrcadlí.
                 </p>
-                <RelationPicker
-                  v-model="form.tourIds"
-                  :items="tourItems"
-                  add-label="Přidat prohlídku"
-                  empty-label="Zatím žádné prohlídky."
-                  search-placeholder="Hledat prohlídku…"
-                  icon="ticket"
-                />
+                <ul v-if="venueTours.length" class="grid gap-2 sm:grid-cols-2">
+                  <li
+                    v-for="t in venueTours"
+                    :key="t.id"
+                    class="group flex cursor-pointer items-center gap-2.5 rounded-lg border border-steel-200 bg-white px-2.5 py-2 transition-colors hover:border-brand-300 hover:bg-brand-50/40"
+                    @click="goToTour(t.id)"
+                  >
+                    <span class="grid h-9 w-12 shrink-0 place-items-center overflow-hidden rounded bg-steel-100 text-steel-400">
+                      <img v-if="t.image" :src="t.image" alt="" class="h-full w-full object-cover" />
+                      <Icon v-else name="ticket" :size="14" />
+                    </span>
+                    <span class="min-w-0 flex-1">
+                      <span class="block truncate text-[13px] font-600 text-graphite-800">{{ t.title.cs }}</span>
+                      <span class="block truncate text-[11px] text-steel-400">{{ category(t.categoryId)?.name.cs }}</span>
+                    </span>
+                    <span
+                      class="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-600"
+                      :class="[AVAILABILITY_META[availability(t)].bg, AVAILABILITY_META[availability(t)].text]"
+                    >
+                      <span class="h-1.5 w-1.5 rounded-full" :class="AVAILABILITY_META[availability(t)].dot" />
+                      {{ AVAILABILITY_META[availability(t)].label }}
+                    </span>
+                    <Icon name="chevronRight" :size="15" class="shrink-0 text-steel-300 transition-colors group-hover:text-brand-500" />
+                  </li>
+                </ul>
+                <p v-else class="rounded-md bg-steel-50 px-3 py-4 text-center text-[12.5px] text-steel-500">
+                  U tohoto objektu zatím není žádná prohlídka. Přidáš ji v modulu Prohlídky nastavením „Místo konání" na tento objekt.
+                </p>
                 <p class="mt-3 flex items-start gap-1.5 rounded-md bg-steel-50 px-3 py-2 text-[11.5px] leading-relaxed text-steel-500">
                   <Icon name="ticket" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
                   <span><strong class="font-600 text-graphite-700">Prodej vstupenek</strong> se řídí přes napojení jednotlivých prohlídek na Colosseum (ID se zadává u prohlídky, ne zde).</span>
