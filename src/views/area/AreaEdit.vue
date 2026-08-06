@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { TabsRoot, TabsList, TabsTrigger, TabsContent } from 'reka-ui'
 import Icon from '@/components/ui/Icon.vue'
@@ -60,6 +60,16 @@ function addStat() {
 }
 function removeStat(i: number) {
   form.stats.splice(i, 1)
+}
+
+/* ---------- Hlavní obrázek (náhledovka) = cover z galerie ----------
+   Galerie (form.photos) je jediný zdroj fotek. Hlavní obrázek je fotka
+   označená hvězdou (isMain, resp. 1. pozice) — nenahrává se zvlášť.
+   form.image drží denormalizovaný odkaz pro výpisy/karty mimo tento formulář. */
+const coverImage = computed(() => form.photos.find((p) => p.isMain) ?? form.photos[0] ?? null)
+watch(coverImage, (c) => { form.image = c?.src ?? '' }, { immediate: true })
+function goToGallery() {
+  activeSection.value = 'gallery'
 }
 
 /* ---------- Galerie určené pro tento objekt (read-only zrcadlo) ----------
@@ -206,17 +216,29 @@ function save() {
 
                 <div>
                   <label class="mb-1.5 flex items-center justify-between">
-                    <span class="text-[13px] font-600 text-graphite-800">Hlavní obrázek</span>
+                    <span class="text-[13px] font-600 text-graphite-800">Hlavní obrázek (náhledovka)</span>
                     <span class="field-tag">area-image</span>
                   </label>
                   <div class="flex items-center gap-4">
-                    <span class="h-24 w-36 shrink-0 overflow-hidden rounded-lg bg-steel-100">
-                      <img v-if="form.image" :src="form.image" alt="" class="h-full w-full object-cover" />
+                    <span class="relative h-24 w-36 shrink-0 overflow-hidden rounded-lg bg-steel-100">
+                      <img v-if="coverImage" :src="coverImage.src" :alt="coverImage.alt" class="h-full w-full object-cover" />
                       <span v-else class="grid h-full w-full place-items-center text-steel-400"><Icon name="image" :size="22" /></span>
+                      <span v-if="coverImage" class="absolute left-1.5 top-1.5 inline-flex items-center gap-1 rounded bg-graphite-900/80 px-1.5 py-0.5 text-[10px] font-700 text-white">
+                        <Icon name="star" :size="11" class="text-brand-400" /> Hlavní
+                      </span>
                     </span>
-                    <button class="inline-flex items-center gap-2 rounded-md border border-dashed border-steel-300 px-3.5 py-2.5 text-[13px] font-500 text-graphite-700 transition-colors hover:border-brand-400 hover:bg-brand-50/40 hover:text-brand-600">
-                      <Icon name="upload" :size="16" /> Nahrát obrázek
-                    </button>
+                    <div class="min-w-0">
+                      <button
+                        type="button"
+                        class="inline-flex items-center gap-2 rounded-md border border-steel-300 px-3.5 py-2.5 text-[13px] font-500 text-graphite-700 transition-colors hover:border-brand-400 hover:bg-brand-50/40 hover:text-brand-600"
+                        @click="goToGallery"
+                      >
+                        <Icon name="gallery" :size="16" /> {{ coverImage ? 'Změnit v galerii' : 'Přidat fotky do galerie' }}
+                      </button>
+                      <p class="mt-1.5 text-[11.5px] leading-relaxed text-steel-500">
+                        Náhledovka se bere z <button type="button" class="font-600 text-brand-600 hover:underline" @click="goToGallery">galerie</button> — hlavní je fotka označená ★ (1. pozice). Nenahrává se zvlášť.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </TabsContent>
