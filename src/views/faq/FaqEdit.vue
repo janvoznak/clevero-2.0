@@ -10,6 +10,7 @@ import FormSection from '@/components/admin/FormSection.vue'
 import PublishCard from '@/components/admin/PublishCard.vue'
 import RichTextEditor from '@/components/admin/RichTextEditor.vue'
 import AiPanel from '@/components/admin/AiPanel.vue'
+import LangMutationsCard from '@/components/admin/LangMutationsCard.vue'
 import { LANGS, SOURCE_LANG } from '@/data/types'
 import type { LangCode, ML } from '@/data/types'
 import {
@@ -36,6 +37,7 @@ const activeLang = ref<LangCode>('cs')
 function langFilled(code: LangCode): boolean {
   return form.question[code].trim().length > 0
 }
+const filledLangs = computed(() => LANGS.filter((l) => langFilled(l.code)).map((l) => l.code))
 const state = computed(() => faqState(form))
 
 /* ---------- AI: příprava odpovědi z otázky (prototyp — žádná reálná AI) ----------
@@ -187,6 +189,30 @@ const answerPlain = computed(() => form.answer[activeLang.value].replace(/<[^>]*
             <RichTextEditor v-model="form.answer[activeLang]" />
           </div>
 
+          <!-- Zařazení (dříve v pravém railu) -->
+          <div class="mt-5 grid gap-4 sm:grid-cols-2">
+            <div>
+              <label class="mb-1.5 flex items-center justify-between">
+                <span class="text-[13px] font-600 text-graphite-800">Kategorie</span>
+                <span class="field-tag">faq-category</span>
+              </label>
+              <AppSelect v-model="form.category" :options="FAQ_CATEGORY_OPTIONS" placeholder="Vyberte kategorii…" />
+            </div>
+            <div>
+              <label class="mb-1.5 flex items-center justify-between">
+                <span class="text-[13px] font-600 text-graphite-800">Pořadí</span>
+                <span class="field-tag">faq-order</span>
+              </label>
+              <input
+                v-model.number="form.order"
+                type="number"
+                min="1"
+                class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13px] text-graphite-800 focus:border-brand-500 focus:outline-none"
+              />
+              <p class="mt-1 text-[11.5px] text-steel-500">Nižší číslo = dotaz výš ve své kategorii.</p>
+            </div>
+          </div>
+
           <!-- Náhled na webu (akordeon) -->
           <div class="mt-6 rounded-md border border-steel-200 bg-steel-50 p-4">
             <p class="mb-2 flex items-center gap-1.5 field-tag"><Icon name="eye" :size="13" /> Náhled na webu</p>
@@ -208,46 +234,13 @@ const answerPlain = computed(() => form.answer[activeLang.value].replace(/<[^>]*
         <!-- Zveřejnění -->
         <PublishCard :published="form.published" updated-by="Martin Kučera" />
 
-        <!-- Kategorie -->
-        <FormSection title="Kategorie" icon="layers" tag="faq-category">
-          <AppSelect v-model="form.category" :options="FAQ_CATEGORY_OPTIONS" placeholder="Vyberte kategorii…" />
-          <p class="mt-2 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
-            <Icon name="layers" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
-            Kategorie seskupuje dotazy na webu do tematických sekcí.
-          </p>
-        </FormSection>
-
-        <!-- Pořadí -->
-        <FormSection title="Pořadí" icon="filter" tag="faq-order">
-          <input
-            v-model.number="form.order"
-            type="number"
-            min="1"
-            class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13px] text-graphite-800 focus:border-brand-500 focus:outline-none"
-          />
-          <p class="mt-2 text-[11.5px] leading-relaxed text-steel-500">Nižší číslo = dotaz výš ve své kategorii.</p>
-        </FormSection>
-
-        <!-- Jazykové mutace -->
-        <FormSection title="Jazykové mutace" icon="globe" tag="ML">
-          <ul class="space-y-1.5">
-            <li v-for="l in LANGS" :key="l.code" class="flex items-center justify-between rounded-md px-2.5 py-2 transition-colors" :class="activeLang === l.code ? 'bg-brand-50' : 'hover:bg-steel-50'">
-              <button class="flex items-center gap-2.5 text-left" @click="activeLang = l.code"><span>{{ l.flag }}</span><span class="text-[13px] font-500 text-graphite-800">{{ l.label }}</span></button>
-              <span class="inline-flex items-center gap-1.5 font-mono text-[10.5px]" :class="langFilled(l.code) ? 'text-forge-600' : 'text-steel-400'"><span class="h-1.5 w-1.5 rounded-full" :class="langFilled(l.code) ? 'bg-forge-500' : 'bg-steel-300'" />{{ langFilled(l.code) ? 'vyplněno' : 'prázdné' }}</span>
-            </li>
-          </ul>
-          <div class="mt-4 border-t border-steel-100 pt-4">
-            <AppButton variant="primary" size="sm" class="w-full" :disabled="translating || !sourceReady" @click="translateAll">
-              <Icon name="sparkles" :size="15" :class="translating && 'animate-pulse'" />
-              {{ translating ? 'Překládám…' : 'Přeložit z CZ přes AI' }}
-            </AppButton>
-            <p class="mt-2 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
-              <Icon name="sparkles" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
-              <span v-if="sourceReady">Vyplní mutace EN, DE, PL ze zdrojové české verze.</span>
-              <span v-else>Nejdřív vyplňte českou verzi — z ní se překládá.</span>
-            </p>
-          </div>
-        </FormSection>
+        <LangMutationsCard
+          v-model="activeLang"
+          :filled="filledLangs"
+          :source-ready="sourceReady"
+          :translating="translating"
+          @translate="translateAll"
+        />
       </aside>
     </div>
 

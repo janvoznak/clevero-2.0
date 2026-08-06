@@ -24,6 +24,7 @@ import RichTextEditor from '@/components/admin/RichTextEditor.vue'
 import PopupPositionPicker from '@/components/admin/popup/PopupPositionPicker.vue'
 import PopupSizePreview from '@/components/admin/popup/PopupSizePreview.vue'
 import PopupTemplateBar from '@/components/admin/popup/PopupTemplateBar.vue'
+import LangMutationsCard from '@/components/admin/LangMutationsCard.vue'
 import EditorVersionSwitch from '@/components/admin/popup/EditorVersionSwitch.vue'
 import { LANGS, SOURCE_LANG } from '@/data/types'
 import type { LangCode, ML } from '@/data/types'
@@ -70,6 +71,7 @@ const sections = [
   { value: 'basic', label: 'Základní informace', icon: 'page' },
   { value: 'image', label: 'Obrázek', icon: 'image' },
   { value: 'appearance', label: 'Vzhled a umístění', icon: 'layout' },
+  { value: 'schedule', label: 'Zobrazování', icon: 'calendar' },
 ]
 
 /** Šířka svázaná s aktivní jednotkou (px / %). */
@@ -86,6 +88,7 @@ const state = computed(() => popupState(form))
 function langFilled(code: LangCode): boolean {
   return form.title[code].trim().length > 0
 }
+const filledLangs = computed(() => LANGS.filter((l) => langFilled(l.code)).map((l) => l.code))
 
 /* ---------- Ukládání (prototyp — jen lokální stav) ---------- */
 const saved = ref(false)
@@ -410,6 +413,52 @@ function applyTemplate(tpl: PopupTemplate) {
             </div>
                 </div>
               </TabsContent>
+
+              <!-- Zobrazování (dříve v pravém railu) -->
+              <TabsContent value="schedule" class="space-y-5 outline-none">
+                <FormSection title="Zobrazování" icon="calendar" tag="popup-from / popup-to">
+                  <div class="space-y-4">
+                    <div class="flex items-center justify-between rounded-md bg-steel-50 px-3 py-2.5">
+                      <span class="text-[12.5px] font-500 text-steel-600">Aktuální stav</span>
+                      <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-600" :class="[POPUP_STATE_META[state].bg, POPUP_STATE_META[state].text]">
+                        <span class="h-1.5 w-1.5 rounded-full" :class="POPUP_STATE_META[state].dot" />
+                        {{ POPUP_STATE_META[state].label }}
+                      </span>
+                    </div>
+                    <div class="flex items-center justify-between rounded-md border border-steel-200 px-3 py-2.5">
+                      <AppSwitch v-model="form.enabled" label="Zobrazovat" hint="Okno je aktivní" aria-label="Zobrazovat" />
+                      <span class="field-tag">popup-enabled</span>
+                    </div>
+                    <div class="grid gap-4 sm:grid-cols-2">
+                      <div>
+                        <label class="mb-1.5 flex items-center justify-between">
+                          <span class="text-[13px] font-600 text-graphite-800">Od</span>
+                          <span class="field-tag">popup-from</span>
+                        </label>
+                        <input v-model="form.from" type="datetime-local" class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13px] text-graphite-800 focus:border-brand-500 focus:outline-none" />
+                      </div>
+                      <div>
+                        <label class="mb-1.5 flex items-center justify-between">
+                          <span class="text-[13px] font-600 text-graphite-800">Do</span>
+                          <span class="field-tag">popup-to</span>
+                        </label>
+                        <input v-model="form.to" type="datetime-local" class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13px] text-graphite-800 focus:border-brand-500 focus:outline-none" />
+                      </div>
+                    </div>
+                    <div>
+                      <label class="mb-1.5 flex items-center justify-between">
+                        <span class="text-[13px] font-600 text-graphite-800">Platnost blokace (dny)</span>
+                        <span class="field-tag">popup-cookie_expiration</span>
+                      </label>
+                      <input v-model.number="form.cookieExpiration" type="number" min="0" class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13px] text-graphite-800 focus:border-brand-500 focus:outline-none" />
+                      <p class="mt-1 text-[11.5px] leading-relaxed text-steel-500">Po zavření se okno návštěvníkovi znovu nezobrazí po tento počet dní.</p>
+                    </div>
+                    <a href="#" target="_blank" class="inline-flex items-center justify-center gap-2 rounded-md border border-steel-200 bg-white px-4 py-2.5 text-[13px] font-600 text-graphite-700 outline-none transition-colors hover:bg-steel-50 hover:text-graphite-900" @click.prevent>
+                      <Icon name="eye" :size="16" /> Náhled na webu
+                    </a>
+                  </div>
+                </FormSection>
+              </TabsContent>
             </div>
           </TabsRoot>
         </div>
@@ -417,123 +466,15 @@ function applyTemplate(tpl: PopupTemplate) {
 
       <!-- PRAVÝ rail -->
       <aside class="space-y-5 xl:sticky xl:top-[92px] xl:self-start">
-        <PublishCard meta-only updated-by="Jan Voznak" />
+        <PublishCard :published="form.enabled" updated-by="Jan Voznak" />
 
-        <!-- Zobrazování -->
-        <FormSection title="Zobrazování" icon="calendar" tag="popup-from / popup-to">
-          <div class="space-y-4">
-            <div class="flex items-center justify-between rounded-md bg-steel-50 px-3 py-2.5">
-              <span class="text-[12.5px] font-500 text-steel-600">Aktuální stav</span>
-              <span
-                class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-600"
-                :class="[POPUP_STATE_META[state].bg, POPUP_STATE_META[state].text]"
-              >
-                <span class="h-1.5 w-1.5 rounded-full" :class="POPUP_STATE_META[state].dot" />
-                {{ POPUP_STATE_META[state].label }}
-              </span>
-            </div>
-
-            <div class="flex items-center justify-between rounded-md border border-steel-200 px-3 py-2.5">
-              <AppSwitch v-model="form.enabled" label="Zobrazovat" hint="Okno je aktivní" aria-label="Zobrazovat" />
-              <span class="field-tag">popup-enabled</span>
-            </div>
-
-            <div>
-              <label class="mb-1.5 flex items-center justify-between">
-                <span class="text-[13px] font-600 text-graphite-800">Od</span>
-                <span class="field-tag">popup-from</span>
-              </label>
-              <input
-                v-model="form.from"
-                type="datetime-local"
-                class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13px] text-graphite-800 focus:border-brand-500 focus:outline-none"
-              />
-            </div>
-            <div>
-              <label class="mb-1.5 flex items-center justify-between">
-                <span class="text-[13px] font-600 text-graphite-800">Do</span>
-                <span class="field-tag">popup-to</span>
-              </label>
-              <input
-                v-model="form.to"
-                type="datetime-local"
-                class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13px] text-graphite-800 focus:border-brand-500 focus:outline-none"
-              />
-            </div>
-            <div>
-              <label class="mb-1.5 flex items-center justify-between">
-                <span class="text-[13px] font-600 text-graphite-800">Platnost blokace (dny)</span>
-                <span class="field-tag">popup-cookie_expiration</span>
-              </label>
-              <input
-                v-model.number="form.cookieExpiration"
-                type="number"
-                min="0"
-                class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13px] text-graphite-800 focus:border-brand-500 focus:outline-none"
-              />
-              <p class="mt-1 text-[11.5px] leading-relaxed text-steel-500">
-                Po zavření se okno návštěvníkovi znovu nezobrazí po tento počet dní.
-              </p>
-            </div>
-          </div>
-        </FormSection>
-
-        <!-- Náhled na webu (prototyp — mrtvý odkaz) -->
-        <FormSection title="Náhled" icon="eye">
-          <a
-            href="#"
-            target="_blank"
-            class="flex w-full items-center justify-center gap-2 rounded-md border border-steel-200 bg-white px-4 py-2.5 text-[13px] font-600 text-graphite-700 outline-none transition-colors hover:bg-steel-50 hover:text-graphite-900 focus-visible:ring-4 focus-visible:ring-brand-500/15"
-            @click.prevent
-          >
-            <Icon name="eye" :size="16" /> Náhled na webu
-          </a>
-          <p class="mt-2 text-[11.5px] leading-relaxed text-steel-500">
-            Otevře náhled pop-up okna na webu v novém okně.
-          </p>
-        </FormSection>
-
-        <!-- Jazykové mutace -->
-        <FormSection title="Jazykové mutace" icon="globe" tag="ML">
-          <ul class="space-y-1.5">
-            <li
-              v-for="l in LANGS"
-              :key="l.code"
-              class="flex items-center justify-between rounded-md px-2.5 py-2 transition-colors"
-              :class="activeLang === l.code ? 'bg-brand-50' : 'hover:bg-steel-50'"
-            >
-              <button class="flex items-center gap-2.5 text-left" @click="activeLang = l.code">
-                <span>{{ l.flag }}</span>
-                <span class="text-[13px] font-500 text-graphite-800">{{ l.label }}</span>
-              </button>
-              <span
-                class="inline-flex items-center gap-1.5 font-mono text-[10.5px]"
-                :class="langFilled(l.code) ? 'text-forge-600' : 'text-steel-400'"
-              >
-                <span class="h-1.5 w-1.5 rounded-full" :class="langFilled(l.code) ? 'bg-forge-500' : 'bg-steel-300'" />
-                {{ langFilled(l.code) ? 'vyplněno' : 'prázdné' }}
-              </span>
-            </li>
-          </ul>
-
-          <div class="mt-4 border-t border-steel-100 pt-4">
-            <AppButton
-              variant="primary"
-              size="sm"
-              class="w-full"
-              :disabled="translating || !sourceReady"
-              @click="translateAll"
-            >
-              <Icon name="sparkles" :size="15" :class="translating && 'animate-pulse'" />
-              {{ translating ? 'Překládám…' : 'Přeložit z CZ přes AI' }}
-            </AppButton>
-            <p class="mt-2 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
-              <Icon name="sparkles" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
-              <span v-if="sourceReady">Vyplní mutace EN, DE, PL (nadpis a text) ze zdrojové české verze.</span>
-              <span v-else>Nejdřív vyplňte český nadpis — z něj se překládá.</span>
-            </p>
-          </div>
-        </FormSection>
+        <LangMutationsCard
+          v-model="activeLang"
+          :filled="filledLangs"
+          :source-ready="sourceReady"
+          :translating="translating"
+          @translate="translateAll"
+        />
       </aside>
     </div>
 

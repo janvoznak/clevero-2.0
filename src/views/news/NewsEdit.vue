@@ -12,6 +12,7 @@ import GalleryManager from '@/components/admin/GalleryManager.vue'
 import AttachmentsManager from '@/components/admin/AttachmentsManager.vue'
 import TagPicker from '@/components/admin/TagPicker.vue'
 import RelationPicker from '@/components/admin/RelationPicker.vue'
+import LangMutationsCard from '@/components/admin/LangMutationsCard.vue'
 import { LANGS, SOURCE_LANG } from '@/data/types'
 import type { LangCode, NewsItem, ML } from '@/data/types'
 import { MOCK_NEWS, publishState, STATE_META, PREDEFINED_TAGS, PREDEFINED_CATEGORIES } from '@/data/mockNews'
@@ -77,6 +78,7 @@ const sections = [
 function langFilled(code: LangCode): boolean {
   return form.title[code].trim().length > 0
 }
+const filledLangs = computed(() => LANGS.filter((l) => langFilled(l.code)).map((l) => l.code))
 
 /** Živý náhled stavu publikace z časového okna. */
 const state = computed(() => publishState(form))
@@ -303,6 +305,62 @@ function translateAll() {
                 />
               </div>
             </div>
+
+            <!-- Zobrazení na webu (OD–DO) — dříve v pravém railu -->
+            <div class="rounded-md border border-steel-200 bg-steel-50/60 p-4">
+              <div class="mb-3 flex items-center justify-between">
+                <span class="flex items-center gap-2 text-[13px] font-600 text-graphite-800"><Icon name="calendar" :size="15" class="text-steel-400" /> Zobrazení na webu</span>
+                <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-600" :class="[STATE_META[state].bg, STATE_META[state].text]">
+                  <span class="h-1.5 w-1.5 rounded-full" :class="STATE_META[state].dot" />
+                  {{ STATE_META[state].label }}
+                </span>
+              </div>
+              <div class="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label class="mb-1.5 flex items-center justify-between">
+                    <span class="text-[13px] font-600 text-graphite-800">Publikace OD</span>
+                    <span class="field-tag">dateFrom</span>
+                  </label>
+                  <input v-model="form.dateFrom" type="datetime-local" class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13px] text-graphite-800 focus:border-brand-500 focus:outline-none" />
+                </div>
+                <div>
+                  <label class="mb-1.5 flex items-center justify-between">
+                    <span class="text-[13px] font-600 text-graphite-800">Publikace DO</span>
+                    <span class="field-tag">dateTo</span>
+                  </label>
+                  <input v-model="form.dateTo" type="datetime-local" class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13px] text-graphite-800 focus:border-brand-500 focus:outline-none" />
+                </div>
+              </div>
+              <p class="mt-2 text-[11.5px] leading-relaxed text-steel-500">Viditelnost na webu řídí okno OD–DO. Prázdné DO = neomezeně.</p>
+            </div>
+
+            <!-- Zařazení a vazby — dříve v pravém railu -->
+            <div class="rounded-md border border-steel-200 p-4">
+              <p class="mb-3 flex items-center gap-2 text-[13px] font-600 text-graphite-800"><Icon name="layers" :size="15" class="text-steel-400" /> Zařazení a vazby</p>
+              <div class="space-y-4">
+                <div>
+                  <label class="mb-1.5 flex items-center justify-between">
+                    <span class="text-[13px] font-600 text-graphite-800">Objekt v areálu</span>
+                    <span class="field-tag">news-area_id</span>
+                  </label>
+                  <AppSelect v-model="areaModel" :options="areaOptions" />
+                </div>
+                <div>
+                  <label class="mb-1.5 flex items-center justify-between">
+                    <span class="text-[13px] font-600 text-graphite-800">Kategorie</span>
+                    <span class="field-tag">news-categories</span>
+                  </label>
+                  <TagPicker v-model="form.categories" :options="PREDEFINED_CATEGORIES" add-label="Přidat kategorii" empty-label="Zatím žádné kategorie." color-label="Barva kategorie" />
+                </div>
+                <div>
+                  <label class="mb-1.5 flex items-center justify-between">
+                    <span class="text-[13px] font-600 text-graphite-800">Související prohlídky</span>
+                    <span class="field-tag">news-tours</span>
+                  </label>
+                  <RelationPicker v-model="form.tourIds" :items="tourItems" add-label="Přidat prohlídku" empty-label="Zatím žádné prohlídky." search-placeholder="Hledat prohlídku…" icon="ticket" />
+                </div>
+              </div>
+            </div>
                 </div>
               </TabsContent>
 
@@ -438,166 +496,20 @@ function translateAll() {
 
       <!-- PRAVÝ rail: publikace + přehled -->
       <aside class="space-y-5 xl:sticky xl:top-[92px] xl:self-start">
-        <PublishCard meta-only updated-by="Jana Svobodová" />
-
-        <!-- Publikace -->
-        <FormSection title="Publikace" icon="calendar" tag="news-dateFrom / dateTo">
-          <div class="space-y-4">
-            <!-- Stav preview -->
-            <div class="flex items-center justify-between rounded-md bg-steel-50 px-3 py-2.5">
-              <span class="text-[12.5px] font-500 text-steel-600">Aktuální stav</span>
-              <span
-                class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-600"
-                :class="[STATE_META[state].bg, STATE_META[state].text]"
-              >
-                <span class="h-1.5 w-1.5 rounded-full" :class="STATE_META[state].dot" />
-                {{ STATE_META[state].label }}
-              </span>
-            </div>
-
-            <div>
-              <label class="mb-1.5 flex items-center justify-between">
-                <span class="text-[13px] font-600 text-graphite-800">Publikace OD</span>
-                <span class="field-tag">dateFrom</span>
-              </label>
-              <input
-                v-model="form.dateFrom"
-                type="datetime-local"
-                class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13px] text-graphite-800 focus:border-brand-500 focus:outline-none"
-              />
-            </div>
-            <div>
-              <label class="mb-1.5 flex items-center justify-between">
-                <span class="text-[13px] font-600 text-graphite-800">Publikace DO</span>
-                <span class="field-tag">dateTo</span>
-              </label>
-              <input
-                v-model="form.dateTo"
-                type="datetime-local"
-                class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13px] text-graphite-800 focus:border-brand-500 focus:outline-none"
-              />
-            </div>
-            <p class="flex items-start gap-1.5 rounded-md bg-steel-50 px-3 py-2 text-[11.5px] leading-relaxed text-steel-500">
-              <Icon name="calendar" :size="13" class="mt-0.5 shrink-0 text-steel-400" />
-              Viditelnost na webu řídí okno OD–DO. Prázdné DO = neomezeně.
-            </p>
-          </div>
-        </FormSection>
-
-        <!-- Autor -->
-        <FormSection title="Autor" icon="settings" tag="news-author">
-          <div class="flex items-center gap-2.5">
-            <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-graphite-800 text-[12px] font-700 text-white">
-              {{ (form.author.split(' ').map((w) => w[0] ?? '').slice(0, 2).join('') || '?').toUpperCase() }}
-            </span>
-            <input
-              v-model="form.author"
-              type="text"
-              placeholder="Jméno autora"
-              class="h-9 w-full rounded-md border border-steel-200 px-3 text-[13px] text-graphite-800 focus:border-brand-500 focus:outline-none"
-            />
-          </div>
-        </FormSection>
+        <PublishCard :published="state === 'active'" updated-by="Jana Svobodová" />
 
         <!-- Štítky -->
         <FormSection title="Štítky" icon="filter" tag="news-tags">
           <TagPicker v-model="form.tags" :options="PREDEFINED_TAGS" />
         </FormSection>
 
-        <!-- Objekt v areálu (kanonická vazba na modul Areál — stejně jako u akce) -->
-        <FormSection title="Objekt v areálu" icon="map" tag="news-area_id">
-          <AppSelect v-model="areaModel" :options="areaOptions" />
-          <p class="mt-2 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
-            <Icon name="map" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
-            Napojí aktualitu na objekt v areálu (např. Bolt Tower) — na webu se pak zobrazí u daného objektu. Nepovinné.
-          </p>
-        </FormSection>
-
-        <!-- Kategorie (obsahové štítky — sdílený TagPicker) -->
-        <FormSection title="Kategorie" icon="layers" tag="news-categories">
-          <TagPicker
-            v-model="form.categories"
-            :options="PREDEFINED_CATEGORIES"
-            add-label="Přidat kategorii"
-            empty-label="Zatím žádné kategorie."
-            color-label="Barva kategorie"
-          />
-        </FormSection>
-
-        <!-- Související prohlídky (vazba na modul Prohlídky) -->
-        <FormSection title="Související prohlídky" icon="ticket" tag="news-tours">
-          <RelationPicker
-            v-model="form.tourIds"
-            :items="tourItems"
-            add-label="Přidat prohlídku"
-            empty-label="Zatím žádné prohlídky."
-            search-placeholder="Hledat prohlídku…"
-            icon="ticket"
-          />
-        </FormSection>
-
-        <!-- Jazykové mutace přehled -->
-        <FormSection title="Jazykové mutace" icon="globe" tag="ML">
-          <ul class="space-y-1.5">
-            <li
-              v-for="l in LANGS"
-              :key="l.code"
-              class="flex items-center justify-between rounded-md px-2.5 py-2 transition-colors"
-              :class="activeLang === l.code ? 'bg-brand-50' : 'hover:bg-steel-50'"
-            >
-              <button class="flex items-center gap-2.5 text-left" @click="activeLang = l.code">
-                <span>{{ l.flag }}</span>
-                <span class="text-[13px] font-500 text-graphite-800">{{ l.label }}</span>
-              </button>
-              <span
-                class="inline-flex items-center gap-1.5 font-mono text-[10.5px]"
-                :class="langFilled(l.code) ? 'text-forge-600' : 'text-steel-400'"
-              >
-                <span class="h-1.5 w-1.5 rounded-full" :class="langFilled(l.code) ? 'bg-forge-500' : 'bg-steel-300'" />
-                {{ langFilled(l.code) ? 'vyplněno' : 'prázdné' }}
-              </span>
-            </li>
-          </ul>
-
-          <!-- AI překlad (prototyp) -->
-          <div class="mt-4 border-t border-steel-100 pt-4">
-            <AppButton
-              variant="primary"
-              size="sm"
-              class="w-full"
-              :disabled="translating || !sourceReady"
-              @click="translateAll"
-            >
-              <Icon name="sparkles" :size="15" :class="translating && 'animate-pulse'" />
-              {{ translating ? 'Překládám…' : 'Přeložit z CZ přes AI' }}
-            </AppButton>
-            <p class="mt-2 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
-              <Icon name="sparkles" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
-              <span v-if="sourceReady">Vyplní mutace EN, DE, PL ze zdrojové české verze.</span>
-              <span v-else>Nejdřív vyplňte českou verzi — z ní se překládá.</span>
-            </p>
-          </div>
-        </FormSection>
-
-        <!-- Obsah přehled -->
-        <FormSection title="Obsah" icon="reference">
-          <dl class="space-y-2.5 text-[13px]">
-            <div class="flex items-center justify-between">
-              <dt class="flex items-center gap-2 text-steel-500"><Icon name="image" :size="15" /> Fotografie</dt>
-              <dd class="font-mono font-600 text-graphite-800">{{ form.gallery.length }}</dd>
-            </div>
-            <div class="flex items-center justify-between">
-              <dt class="flex items-center gap-2 text-steel-500"><Icon name="paperclip" :size="15" /> Přílohy</dt>
-              <dd class="font-mono font-600 text-graphite-800">{{ form.attachments.length }}</dd>
-            </div>
-            <div class="flex items-center justify-between">
-              <dt class="flex items-center gap-2 text-steel-500"><Icon name="link" :size="15" /> Video</dt>
-              <dd class="font-mono font-600" :class="form.videoLink ? 'text-forge-600' : 'text-steel-400'">
-                {{ form.videoLink ? 'ano' : '—' }}
-              </dd>
-            </div>
-          </dl>
-        </FormSection>
+        <LangMutationsCard
+          v-model="activeLang"
+          :filled="filledLangs"
+          :source-ready="sourceReady"
+          :translating="translating"
+          @translate="translateAll"
+        />
       </aside>
     </div>
 
