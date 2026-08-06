@@ -10,6 +10,7 @@ import FormSection from '@/components/admin/FormSection.vue'
 import PublishCard from '@/components/admin/PublishCard.vue'
 import AiPanel from '@/components/admin/AiPanel.vue'
 import RichTextEditor from '@/components/admin/RichTextEditor.vue'
+import LangMutationsCard from '@/components/admin/LangMutationsCard.vue'
 import { LANGS, SOURCE_LANG } from '@/data/types'
 import type { LangCode, ML } from '@/data/types'
 import {
@@ -48,12 +49,14 @@ const activeLang = ref<LangCode>('cs')
 function langFilled(code: LangCode): boolean {
   return form.title[code].trim().length > 0
 }
+const filledLangs = computed(() => LANGS.filter((l) => langFilled(l.code)).map((l) => l.code))
 
 /* ---------- Sekce ---------- */
 const activeSection = ref('content')
 const sections = [
   { value: 'content', label: 'Obsah', icon: 'page' },
   { value: 'pricing', label: 'Ceník a kontakt', icon: 'ticket' },
+  { value: 'colosseum', label: 'Dostupnost a Colosseum', icon: 'integration' },
   { value: 'media', label: 'Obrázek', icon: 'image' },
 ]
 
@@ -307,6 +310,77 @@ function backToCategory() {
                 </div>
               </TabsContent>
 
+              <!-- Dostupnost a Colosseum (dříve v pravém railu) -->
+              <TabsContent value="colosseum" class="space-y-5 outline-none">
+                <div class="grid gap-4 sm:grid-cols-2">
+                  <div class="rounded-md bg-steel-50 px-3 py-2.5">
+                    <p class="field-tag mb-1">Dostupnost</p>
+                    <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-600" :class="[AVAILABILITY_META[availability(form)].bg, AVAILABILITY_META[availability(form)].text]">
+                      <span class="h-1.5 w-1.5 rounded-full" :class="AVAILABILITY_META[availability(form)].dot" />
+                      {{ AVAILABILITY_META[availability(form)].label }}
+                    </span>
+                  </div>
+                  <div>
+                    <label class="mb-1.5 flex items-center justify-between">
+                      <span class="text-[13px] font-600 text-graphite-800">Kategorie</span>
+                      <span class="field-tag">tour-category_id</span>
+                    </label>
+                    <AppSelect v-model="form.categoryId" :options="CATEGORY_OPTIONS" />
+                  </div>
+                </div>
+
+                <div>
+                  <label class="mb-1.5 flex items-center justify-between">
+                    <span class="text-[13px] font-600 text-graphite-800">Místo konání — objekt v areálu</span>
+                    <span class="field-tag">tour-area_id</span>
+                  </label>
+                  <AppSelect v-model="areaModel" :options="placeOptions" />
+                  <p class="mt-1 text-[11.5px] text-steel-500">Kde prohlídka reálně začíná. Propíše se do detailu objektu na webu (nabízené prohlídky).</p>
+                </div>
+
+                <div>
+                  <label class="mb-1.5 flex items-center justify-between">
+                    <span class="text-[13px] font-600 text-graphite-800">Propojení Colosseum (ID)</span>
+                    <span class="field-tag">tour-colosseum_id</span>
+                  </label>
+                  <div class="relative">
+                    <Icon name="ticket" :size="15" class="absolute left-3 top-1/2 -translate-y-1/2 text-steel-400" />
+                    <input v-model="form.colosseumId" type="text" placeholder="Unikátní ID prohlídky" class="h-10 w-full rounded-md border border-steel-200 pl-9 pr-3 font-mono text-[13px] text-graphite-800 placeholder:font-sans placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
+                  </div>
+                  <p class="mt-1.5 flex items-start gap-1.5 text-[11.5px] leading-relaxed" :class="form.colosseumId ? 'text-forge-600' : 'text-steel-500'">
+                    <Icon :name="form.colosseumId ? 'check' : 'integration'" :size="13" class="mt-0.5 shrink-0" />
+                    <span v-if="form.colosseumId">Napojeno — termíny a vstupenky se tahají z Colossea.</span>
+                    <span v-else>Bez ID se termíny ani vstupenky z Colossea nenačtou.</span>
+                  </p>
+                </div>
+
+                <!-- Termíny z Colossea (read-only) -->
+                <div class="rounded-md border border-steel-200 p-4">
+                  <p class="mb-2 flex items-center gap-2 text-[13px] font-600 text-graphite-800"><Icon name="calendar" :size="15" class="text-steel-400" /> Nejbližší termíny <span class="field-tag">Colosseum · read-only</span></p>
+                  <ul v-if="slots.length" class="space-y-1.5">
+                    <li v-for="s in slots" :key="s.id" class="flex items-center justify-between gap-2 rounded-md border border-steel-200 px-3 py-2">
+                      <span class="text-[12.5px] font-500 text-graphite-800 tabular-nums">{{ fmtSlot(s.datetime) }}</span>
+                      <span
+                        class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-600 tabular-nums"
+                        :class="remaining(s) === 0 ? 'bg-danger-500/10 text-danger-600' : remaining(s) <= 5 ? 'bg-amber-500/10 text-amber-600' : 'bg-forge-500/10 text-forge-600'"
+                      >
+                        <span class="h-1.5 w-1.5 rounded-full" :class="remaining(s) === 0 ? 'bg-danger-500' : remaining(s) <= 5 ? 'bg-amber-500' : 'bg-forge-500'" />
+                        {{ remaining(s) === 0 ? 'Vyprodáno' : `${remaining(s)} / ${s.capacity} volných` }}
+                      </span>
+                    </li>
+                  </ul>
+                  <p v-else class="text-[12px] text-steel-400">Žádné nadcházející termíny z Colossea.</p>
+                  <div v-if="slots.length" class="mt-3 flex items-center justify-between rounded-md bg-steel-50 px-3 py-2 text-[12px]">
+                    <span class="text-steel-600">Volných míst celkem</span>
+                    <span class="font-700 text-graphite-900 tabular-nums">{{ freeSeats(form) }}</span>
+                  </div>
+                  <p class="mt-2.5 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
+                    <Icon name="integration" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
+                    Termíny a volná místa se tahají z Colossea (needitovatelné). Na webu bude u prohlídky tlačítko „Koupit vstupenku" směřující do Colossea.
+                  </p>
+                </div>
+              </TabsContent>
+
               <!-- Obrázek -->
               <TabsContent value="media" class="outline-none">
                 <p class="mb-3 text-[12.5px] text-steel-500">Hlavní vizuál prohlídky (výpis i detail).</p>
@@ -329,85 +403,14 @@ function backToCategory() {
       <!-- PRAVÝ rail -->
       <aside class="space-y-5 xl:sticky xl:top-[76px] xl:self-start">
         <PublishCard :published="form.published" updated-by="Jana Svobodová" />
-        <FormSection title="Dostupnost a zařazení" icon="ticket">
-          <div class="space-y-3">
-            <div class="flex items-center justify-between rounded-md bg-steel-50 px-3 py-2.5">
-              <span class="text-[12.5px] font-500 text-steel-600">Dostupnost</span>
-              <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-600" :class="[AVAILABILITY_META[availability(form)].bg, AVAILABILITY_META[availability(form)].text]">
-                <span class="h-1.5 w-1.5 rounded-full" :class="AVAILABILITY_META[availability(form)].dot" />
-                {{ AVAILABILITY_META[availability(form)].label }}
-              </span>
-            </div>
-            <div>
-              <label class="mb-1.5 block text-[13px] font-600 text-graphite-800">Kategorie</label>
-              <AppSelect v-model="form.categoryId" :options="CATEGORY_OPTIONS" />
-            </div>
-          </div>
-        </FormSection>
 
-        <!-- Místo konání = objekt v Areálu -->
-        <FormSection title="Místo konání" icon="map" tag="tour-area_id">
-          <label class="mb-1.5 block text-[13px] font-600 text-graphite-800">Objekt v areálu</label>
-          <AppSelect v-model="areaModel" :options="placeOptions" />
-          <p class="mt-2 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
-            <Icon name="map" :size="13" class="mt-0.5 shrink-0" />
-            <span>Kde prohlídka reálně začíná. Propíše se do detailu objektu na webu (nabízené prohlídky).</span>
-          </p>
-        </FormSection>
-
-        <!-- Propojení Colosseum -->
-        <FormSection title="Propojení Colosseum" icon="integration" tag="tour-colosseum_id">
-          <div class="relative">
-            <Icon name="ticket" :size="15" class="absolute left-3 top-1/2 -translate-y-1/2 text-steel-400" />
-            <input v-model="form.colosseumId" type="text" placeholder="Unikátní ID prohlídky" class="h-10 w-full rounded-md border border-steel-200 pl-9 pr-3 font-mono text-[13px] text-graphite-800 placeholder:font-sans placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
-          </div>
-          <p class="mt-2 flex items-start gap-1.5 text-[11.5px] leading-relaxed" :class="form.colosseumId ? 'text-forge-600' : 'text-steel-500'">
-            <Icon :name="form.colosseumId ? 'check' : 'integration'" :size="13" class="mt-0.5 shrink-0" />
-            <span v-if="form.colosseumId">Napojeno — termíny a vstupenky se tahají z Colossea.</span>
-            <span v-else>Bez ID se termíny ani vstupenky z Colossea nenačtou.</span>
-          </p>
-        </FormSection>
-
-        <!-- Termíny z Colossea (read-only) -->
-        <FormSection title="Nejbližší termíny" icon="calendar" tag="Colosseum · read-only">
-          <ul v-if="slots.length" class="space-y-1.5">
-            <li v-for="s in slots" :key="s.id" class="flex items-center justify-between gap-2 rounded-md border border-steel-200 px-3 py-2">
-              <span class="text-[12.5px] font-500 text-graphite-800 tabular-nums">{{ fmtSlot(s.datetime) }}</span>
-              <span
-                class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-600 tabular-nums"
-                :class="remaining(s) === 0 ? 'bg-danger-500/10 text-danger-600' : remaining(s) <= 5 ? 'bg-amber-500/10 text-amber-600' : 'bg-forge-500/10 text-forge-600'"
-              >
-                <span class="h-1.5 w-1.5 rounded-full" :class="remaining(s) === 0 ? 'bg-danger-500' : remaining(s) <= 5 ? 'bg-amber-500' : 'bg-forge-500'" />
-                {{ remaining(s) === 0 ? 'Vyprodáno' : `${remaining(s)} / ${s.capacity} volných` }}
-              </span>
-            </li>
-          </ul>
-          <p v-else class="text-[12px] text-steel-400">Žádné nadcházející termíny z Colossea.</p>
-          <div v-if="slots.length" class="mt-3 flex items-center justify-between rounded-md bg-steel-50 px-3 py-2 text-[12px]">
-            <span class="text-steel-600">Volných míst celkem</span>
-            <span class="font-700 text-graphite-900 tabular-nums">{{ freeSeats(form) }}</span>
-          </div>
-          <p class="mt-2.5 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
-            <Icon name="integration" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
-            Termíny a volná místa se tahají z Colossea (needitovatelné). Na webu bude u prohlídky tlačítko „Koupit vstupenku" směřující do Colossea.
-          </p>
-        </FormSection>
-
-        <!-- Jazykové mutace -->
-        <FormSection title="Jazykové mutace" icon="globe" tag="ML">
-          <ul class="space-y-1.5">
-            <li v-for="l in LANGS" :key="l.code" class="flex items-center justify-between rounded-md px-2.5 py-2 transition-colors" :class="activeLang === l.code ? 'bg-brand-50' : 'hover:bg-steel-50'">
-              <button class="flex items-center gap-2.5 text-left" @click="activeLang = l.code"><span>{{ l.flag }}</span><span class="text-[13px] font-500 text-graphite-800">{{ l.label }}</span></button>
-              <span class="inline-flex items-center gap-1.5 font-mono text-[10.5px]" :class="langFilled(l.code) ? 'text-forge-600' : 'text-steel-400'"><span class="h-1.5 w-1.5 rounded-full" :class="langFilled(l.code) ? 'bg-forge-500' : 'bg-steel-300'" />{{ langFilled(l.code) ? 'vyplněno' : 'prázdné' }}</span>
-            </li>
-          </ul>
-          <div class="mt-4 border-t border-steel-100 pt-4">
-            <AppButton variant="primary" size="sm" class="w-full" :disabled="translating || !sourceReady" @click="translateAll">
-              <Icon name="sparkles" :size="15" :class="translating && 'animate-pulse'" />
-              {{ translating ? 'Překládám…' : 'Přeložit z CZ přes AI' }}
-            </AppButton>
-          </div>
-        </FormSection>
+        <LangMutationsCard
+          v-model="activeLang"
+          :filled="filledLangs"
+          :source-ready="sourceReady"
+          :translating="translating"
+          @translate="translateAll"
+        />
       </aside>
     </div>
 

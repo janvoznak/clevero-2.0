@@ -21,6 +21,7 @@ import AttachmentsManager from '@/components/admin/AttachmentsManager.vue'
 import OpeningHoursEditor from '@/components/admin/OpeningHoursEditor.vue'
 import PageFormBuilder from '@/components/admin/PageFormBuilder.vue'
 import PageGroupBar from '@/components/admin/PageGroupBar.vue'
+import LangMutationsCard from '@/components/admin/LangMutationsCard.vue'
 import { LANGS, SOURCE_LANG } from '@/data/types'
 import type { LangCode, ML } from '@/data/types'
 import {
@@ -94,6 +95,7 @@ const activeLang = ref<LangCode>('cs')
 const activeSection = ref('basic')
 const sections = [
   { value: 'basic', label: 'Základní informace', icon: 'page' },
+  { value: 'settings', label: 'Nastavení a vztahy', icon: 'settings' },
   { value: 'forms', label: 'Formuláře', icon: 'reference' },
   { value: 'seo', label: 'Marketing & SEO', icon: 'search' },
   { value: 'media', label: 'Obrázky & Přílohy', icon: 'gallery' },
@@ -119,6 +121,7 @@ const isParent = computed(() => isEdit.value && hasChildren(MOCK_PAGES, form.id)
 function langFilled(code: LangCode): boolean {
   return form.title[code].trim().length > 0
 }
+const filledLangs = computed(() => LANGS.filter((l) => langFilled(l.code)).map((l) => l.code))
 const state = computed(() => pageState(form))
 
 /* Hierarchická URL náhled (dle rodiče z mock stromu + vlastní slug). */
@@ -389,6 +392,59 @@ function translateAll() {
                 </div>
               </TabsContent>
 
+              <!-- TAB: Nastavení a vztahy (dříve v pravém railu) -->
+              <TabsContent value="settings" class="space-y-5 outline-none">
+                <!-- Přidružené stránky (podstránky + externí odkazy) -->
+                <PageGroupBar
+                  :key="form.id"
+                  :current-id="form.id"
+                  :lang="activeLang"
+                  @navigate="goPage"
+                  @add-child-new="onAddChildNew"
+                  @add-link-new="onAddLinkNew"
+                />
+
+                <!-- Zobrazení na webu -->
+                <FormSection title="Zobrazení na webu" icon="globe" tag="page-enabled">
+                  <div class="space-y-3">
+                    <div class="flex items-center justify-between rounded-md bg-steel-50 px-3 py-2.5">
+                      <span class="text-[12.5px] font-500 text-steel-600">Aktuální stav</span>
+                      <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-600" :class="[PAGE_STATE_META[state].bg, PAGE_STATE_META[state].text]">
+                        <span class="h-1.5 w-1.5 rounded-full" :class="PAGE_STATE_META[state].dot" />
+                        {{ PAGE_STATE_META[state].label }}
+                      </span>
+                    </div>
+                    <div class="flex items-center justify-between rounded-md border border-steel-200 px-3 py-2.5">
+                      <AppSwitch v-model="form.enabled" label="Zobrazovat (aktivní)" hint="Hlavní vypínač viditelnosti stránky na webu" aria-label="Zobrazovat" />
+                      <span class="field-tag">page-enabled</span>
+                    </div>
+                    <div class="rounded-md border border-steel-200 px-3 py-2.5">
+                      <p class="mb-0.5 field-tag">Adresa na webu</p>
+                      <p class="break-all font-mono text-[11.5px] text-graphite-700">/cs{{ urlPreview }}</p>
+                    </div>
+                    <a href="#" target="_blank" class="inline-flex items-center justify-center gap-2 rounded-md border border-steel-200 bg-white px-4 py-2 text-[13px] font-600 text-graphite-700 outline-none transition-colors hover:bg-steel-50 hover:text-graphite-900" @click.prevent>
+                      <Icon name="eye" :size="16" /> Náhled na webu
+                    </a>
+                  </div>
+                </FormSection>
+
+                <!-- Otevírací doba -->
+                <FormSection title="Otevírací doba" icon="clock" tag="page-openingHours">
+                  <div class="rounded-md border border-steel-200 bg-steel-50/60 px-3 py-2.5">
+                    <AppSwitch
+                      v-model="form.showOpeningHours"
+                      label="Zobrazit na webu"
+                      hint="Některé stránky otevírací dobu nepotřebují — vypnutím se skryje."
+                      aria-label="Zobrazit otevírací dobu na webu"
+                    />
+                  </div>
+                  <template v-if="form.showOpeningHours">
+                    <p class="mb-3 mt-4 text-[12.5px] text-steel-500">Nastavte hodiny pro jednotlivé dny, nebo den označte jako zavřený.</p>
+                    <OpeningHoursEditor v-model="form.openingHours" />
+                  </template>
+                </FormSection>
+              </TabsContent>
+
               <!-- TAB 2: Formuláře -->
               <TabsContent value="forms" class="space-y-4 outline-none">
                 <PageFormBuilder v-model="form.formTemplateId" :templates="FORM_TEMPLATES" />
@@ -585,97 +641,15 @@ function translateAll() {
 
       <!-- PRAVÝ rail -->
       <aside class="space-y-5 xl:sticky xl:top-[92px] xl:self-start">
-        <!-- Přidružené stránky (podstránky + externí odkazy) — vztahy stránky -->
-        <PageGroupBar
-          :key="form.id"
-          :current-id="form.id"
-          :lang="activeLang"
-          @navigate="goPage"
-          @add-child-new="onAddChildNew"
-          @add-link-new="onAddLinkNew"
+        <PublishCard :published="form.enabled" updated-by="Jan Voznak" />
+
+        <LangMutationsCard
+          v-model="activeLang"
+          :filled="filledLangs"
+          :source-ready="sourceReady"
+          :translating="translating"
+          @translate="translateAll"
         />
-
-        <PublishCard meta-only updated-by="Jan Voznak" />
-
-        <FormSection title="Publikace" icon="globe">
-          <div class="space-y-3">
-            <div class="flex items-center justify-between rounded-md bg-steel-50 px-3 py-2.5">
-              <span class="text-[12.5px] font-500 text-steel-600">Aktuální stav</span>
-              <span
-                class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-600"
-                :class="[PAGE_STATE_META[state].bg, PAGE_STATE_META[state].text]"
-              >
-                <span class="h-1.5 w-1.5 rounded-full" :class="PAGE_STATE_META[state].dot" />
-                {{ PAGE_STATE_META[state].label }}
-              </span>
-            </div>
-            <div class="flex items-center justify-between rounded-md border border-steel-200 px-3 py-2.5">
-              <AppSwitch v-model="form.enabled" label="Zobrazovat (aktivní)" hint="Hlavní vypínač viditelnosti stránky na webu" aria-label="Zobrazovat" />
-              <span class="field-tag">page-enabled</span>
-            </div>
-            <div class="rounded-md border border-steel-200 px-3 py-2.5">
-              <p class="mb-0.5 field-tag">Adresa na webu</p>
-              <p class="break-all font-mono text-[11.5px] text-graphite-700">/cs{{ urlPreview }}</p>
-            </div>
-            <a
-              href="#"
-              target="_blank"
-              class="flex w-full items-center justify-center gap-2 rounded-md border border-steel-200 bg-white px-4 py-2 text-[13px] font-600 text-graphite-700 outline-none transition-colors hover:bg-steel-50 hover:text-graphite-900"
-              @click.prevent
-            >
-              <Icon name="eye" :size="16" /> Náhled na webu
-            </a>
-          </div>
-        </FormSection>
-
-        <FormSection title="Otevírací doba" icon="clock" tag="page-openingHours">
-          <div class="rounded-md border border-steel-200 bg-steel-50/60 px-3 py-2.5">
-            <AppSwitch
-              v-model="form.showOpeningHours"
-              label="Zobrazit na webu"
-              hint="Některé stránky otevírací dobu nepotřebují — vypnutím se skryje."
-              aria-label="Zobrazit otevírací dobu na webu"
-            />
-          </div>
-          <template v-if="form.showOpeningHours">
-            <p class="mb-3 mt-4 text-[12.5px] text-steel-500">Nastavte hodiny pro jednotlivé dny, nebo den označte jako zavřený.</p>
-            <OpeningHoursEditor v-model="form.openingHours" />
-          </template>
-        </FormSection>
-
-        <FormSection title="Jazykové mutace" icon="globe" tag="ML">
-          <ul class="space-y-1.5">
-            <li
-              v-for="l in LANGS"
-              :key="l.code"
-              class="flex items-center justify-between rounded-md px-2.5 py-2 transition-colors"
-              :class="activeLang === l.code ? 'bg-brand-50' : 'hover:bg-steel-50'"
-            >
-              <button class="flex items-center gap-2.5 text-left" @click="activeLang = l.code">
-                <span>{{ l.flag }}</span>
-                <span class="text-[13px] font-500 text-graphite-800">{{ l.label }}</span>
-              </button>
-              <span
-                class="inline-flex items-center gap-1.5 font-mono text-[10.5px]"
-                :class="langFilled(l.code) ? 'text-forge-600' : 'text-steel-400'"
-              >
-                <span class="h-1.5 w-1.5 rounded-full" :class="langFilled(l.code) ? 'bg-forge-500' : 'bg-steel-300'" />
-                {{ langFilled(l.code) ? 'vyplněno' : 'prázdné' }}
-              </span>
-            </li>
-          </ul>
-          <div class="mt-4 border-t border-steel-100 pt-4">
-            <AppButton variant="primary" size="sm" class="w-full" :disabled="translating || !sourceReady" @click="translateAll">
-              <Icon name="sparkles" :size="15" :class="translating && 'animate-pulse'" />
-              {{ translating ? 'Překládám…' : 'Přeložit z CZ přes AI' }}
-            </AppButton>
-            <p class="mt-2 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
-              <Icon name="sparkles" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
-              <span v-if="sourceReady">Vyplní mutace EN, DE, PL ze zdrojové české verze.</span>
-              <span v-else>Nejdřív vyplňte český nadpis — z něj se překládá.</span>
-            </p>
-          </div>
-        </FormSection>
       </aside>
     </div>
 

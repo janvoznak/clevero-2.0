@@ -10,6 +10,7 @@ import TagChip from '@/components/ui/TagChip.vue'
 import TagPicker from '@/components/admin/TagPicker.vue'
 import FormSection from '@/components/admin/FormSection.vue'
 import PublishCard from '@/components/admin/PublishCard.vue'
+import LangMutationsCard from '@/components/admin/LangMutationsCard.vue'
 import AiPanel from '@/components/admin/AiPanel.vue'
 import RelationPicker from '@/components/admin/RelationPicker.vue'
 import RichTextEditor from '@/components/admin/RichTextEditor.vue'
@@ -69,6 +70,7 @@ const activeLang = ref<LangCode>('cs')
 function langFilled(code: LangCode): boolean {
   return form.title[code].trim().length > 0
 }
+const filledLangs = computed(() => LANGS.filter((l) => langFilled(l.code)).map((l) => l.code))
 
 const typeOptions = EVENT_TYPES.map((t) => ({ value: t, label: t }))
 /** Místo konání = objekt v Areálu (jedna kanonická vazba; barva v kalendáři
@@ -347,6 +349,25 @@ function save() {
                   <Icon name="calendar" :size="14" class="mt-0.5 shrink-0 text-steel-400" />
                   Stejné OD i DO = jednodenní akce. Rozdílné datumy = vícedenní / dlouhodobá akce v kalendáři.
                 </p>
+
+                <!-- Zobrazení na webu (dříve v pravém railu) -->
+                <div class="rounded-md border border-steel-200 p-4">
+                  <p class="mb-3 flex items-center gap-2 text-[13px] font-600 text-graphite-800"><Icon name="eye" :size="15" class="text-steel-400" /> Zobrazení na webu</p>
+                  <div class="space-y-3">
+                    <div class="flex items-center justify-between rounded-md bg-steel-50 px-3 py-2.5">
+                      <span class="text-[12.5px] font-500 text-steel-600">Stav akce</span>
+                      <span v-if="status" class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-600" :class="[EVENT_STATE_META[status].bg, EVENT_STATE_META[status].text]">
+                        <span class="h-1.5 w-1.5 rounded-full" :class="EVENT_STATE_META[status].dot" />
+                        {{ EVENT_STATE_META[status].label }}
+                      </span>
+                      <span v-else class="text-[12px] text-steel-400">doplňte termín</span>
+                    </div>
+                    <div class="flex items-center justify-between rounded-md border border-steel-200 px-3 py-2.5">
+                      <AppSwitch v-model="form.published" label="Zveřejnit na webu" aria-label="Zveřejnit na webu" />
+                      <span class="field-tag">event-published</span>
+                    </div>
+                  </div>
+                </div>
               </TabsContent>
 
               <!-- Sekce: Vstupenky a detaily -->
@@ -386,6 +407,23 @@ function save() {
                   </label>
                   <input v-model="form.performers" type="text" placeholder="Jména oddělená čárkou" class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13.5px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
                 </div>
+
+                <!-- Související prohlídky (dříve v pravém railu) -->
+                <div class="rounded-md border border-steel-200 p-4">
+                  <p class="mb-3 flex items-center gap-2 text-[13px] font-600 text-graphite-800"><Icon name="ticket" :size="15" class="text-steel-400" /> Související prohlídky <span class="field-tag">event-tours</span></p>
+                  <RelationPicker
+                    v-model="form.tourIds"
+                    :items="tourItems"
+                    add-label="Přidat prohlídku"
+                    empty-label="Zatím žádné prohlídky."
+                    search-placeholder="Hledat prohlídku…"
+                    icon="ticket"
+                  />
+                  <p class="mt-2 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
+                    <Icon name="ticket" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
+                    <span>Akce je pouze program v kalendáři. Prodej vstupenek a rezervace termínů běží přes navázanou prohlídku (Colosseum) — pro vstupenkovou akci vždy propoj prohlídku.</span>
+                  </p>
+                </div>
               </TabsContent>
 
               <!-- Sekce: Plakát -->
@@ -413,89 +451,20 @@ function save() {
 
       <!-- PRAVÝ rail -->
       <aside class="space-y-5 xl:sticky xl:top-[76px] xl:self-start">
-        <PublishCard meta-only updated-by="Petr Dvořák" />
-        <FormSection title="Publikace" icon="eye">
-          <div class="space-y-3">
-            <div class="flex items-center justify-between rounded-md bg-steel-50 px-3 py-2.5">
-              <span class="text-[12.5px] font-500 text-steel-600">Stav akce</span>
-              <span v-if="status" class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-600" :class="[EVENT_STATE_META[status].bg, EVENT_STATE_META[status].text]">
-                <span class="h-1.5 w-1.5 rounded-full" :class="EVENT_STATE_META[status].dot" />
-                {{ EVENT_STATE_META[status].label }}
-              </span>
-              <span v-else class="text-[12px] text-steel-400">doplňte termín</span>
-            </div>
-            <div class="flex items-center justify-between rounded-md border border-steel-200 px-3 py-2.5">
-              <AppSwitch v-model="form.published" label="Zveřejnit na webu" aria-label="Zveřejnit na webu" />
-              <span class="field-tag">event-published</span>
-            </div>
-          </div>
-        </FormSection>
+        <PublishCard :published="form.published" updated-by="Petr Dvořák" />
 
         <!-- Štítky (sdílený TagPicker — stejné UI/UX jako Aktuality) -->
         <FormSection title="Štítky" icon="filter" tag="event-tags">
           <TagPicker v-model="form.tags" :options="PREDEFINED_EVENT_TAGS" />
         </FormSection>
 
-        <!-- Související prohlídky (vazba na modul Prohlídky) -->
-        <FormSection title="Související prohlídky" icon="ticket" tag="event-tours">
-          <RelationPicker
-            v-model="form.tourIds"
-            :items="tourItems"
-            add-label="Přidat prohlídku"
-            empty-label="Zatím žádné prohlídky."
-            search-placeholder="Hledat prohlídku…"
-            icon="ticket"
-          />
-          <p class="mt-2 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
-            <Icon name="ticket" :size="13" class="mt-0.5 shrink-0" />
-            <span>Akce je pouze program v kalendáři. Prodej vstupenek a rezervace termínů běží přes navázanou prohlídku (Colosseum) — pro vstupenkovou akci vždy propoj prohlídku.</span>
-          </p>
-        </FormSection>
-
-        <!-- Jazykové mutace + AI překlad -->
-        <FormSection title="Jazykové mutace" icon="globe" tag="ML">
-          <ul class="space-y-1.5">
-            <li v-for="l in LANGS" :key="l.code" class="flex items-center justify-between rounded-md px-2.5 py-2 transition-colors" :class="activeLang === l.code ? 'bg-brand-50' : 'hover:bg-steel-50'">
-              <button class="flex items-center gap-2.5 text-left" @click="activeLang = l.code">
-                <span>{{ l.flag }}</span>
-                <span class="text-[13px] font-500 text-graphite-800">{{ l.label }}</span>
-              </button>
-              <span class="inline-flex items-center gap-1.5 font-mono text-[10.5px]" :class="langFilled(l.code) ? 'text-forge-600' : 'text-steel-400'">
-                <span class="h-1.5 w-1.5 rounded-full" :class="langFilled(l.code) ? 'bg-forge-500' : 'bg-steel-300'" />
-                {{ langFilled(l.code) ? 'vyplněno' : 'prázdné' }}
-              </span>
-            </li>
-          </ul>
-          <div class="mt-4 border-t border-steel-100 pt-4">
-            <AppButton variant="primary" size="sm" class="w-full" :disabled="translating || !sourceReady" @click="translateAll">
-              <Icon name="sparkles" :size="15" :class="translating && 'animate-pulse'" />
-              {{ translating ? 'Překládám…' : 'Přeložit z CZ přes AI' }}
-            </AppButton>
-            <p class="mt-2 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
-              <Icon name="sparkles" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
-              <span v-if="sourceReady">Vyplní mutace EN, DE, PL (název, podnadpis, perex, popis) ze zdrojové české verze.</span>
-              <span v-else>Nejdřív vyplňte český název — z něj se překládá.</span>
-            </p>
-          </div>
-        </FormSection>
-
-        <FormSection title="Zařazení" icon="calendar">
-          <dl class="space-y-2.5 text-[13px]">
-            <div class="flex items-center justify-between">
-              <dt class="text-steel-500">Místo</dt>
-              <dd v-if="place"><TagChip :label="place.title.cs" :color="place.color" /></dd>
-              <dd v-else class="text-steel-400">—</dd>
-            </div>
-            <div class="flex items-center justify-between">
-              <dt class="text-steel-500">Typ</dt>
-              <dd class="font-600 text-graphite-800">{{ form.type }}</dd>
-            </div>
-            <div v-if="form.price" class="flex items-center justify-between">
-              <dt class="text-steel-500">Vstupné</dt>
-              <dd class="font-600 text-graphite-800">{{ form.price }}</dd>
-            </div>
-          </dl>
-        </FormSection>
+        <LangMutationsCard
+          v-model="activeLang"
+          :filled="filledLangs"
+          :source-ready="sourceReady"
+          :translating="translating"
+          @translate="translateAll"
+        />
       </aside>
     </div>
 

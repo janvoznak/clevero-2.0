@@ -8,6 +8,7 @@ import FormSection from '@/components/admin/FormSection.vue'
 import PublishCard from '@/components/admin/PublishCard.vue'
 import RichTextEditor from '@/components/admin/RichTextEditor.vue'
 import TagPicker from '@/components/admin/TagPicker.vue'
+import LangMutationsCard from '@/components/admin/LangMutationsCard.vue'
 import { LANGS, SOURCE_LANG } from '@/data/types'
 import type { LangCode, ML } from '@/data/types'
 import {
@@ -36,6 +37,7 @@ const sections = [
 function langFilled(code: LangCode): boolean {
   return form.title[code].trim().length > 0
 }
+const filledLangs = computed(() => LANGS.filter((l) => langFilled(l.code)).map((l) => l.code))
 
 /* ---------- Parametry (opakovatelné řádky) ---------- */
 let paramSeq = 0
@@ -150,6 +152,19 @@ function save() {
                     </label>
                     <RichTextEditor v-model="form.description[activeLang]" />
                   </div>
+                  <div>
+                    <label class="mb-1.5 flex items-center justify-between">
+                      <span class="text-[13px] font-600 text-graphite-800">Obrázek programu</span>
+                      <span class="field-tag">program-image</span>
+                    </label>
+                    <div class="flex items-center gap-4">
+                      <span class="h-20 w-28 shrink-0 overflow-hidden rounded-lg bg-steel-100">
+                        <img v-if="form.image" :src="form.image" alt="" class="h-full w-full object-cover" />
+                        <span v-else class="grid h-full w-full place-items-center text-steel-400"><Icon name="image" :size="20" /></span>
+                      </span>
+                      <button class="inline-flex items-center gap-2 rounded-md border border-dashed border-steel-300 px-3 py-2 text-[12.5px] font-500 text-graphite-700 transition-colors hover:border-brand-400 hover:bg-brand-50/40 hover:text-brand-600"><Icon name="upload" :size="15" /> Nahrát</button>
+                    </div>
+                  </div>
                 </div>
               </TabsContent>
 
@@ -176,6 +191,31 @@ function save() {
                     <span class="field-tag">program-focus</span>
                   </label>
                   <TagPicker v-model="form.focus" :options="FOCUS_AREAS" add-label="Přidat zaměření" empty-label="Zatím žádné zaměření." color-label="Barva zaměření" />
+                </div>
+
+                <!-- Rezervace (DOVIS) — dříve v pravém railu -->
+                <div class="rounded-md border border-steel-200 p-4">
+                  <p class="mb-3 flex items-center gap-2 text-[13px] font-600 text-graphite-800"><Icon name="externalLink" :size="15" class="text-steel-400" /> Rezervace (DOVIS)</p>
+                  <div class="space-y-3">
+                    <div>
+                      <label class="mb-1.5 flex items-center justify-between">
+                        <span class="text-[13px] font-600 text-graphite-800">Odkaz na rezervaci</span>
+                        <span class="field-tag">program-reservation</span>
+                      </label>
+                      <div class="relative">
+                        <Icon name="link" :size="15" class="absolute left-3 top-1/2 -translate-y-1/2 text-steel-400" />
+                        <input v-model="form.reservationUrl" type="url" placeholder="https://vyuka.dolnivitkovice.cz/…" class="h-10 w-full rounded-md border border-steel-200 pl-9 pr-3 text-[13px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
+                      </div>
+                    </div>
+                    <div>
+                      <label class="mb-1.5 block text-[13px] font-600 text-graphite-800">Text tlačítka</label>
+                      <input v-model="form.reservationLabel" type="text" placeholder="Rezervace" class="h-9 w-full rounded-md border border-steel-200 px-3 text-[13px] text-graphite-800 focus:border-brand-500 focus:outline-none" />
+                    </div>
+                    <p class="flex items-start gap-1.5 rounded-md bg-steel-50 px-3 py-2 text-[11.5px] leading-relaxed text-steel-500">
+                      <Icon name="integration" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
+                      Odkaz se generuje v systému <span class="font-600 text-graphite-700">DOVIS</span> a vloží se sem. Na webu se u programu zobrazí jako tlačítko „{{ form.reservationLabel || 'Rezervace' }}".
+                    </p>
+                  </div>
                 </div>
               </TabsContent>
 
@@ -212,57 +252,13 @@ function save() {
           <TagPicker v-model="form.tags" :options="PROGRAM_TAGS" add-label="Přidat štítek" empty-label="Zatím žádné štítky." color-label="Barva štítku" />
         </FormSection>
 
-        <!-- Rezervace (DOVIS) -->
-        <FormSection title="Rezervace (DOVIS)" icon="externalLink" tag="program-reservation">
-          <div class="space-y-3">
-            <div>
-              <label class="mb-1.5 block text-[12.5px] font-600 text-graphite-800">Odkaz na rezervaci</label>
-              <div class="relative">
-                <Icon name="link" :size="15" class="absolute left-3 top-1/2 -translate-y-1/2 text-steel-400" />
-                <input v-model="form.reservationUrl" type="url" placeholder="https://vyuka.dolnivitkovice.cz/…" class="h-10 w-full rounded-md border border-steel-200 pl-9 pr-3 text-[13px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
-              </div>
-            </div>
-            <div>
-              <label class="mb-1.5 block text-[12.5px] font-600 text-graphite-800">Text tlačítka</label>
-              <input v-model="form.reservationLabel" type="text" placeholder="Rezervace" class="h-9 w-full rounded-md border border-steel-200 px-3 text-[13px] text-graphite-800 focus:border-brand-500 focus:outline-none" />
-            </div>
-            <a v-if="form.reservationUrl" :href="form.reservationUrl" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 text-[12px] font-600 text-brand-600 hover:text-brand-700">
-              <Icon name="externalLink" :size="13" /> Otevřít odkaz
-            </a>
-            <p class="flex items-start gap-1.5 rounded-md bg-steel-50 px-3 py-2 text-[11.5px] leading-relaxed text-steel-500">
-              <Icon name="integration" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
-              Odkaz se generuje v systému <span class="font-600 text-graphite-700">DOVIS</span> a vloží se sem. Na webu se u programu zobrazí jako tlačítko „{{ form.reservationLabel || 'Rezervace' }}".
-            </p>
-          </div>
-        </FormSection>
-
-        <!-- Obrázek -->
-        <FormSection title="Obrázek programu" icon="image" tag="program-image">
-          <div class="flex items-center gap-4">
-            <span class="h-20 w-28 shrink-0 overflow-hidden rounded-lg bg-steel-100">
-              <img v-if="form.image" :src="form.image" alt="" class="h-full w-full object-cover" />
-              <span v-else class="grid h-full w-full place-items-center text-steel-400"><Icon name="image" :size="20" /></span>
-            </span>
-            <!-- prototyp — nahrání je nefunkční vizuální zástupka -->
-            <button class="inline-flex items-center gap-2 rounded-md border border-dashed border-steel-300 px-3 py-2 text-[12.5px] font-500 text-graphite-700 transition-colors hover:border-brand-400 hover:bg-brand-50/40 hover:text-brand-600"><Icon name="upload" :size="15" /> Nahrát</button>
-          </div>
-        </FormSection>
-
-        <!-- Jazykové mutace -->
-        <FormSection title="Jazykové mutace" icon="globe" tag="ML">
-          <ul class="space-y-1.5">
-            <li v-for="l in LANGS" :key="l.code" class="flex items-center justify-between rounded-md px-2.5 py-2 transition-colors" :class="activeLang === l.code ? 'bg-brand-50' : 'hover:bg-steel-50'">
-              <button class="flex items-center gap-2.5 text-left" @click="activeLang = l.code"><span>{{ l.flag }}</span><span class="text-[13px] font-500 text-graphite-800">{{ l.label }}</span></button>
-              <span class="inline-flex items-center gap-1.5 font-mono text-[10.5px]" :class="langFilled(l.code) ? 'text-forge-600' : 'text-steel-400'"><span class="h-1.5 w-1.5 rounded-full" :class="langFilled(l.code) ? 'bg-forge-500' : 'bg-steel-300'" />{{ langFilled(l.code) ? 'vyplněno' : 'prázdné' }}</span>
-            </li>
-          </ul>
-          <div class="mt-4 border-t border-steel-100 pt-4">
-            <AppButton variant="primary" size="sm" class="w-full" :disabled="translating || !sourceReady" @click="translateAll">
-              <Icon name="sparkles" :size="15" :class="translating && 'animate-pulse'" />
-              {{ translating ? 'Překládám…' : 'Přeložit z CZ přes AI' }}
-            </AppButton>
-          </div>
-        </FormSection>
+        <LangMutationsCard
+          v-model="activeLang"
+          :filled="filledLangs"
+          :source-ready="sourceReady"
+          :translating="translating"
+          @translate="translateAll"
+        />
       </aside>
     </div>
 

@@ -4,8 +4,8 @@ import { useRouter } from 'vue-router'
 import { TabsRoot, TabsList, TabsTrigger, TabsContent } from 'reka-ui'
 import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
-import AppSwitch from '@/components/ui/AppSwitch.vue'
 import FormSection from '@/components/admin/FormSection.vue'
+import LangMutationsCard from '@/components/admin/LangMutationsCard.vue'
 import PublishCard from '@/components/admin/PublishCard.vue'
 import RichTextEditor from '@/components/admin/RichTextEditor.vue'
 import { LANGS, SOURCE_LANG } from '@/data/types'
@@ -39,6 +39,7 @@ const sections = [
 function langFilled(code: LangCode): boolean {
   return form.name[code].trim().length > 0
 }
+const filledLangs = computed(() => LANGS.filter((l) => langFilled(l.code)).map((l) => l.code))
 
 const products = computed(() => (isEdit.value ? productsForCategory(props.id!) : []))
 
@@ -141,6 +142,19 @@ function goProduct(id: string) {
                   </label>
                   <RichTextEditor v-model="form.description[activeLang]" />
                 </div>
+                <div>
+                  <label class="mb-1.5 flex items-center justify-between">
+                    <span class="text-[13px] font-600 text-graphite-800">Obrázek kategorie</span>
+                    <span class="field-tag">category-image</span>
+                  </label>
+                  <div class="flex items-center gap-4">
+                    <span class="h-20 w-28 shrink-0 overflow-hidden rounded-lg bg-steel-100">
+                      <img v-if="form.image" :src="form.image" alt="" class="h-full w-full object-cover" />
+                      <span v-else class="grid h-full w-full place-items-center text-steel-400"><Icon name="image" :size="20" /></span>
+                    </span>
+                    <button class="inline-flex items-center gap-2 rounded-md border border-dashed border-steel-300 px-3 py-2 text-[12.5px] font-500 text-graphite-700 transition-colors hover:border-brand-400 hover:bg-brand-50/40 hover:text-brand-600"><Icon name="upload" :size="15" /> Nahrát</button>
+                  </div>
+                </div>
               </TabsContent>
 
               <!-- Sekce: Produkty v členění (read-only přehled) -->
@@ -195,34 +209,13 @@ function goProduct(id: string) {
       <aside class="space-y-5 xl:sticky xl:top-[76px] xl:self-start">
         <PublishCard :published="form.published" updated-by="Jana Svobodová" />
 
-        <FormSection title="Zveřejnění" icon="eye" tag="category-published">
-          <AppSwitch v-model="form.published" label="Zobrazit členění na webu" hint="Skryté členění se ve výpisu e-shopu nezobrazí." />
-        </FormSection>
-
-        <FormSection title="Obrázek kategorie" icon="image">
-          <div class="flex items-center gap-4">
-            <span class="h-20 w-28 shrink-0 overflow-hidden rounded-lg bg-steel-100">
-              <img v-if="form.image" :src="form.image" alt="" class="h-full w-full object-cover" />
-              <span v-else class="grid h-full w-full place-items-center text-steel-400"><Icon name="image" :size="20" /></span>
-            </span>
-            <button class="inline-flex items-center gap-2 rounded-md border border-dashed border-steel-300 px-3 py-2 text-[12.5px] font-500 text-graphite-700 transition-colors hover:border-brand-400 hover:bg-brand-50/40 hover:text-brand-600"><Icon name="upload" :size="15" /> Nahrát</button>
-          </div>
-        </FormSection>
-
-        <FormSection title="Jazykové mutace" icon="globe" tag="ML">
-          <ul class="space-y-1.5">
-            <li v-for="l in LANGS" :key="l.code" class="flex items-center justify-between rounded-md px-2.5 py-2 transition-colors" :class="activeLang === l.code ? 'bg-brand-50' : 'hover:bg-steel-50'">
-              <button class="flex items-center gap-2.5 text-left" @click="activeLang = l.code"><span>{{ l.flag }}</span><span class="text-[13px] font-500 text-graphite-800">{{ l.label }}</span></button>
-              <span class="inline-flex items-center gap-1.5 font-mono text-[10.5px]" :class="langFilled(l.code) ? 'text-forge-600' : 'text-steel-400'"><span class="h-1.5 w-1.5 rounded-full" :class="langFilled(l.code) ? 'bg-forge-500' : 'bg-steel-300'" />{{ langFilled(l.code) ? 'vyplněno' : 'prázdné' }}</span>
-            </li>
-          </ul>
-          <div class="mt-4 border-t border-steel-100 pt-4">
-            <AppButton variant="primary" size="sm" class="w-full" :disabled="translating || !sourceReady" @click="translateAll">
-              <Icon name="sparkles" :size="15" :class="translating && 'animate-pulse'" />
-              {{ translating ? 'Překládám…' : 'Přeložit z CZ přes AI' }}
-            </AppButton>
-          </div>
-        </FormSection>
+        <LangMutationsCard
+          v-model="activeLang"
+          :filled="filledLangs"
+          :source-ready="sourceReady"
+          :translating="translating"
+          @translate="translateAll"
+        />
       </aside>
     </div>
 

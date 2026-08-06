@@ -11,6 +11,7 @@ import PublishCard from '@/components/admin/PublishCard.vue'
 import RichTextEditor from '@/components/admin/RichTextEditor.vue'
 import GalleryManager from '@/components/admin/GalleryManager.vue'
 import TagPicker from '@/components/admin/TagPicker.vue'
+import LangMutationsCard from '@/components/admin/LangMutationsCard.vue'
 import { LANGS, SOURCE_LANG } from '@/data/types'
 import type { LangCode, ML } from '@/data/types'
 import {
@@ -62,6 +63,7 @@ const sections = [
 function langFilled(code: LangCode): boolean {
   return form.name[code].trim().length > 0
 }
+const filledLangs = computed(() => LANGS.filter((l) => langFilled(l.code)).map((l) => l.code))
 
 /** Živý stav zveřejnění (odznak). */
 const state = computed(() => galleryState(form))
@@ -205,6 +207,29 @@ function backToSection() {
                     </label>
                     <input v-model="form.date" type="date" class="h-10 rounded-md border border-steel-200 px-3 text-[13px] text-graphite-800 focus:border-brand-500 focus:outline-none" />
                   </div>
+
+                  <!-- Zařazení a vazby — dříve v pravém railu -->
+                  <div class="rounded-md border border-steel-200 p-4">
+                    <p class="mb-3 flex items-center gap-2 text-[13px] font-600 text-graphite-800"><Icon name="layers" :size="15" class="text-steel-400" /> Zařazení a vazby</p>
+                    <div class="space-y-4">
+                      <div>
+                        <label class="mb-1.5 flex items-center justify-between">
+                          <span class="text-[13px] font-600 text-graphite-800">Zařazení do sekce</span>
+                          <span class="field-tag">gallery-section_id</span>
+                        </label>
+                        <AppSelect v-model="form.sectionId" :options="sectionSelectOptions" placeholder="Vyberte sekci…" />
+                        <p class="mt-1 text-[11.5px] text-steel-500">Sekce určuje, kde se galerie na webu zobrazí.</p>
+                      </div>
+                      <div>
+                        <label class="mb-1.5 flex items-center justify-between">
+                          <span class="text-[13px] font-600 text-graphite-800">Objekt v areálu</span>
+                          <span class="field-tag">gallery-area_id</span>
+                        </label>
+                        <AppSelect v-model="areaModel" :options="areaOptions" />
+                        <p class="mt-1 text-[11.5px] text-steel-500">Na webu se galerie zobrazí u daného objektu (např. Bolt Tower). Nepovinné.</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </TabsContent>
 
@@ -303,67 +328,18 @@ function backToSection() {
         <!-- Zveřejnění -->
         <PublishCard :published="form.published" updated-by="Petr Dvořák" />
 
-        <!-- Zařazení do sekce -->
-        <FormSection title="Zařazení do sekce" icon="layers" tag="gallery-section_id">
-          <AppSelect v-model="form.sectionId" :options="sectionSelectOptions" placeholder="Vyberte sekci…" />
-          <p class="mt-2 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
-            <Icon name="layers" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
-            Sekce určuje, kde se galerie na webu zobrazí (např. Fotografie atraktivit).
-          </p>
-        </FormSection>
-
         <!-- Štítky -->
         <FormSection title="Štítky" icon="filter" tag="gallery-tags">
           <TagPicker v-model="form.tags" :options="PREDEFINED_TAGS" />
         </FormSection>
 
-        <!-- Objekt v areálu (kanonická vazba — vlastní ji Galerie) -->
-        <FormSection title="Objekt v areálu" icon="map" tag="gallery-area_id">
-          <AppSelect v-model="areaModel" :options="areaOptions" />
-          <p class="mt-2 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
-            <Icon name="map" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
-            Určuje, ke kterému objektu galerie patří — na webu se zobrazí u daného objektu (např. Bolt Tower). Nepovinné.
-          </p>
-        </FormSection>
-
-        <!-- Jazykové mutace -->
-        <FormSection title="Jazykové mutace" icon="globe" tag="ML">
-          <ul class="space-y-1.5">
-            <li v-for="l in LANGS" :key="l.code" class="flex items-center justify-between rounded-md px-2.5 py-2 transition-colors" :class="activeLang === l.code ? 'bg-brand-50' : 'hover:bg-steel-50'">
-              <button class="flex items-center gap-2.5 text-left" @click="activeLang = l.code"><span>{{ l.flag }}</span><span class="text-[13px] font-500 text-graphite-800">{{ l.label }}</span></button>
-              <span class="inline-flex items-center gap-1.5 font-mono text-[10.5px]" :class="langFilled(l.code) ? 'text-forge-600' : 'text-steel-400'"><span class="h-1.5 w-1.5 rounded-full" :class="langFilled(l.code) ? 'bg-forge-500' : 'bg-steel-300'" />{{ langFilled(l.code) ? 'vyplněno' : 'prázdné' }}</span>
-            </li>
-          </ul>
-          <div class="mt-4 border-t border-steel-100 pt-4">
-            <AppButton variant="primary" size="sm" class="w-full" :disabled="translating || !sourceReady" @click="translateAll">
-              <Icon name="sparkles" :size="15" :class="translating && 'animate-pulse'" />
-              {{ translating ? 'Překládám…' : 'Přeložit z CZ přes AI' }}
-            </AppButton>
-            <p class="mt-2 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
-              <Icon name="sparkles" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
-              <span v-if="sourceReady">Vyplní mutace EN, DE, PL ze zdrojové české verze.</span>
-              <span v-else>Nejdřív vyplňte českou verzi — z ní se překládá.</span>
-            </p>
-          </div>
-        </FormSection>
-
-        <!-- Obsah -->
-        <FormSection title="Obsah" icon="reference">
-          <dl class="space-y-2.5 text-[13px]">
-            <div class="flex items-center justify-between">
-              <dt class="flex items-center gap-2 text-steel-500"><Icon name="image" :size="15" /> Fotografie</dt>
-              <dd class="font-mono font-600 text-graphite-800">{{ form.photos.length }}</dd>
-            </div>
-            <div class="flex items-center justify-between">
-              <dt class="flex items-center gap-2 text-steel-500"><Icon name="layers" :size="15" /> Sekce</dt>
-              <dd class="font-mono font-600" :class="form.sectionId ? 'text-graphite-800' : 'text-steel-400'">{{ findSection(form.sectionId)?.name.cs ?? '—' }}</dd>
-            </div>
-            <div class="flex items-center justify-between">
-              <dt class="flex items-center gap-2 text-steel-500"><Icon name="map" :size="15" /> Objekt</dt>
-              <dd class="font-mono font-600" :class="areaLabel ? 'text-graphite-800' : 'text-steel-400'">{{ areaLabel || '—' }}</dd>
-            </div>
-          </dl>
-        </FormSection>
+        <LangMutationsCard
+          v-model="activeLang"
+          :filled="filledLangs"
+          :source-ready="sourceReady"
+          :translating="translating"
+          @translate="translateAll"
+        />
       </aside>
     </div>
 

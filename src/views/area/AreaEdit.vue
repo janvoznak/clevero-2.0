@@ -13,6 +13,7 @@ import OpeningHoursEditor from '@/components/admin/OpeningHoursEditor.vue'
 import TagPicker from '@/components/admin/TagPicker.vue'
 import RelationPicker, { type RelItem } from '@/components/admin/RelationPicker.vue'
 import GalleryManager from '@/components/admin/GalleryManager.vue'
+import LangMutationsCard from '@/components/admin/LangMutationsCard.vue'
 import { LANGS, SOURCE_LANG } from '@/data/types'
 import type { LangCode, ML } from '@/data/types'
 import {
@@ -39,12 +40,14 @@ const activeLang = ref<LangCode>('cs')
 function langFilled(code: LangCode): boolean {
   return form.title[code].trim().length > 0
 }
+const filledLangs = computed(() => LANGS.filter((l) => langFilled(l.code)).map((l) => l.code))
 
 /* ---------- Sekce (podtržené záložky) ---------- */
 const activeSection = ref('basic')
 const sections = [
   { value: 'basic', label: 'Základní informace', icon: 'page' },
   { value: 'content', label: 'Popis a čísla', icon: 'text' },
+  { value: 'tours', label: 'Prohlídky', icon: 'ticket' },
   { value: 'gallery', label: 'Galerie', icon: 'gallery' },
   { value: 'hours', label: 'Otevírací doba', icon: 'clock' },
 ]
@@ -268,6 +271,26 @@ function save() {
                 </div>
               </TabsContent>
 
+              <!-- Sekce: Prohlídky (nabízené prohlídky u objektu) -->
+              <TabsContent value="tours" class="outline-none">
+                <p class="mb-4 flex items-center gap-2 text-[12.5px] text-steel-500">
+                  Prohlídky nabízené u tohoto objektu — na webu si z nich návštěvník vybere.
+                  <span class="field-tag rounded bg-steel-100 px-1.5 py-0.5">area-tours</span>
+                </p>
+                <RelationPicker
+                  v-model="form.tourIds"
+                  :items="tourItems"
+                  add-label="Přidat prohlídku"
+                  empty-label="Zatím žádné prohlídky."
+                  search-placeholder="Hledat prohlídku…"
+                  icon="ticket"
+                />
+                <p class="mt-3 flex items-start gap-1.5 rounded-md bg-steel-50 px-3 py-2 text-[11.5px] leading-relaxed text-steel-500">
+                  <Icon name="ticket" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
+                  <span><strong class="font-600 text-graphite-700">Prodej vstupenek</strong> se řídí přes napojení jednotlivých prohlídek na Colosseum (ID se zadává u prohlídky, ne zde).</span>
+                </p>
+              </TabsContent>
+
               <!-- Sekce: Galerie -->
               <TabsContent value="gallery" class="space-y-6 outline-none">
                 <!-- Základní fotky objektu (inline, statické) -->
@@ -335,48 +358,13 @@ function save() {
           <TagPicker v-model="form.tags" :options="PREDEFINED_AREA_TAGS" />
         </FormSection>
 
-        <!-- Nabízené prohlídky (vazba na modul Prohlídky) -->
-        <FormSection title="Nabízené prohlídky" icon="ticket" tag="area-tours">
-          <RelationPicker
-            v-model="form.tourIds"
-            :items="tourItems"
-            add-label="Přidat prohlídku"
-            empty-label="Zatím žádné prohlídky."
-            search-placeholder="Hledat prohlídku…"
-            icon="ticket"
-          />
-          <p class="mt-2 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
-            <Icon name="ticket" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
-            Na webu si u objektu návštěvník vybere z těchto prohlídek. <strong class="font-600 text-graphite-700">Prodej vstupenek</strong> se řídí přes napojení jednotlivých prohlídek na Colosseum (ID se zadává u prohlídky, ne zde).
-          </p>
-        </FormSection>
-
-        <!-- Jazykové mutace + AI překlad -->
-        <FormSection title="Jazykové mutace" icon="globe" tag="ML">
-          <ul class="space-y-1.5">
-            <li v-for="l in LANGS" :key="l.code" class="flex items-center justify-between rounded-md px-2.5 py-2 transition-colors" :class="activeLang === l.code ? 'bg-brand-50' : 'hover:bg-steel-50'">
-              <button class="flex items-center gap-2.5 text-left" @click="activeLang = l.code">
-                <span>{{ l.flag }}</span>
-                <span class="text-[13px] font-500 text-graphite-800">{{ l.label }}</span>
-              </button>
-              <span class="inline-flex items-center gap-1.5 font-mono text-[10.5px]" :class="langFilled(l.code) ? 'text-forge-600' : 'text-steel-400'">
-                <span class="h-1.5 w-1.5 rounded-full" :class="langFilled(l.code) ? 'bg-forge-500' : 'bg-steel-300'" />
-                {{ langFilled(l.code) ? 'vyplněno' : 'prázdné' }}
-              </span>
-            </li>
-          </ul>
-          <div class="mt-4 border-t border-steel-100 pt-4">
-            <AppButton variant="primary" size="sm" class="w-full" :disabled="translating || !sourceReady" @click="translateAll">
-              <Icon name="sparkles" :size="15" :class="translating && 'animate-pulse'" />
-              {{ translating ? 'Překládám…' : 'Přeložit z CZ přes AI' }}
-            </AppButton>
-            <p class="mt-2 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
-              <Icon name="sparkles" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
-              <span v-if="sourceReady">Vyplní mutace EN, DE, PL (název, perex) ze zdrojové české verze.</span>
-              <span v-else>Nejdřív vyplňte český název — z něj se překládá.</span>
-            </p>
-          </div>
-        </FormSection>
+        <LangMutationsCard
+          v-model="activeLang"
+          :filled="filledLangs"
+          :source-ready="sourceReady"
+          :translating="translating"
+          @translate="translateAll"
+        />
       </aside>
     </div>
 
