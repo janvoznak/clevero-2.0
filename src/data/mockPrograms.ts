@@ -85,6 +85,8 @@ export interface ProgramParam {
 
 export interface Program {
   id: string
+  /** Autor / správce programu (kdo vytvořil/upravil). */
+  author: string
   title: ML
   /** Krátký perex do výpisu. */
   perex: ML
@@ -216,8 +218,12 @@ const RAW: RawProgram[] = [
   },
 ]
 
-export const MOCK_PROGRAMS: Program[] = RAW.map((r) => ({
+/** Autoři programů (prototyp — přiřazení deterministicky podle pořadí). */
+const PROGRAM_AUTHORS = ['Jana Svobodová', 'Petr Dvořák', 'Martin Kučera']
+
+export const MOCK_PROGRAMS: Program[] = RAW.map((r, i) => ({
   id: r.id,
+  author: PROGRAM_AUTHORS[i % PROGRAM_AUTHORS.length],
   title: ml(r.title),
   perex: ml(r.perex),
   description: ml(r.description),
@@ -235,6 +241,7 @@ export const MOCK_PROGRAMS: Program[] = RAW.map((r) => ({
 export function blankProgram(): Program {
   return {
     id: 'nový',
+    author: 'Jan Voznak',
     title: emptyML(),
     perex: emptyML(),
     description: emptyML(),
