@@ -12,7 +12,6 @@ import {
 import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
-import AppSwitch from '@/components/ui/AppSwitch.vue'
 import TagChip from '@/components/ui/TagChip.vue'
 import RowActionsMenu from '@/components/admin/RowActionsMenu.vue'
 import {
@@ -22,7 +21,7 @@ import {
   OPEN_STATE_META,
   type AreaObject,
 } from '@/data/mockVenues'
-import { galleriesForVenue } from '@/data/mockGalleries'
+import { LANGS } from '@/data/types'
 
 const router = useRouter()
 const rows = ref<AreaObject[]>([...MOCK_VENUES])
@@ -54,10 +53,6 @@ const visible = computed(() => {
     return mQ && mT && mS
   })
 })
-
-function setPublished(v: AreaObject, val: boolean) {
-  v.published = val
-}
 
 /* ---------- Navigace / řádkové akce ---------- */
 function goNew() {
@@ -143,8 +138,7 @@ function confirmDelete() {
             <th class="px-4 py-3 font-600">Objekt</th>
             <th class="px-2 py-3 font-600">Štítky</th>
             <th class="w-28 px-2 py-3 font-600">Stav</th>
-            <th class="w-24 px-2 py-3 font-600">Galerie</th>
-            <th class="w-24 px-2 py-3 font-600">Zveřejněno</th>
+            <th class="w-40 px-2 py-3 font-600">Jazykové mutace</th>
             <th class="w-16 px-3 py-3 text-right font-600">Akce</th>
           </tr>
         </thead>
@@ -185,15 +179,19 @@ function confirmDelete() {
                 {{ OPEN_STATE_META[v.openState].label }}
               </span>
             </td>
-            <!-- Galerie -->
+            <!-- Jazykové mutace -->
             <td class="px-2 py-3 align-middle">
-              <span class="inline-flex items-center gap-1 text-[12px] text-steel-600" :title="`${galleriesForVenue(v.id).length} galerií`">
-                <Icon name="gallery" :size="13" class="text-steel-400" /> {{ galleriesForVenue(v.id).length }}
-              </span>
-            </td>
-            <!-- Zveřejněno -->
-            <td class="px-2 py-3 align-middle">
-              <AppSwitch :model-value="v.published" :aria-label="`Zveřejnit ${v.title.cs}`" @update:model-value="(val) => setPublished(v, val)" />
+              <div class="flex flex-wrap items-center gap-1">
+                <span
+                  v-for="l in LANGS"
+                  :key="l.code"
+                  :title="v.title[l.code].trim() ? `${l.label} — vyplněno` : `${l.label} — chybí překlad`"
+                  class="rounded px-1.5 py-0.5 text-[10.5px] font-700 uppercase tabular-nums"
+                  :class="v.title[l.code].trim() ? 'bg-forge-500/10 text-forge-600' : 'bg-steel-100 text-steel-400'"
+                >
+                  {{ l.code }}
+                </span>
+              </div>
             </td>
             <!-- Akce -->
             <td class="px-3 py-3 align-middle">

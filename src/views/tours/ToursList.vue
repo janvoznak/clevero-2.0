@@ -4,18 +4,15 @@ import { useRouter } from 'vue-router'
 import { DialogRoot, DialogPortal, DialogOverlay, DialogContent, DialogTitle, DialogDescription } from 'reka-ui'
 import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
-import AppSwitch from '@/components/ui/AppSwitch.vue'
 import RowActionsMenu from '@/components/admin/RowActionsMenu.vue'
 import { MOCK_CATEGORIES, toursForCategory, type TourCategory } from '@/data/mockTours'
+import { LANGS } from '@/data/types'
 
 const router = useRouter()
 const rows = ref<TourCategory[]>([...MOCK_CATEGORIES])
 
 function plain(html: string): string {
   return html.replace(/<[^>]*>/g, '').trim()
-}
-function setPublished(c: TourCategory, v: boolean) {
-  c.published = v
 }
 function goNew() {
   router.push({ name: 'category-new' })
@@ -66,7 +63,7 @@ function confirmDelete() {
             <th class="px-4 py-3 font-600">Kategorie</th>
             <th class="px-2 py-3 font-600">Popis</th>
             <th class="w-28 px-2 py-3 font-600">Prohlídky</th>
-            <th class="w-24 px-2 py-3 font-600">Zveřejněno</th>
+            <th class="w-40 px-2 py-3 font-600">Jazykové mutace</th>
             <th class="w-16 px-3 py-3 text-right font-600">Akce</th>
           </tr>
         </thead>
@@ -93,7 +90,17 @@ function confirmDelete() {
               </span>
             </td>
             <td class="px-2 py-3 align-middle">
-              <AppSwitch :model-value="c.published" :aria-label="`Zveřejnit ${c.name.cs}`" @update:model-value="(v) => setPublished(c, v)" />
+              <div class="flex flex-wrap items-center gap-1">
+                <span
+                  v-for="l in LANGS"
+                  :key="l.code"
+                  :title="c.name[l.code].trim() ? `${l.label} — vyplněno` : `${l.label} — chybí překlad`"
+                  class="rounded px-1.5 py-0.5 text-[10.5px] font-700 uppercase tabular-nums"
+                  :class="c.name[l.code].trim() ? 'bg-forge-500/10 text-forge-600' : 'bg-steel-100 text-steel-400'"
+                >
+                  {{ l.code }}
+                </span>
+              </div>
             </td>
             <td class="px-3 py-3 align-middle">
               <div class="flex justify-end">

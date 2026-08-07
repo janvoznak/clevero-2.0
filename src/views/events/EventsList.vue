@@ -26,6 +26,7 @@ import {
   type DovEvent,
 } from '@/data/mockEvents'
 import { MOCK_VENUES, areaPlace } from '@/data/mockVenues'
+import { LANGS } from '@/data/types'
 
 const router = useRouter()
 
@@ -164,7 +165,7 @@ function goNew() {
                 <th class="px-2 py-3 font-600">Místo</th>
                 <th class="px-2 py-3 font-600">Termín</th>
                 <th class="px-2 py-3 font-600">Typ</th>
-                <th class="px-2 py-3 font-600">Stav</th>
+                <th class="w-40 px-2 py-3 font-600">Jazykové mutace</th>
                 <th class="w-28 px-4 py-3 text-right font-600">Akce</th>
               </tr>
             </thead>
@@ -201,13 +202,17 @@ function goNew() {
                   <span class="text-[13px] text-graphite-700">{{ e.type }}</span>
                 </td>
                 <td class="px-2 py-3 align-middle">
-                  <span
-                    class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-600"
-                    :class="[EVENT_STATE_META[eventStatus(e)].bg, EVENT_STATE_META[eventStatus(e)].text]"
-                  >
-                    <span class="h-1.5 w-1.5 rounded-full" :class="EVENT_STATE_META[eventStatus(e)].dot" />
-                    {{ EVENT_STATE_META[eventStatus(e)].label }}
-                  </span>
+                  <div class="flex flex-wrap items-center gap-1">
+                    <span
+                      v-for="l in LANGS"
+                      :key="l.code"
+                      :title="e.title[l.code].trim() ? `${l.label} — vyplněno` : `${l.label} — chybí překlad`"
+                      class="rounded px-1.5 py-0.5 text-[10.5px] font-700 uppercase tabular-nums"
+                      :class="e.title[l.code].trim() ? 'bg-forge-500/10 text-forge-600' : 'bg-steel-100 text-steel-400'"
+                    >
+                      {{ l.code }}
+                    </span>
+                  </div>
                 </td>
                 <td class="px-4 py-3 align-middle">
                   <TooltipProvider :delay-duration="250">
