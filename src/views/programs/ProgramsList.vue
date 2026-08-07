@@ -16,8 +16,14 @@ import {
   levelColor, focusColor, tagColor,
   type Program,
 } from '@/data/mockPrograms'
+import { LANGS } from '@/data/types'
 
 const router = useRouter()
+
+/** Iniciály autora pro avatar (stejně jako v Aktualitách). */
+function initials(name: string): string {
+  return name.split(/\s+/).filter(Boolean).map((w) => w[0] ?? '').slice(0, 2).join('').toUpperCase()
+}
 
 /* ---------- Filtry ---------- */
 const filterLevel = ref('all')
@@ -86,10 +92,6 @@ function toggleOne(id: string, v: boolean | 'indeterminate') {
   selected.value = next
 }
 
-function fmt(d: string | null): string {
-  if (!d) return '—'
-  return new Date(d).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'numeric', year: 'numeric' })
-}
 function goNew() { router.push({ name: 'program-new' }) }
 function goEdit(id: string) { router.push({ name: 'program-edit', params: { id } }) }
 
@@ -190,9 +192,9 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
             </th>
             <th class="px-2 py-3 font-600">Program</th>
             <th class="w-52 px-2 py-3 font-600">Stupeň školy</th>
-            <th class="w-36 px-2 py-3 font-600">Ročníky</th>
             <th class="w-52 px-2 py-3 font-600">Zaměření</th>
-            <th class="w-28 px-2 py-3 font-600">Datum</th>
+            <th class="w-48 px-2 py-3 font-600">Autor</th>
+            <th class="w-40 px-2 py-3 font-600">Jazykové mutace</th>
             <th class="w-16 px-3 py-3 text-right font-600">Akce</th>
           </tr>
         </thead>
@@ -224,19 +226,29 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
               <span v-else class="text-[11px] text-steel-400">—</span>
             </td>
             <td class="px-2 py-3 align-middle">
-              <div v-if="p.grades.length" class="flex max-w-[150px] flex-wrap items-center gap-1">
-                <span v-for="g in p.grades" :key="g" class="rounded bg-steel-100 px-1.5 py-0.5 font-mono text-[10.5px] font-600 text-steel-600">{{ g }}</span>
-              </div>
-              <span v-else class="text-[11px] text-steel-400">—</span>
-            </td>
-            <td class="px-2 py-3 align-middle">
               <div v-if="p.focus.length" class="flex max-w-[210px] flex-wrap items-center gap-1">
                 <TagChip v-for="f in p.focus" :key="f" :label="f" :color="focusColor(f)" />
               </div>
               <span v-else class="text-[11px] text-steel-400">—</span>
             </td>
             <td class="px-2 py-3 align-middle">
-              <span class="font-mono text-[12px] text-steel-500 tabular-nums">{{ fmt(p.date) }}</span>
+              <div class="flex items-center gap-2">
+                <span class="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-steel-100 text-[10.5px] font-700 text-steel-600">{{ initials(p.author) }}</span>
+                <span class="text-[13px] text-graphite-700">{{ p.author }}</span>
+              </div>
+            </td>
+            <td class="px-2 py-3 align-middle">
+              <div class="flex flex-wrap items-center gap-1">
+                <span
+                  v-for="l in LANGS"
+                  :key="l.code"
+                  :title="p.title[l.code].trim() ? `${l.label} — vyplněno` : `${l.label} — chybí překlad`"
+                  class="rounded px-1.5 py-0.5 text-[10.5px] font-700 uppercase tabular-nums"
+                  :class="p.title[l.code].trim() ? 'bg-forge-500/10 text-forge-600' : 'bg-steel-100 text-steel-400'"
+                >
+                  {{ l.code }}
+                </span>
+              </div>
             </td>
             <td class="px-3 py-3 align-middle">
               <div class="flex justify-end"><RowActionsMenu :actions="rowActions" label="Akce s programem" @select="(key) => onRowAction(key, p)" /></div>
