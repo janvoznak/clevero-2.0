@@ -1,5 +1,5 @@
 import { imageFor, TAG_PALETTE } from './mockNews'
-import type { ML, Tag } from './types'
+import type { ML, Tag, GalleryImage } from './types'
 
 /** „Dnešek" prototypu — kvůli stavům a zvýraznění v kalendáři. */
 export const EVENTS_NOW = new Date('2026-07-28T12:00:00')
@@ -84,6 +84,8 @@ export interface DovEvent {
   tourIds: string[]
   /** Připojené fotogalerie (ID z modulu Galerie) — např. „fotky z minulého ročníku". */
   galleryIds: string[]
+  /** Fotky nahrané přímo k akci (mimo připojené galerie). */
+  gallery?: GalleryImage[]
   published: boolean
 }
 

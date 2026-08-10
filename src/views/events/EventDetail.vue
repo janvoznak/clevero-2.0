@@ -4,15 +4,18 @@ import { useRouter } from 'vue-router'
 import { TabsRoot, TabsList, TabsTrigger, TabsContent } from 'reka-ui'
 import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import CardActionsMenu from '@/components/admin/CardActionsMenu.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
-import AppSwitch from '@/components/ui/AppSwitch.vue'
 import TagChip from '@/components/ui/TagChip.vue'
 import TagPicker from '@/components/admin/TagPicker.vue'
 import FormSection from '@/components/admin/FormSection.vue'
 import PublishCard from '@/components/admin/PublishCard.vue'
-import LangMutationsCard from '@/components/admin/LangMutationsCard.vue'
+import LangBar from '@/components/admin/LangBar.vue'
+import MlFieldHeader from '@/components/admin/MlFieldHeader.vue'
+import { useMlTranslate } from '@/utils/useMlTranslate'
 import AiPanel from '@/components/admin/AiPanel.vue'
 import RelationPicker from '@/components/admin/RelationPicker.vue'
+import GalleryField from '@/components/admin/GalleryField.vue'
 import RichTextEditor from '@/components/admin/RichTextEditor.vue'
 import { LANGS, SOURCE_LANG } from '@/data/types'
 import type { LangCode, ML } from '@/data/types'
@@ -21,17 +24,13 @@ import {
   EVENT_TYPES,
   PREDEFINED_EVENT_TAGS,
   TICKET_MODE_OPTIONS,
-  eventStatus,
-  EVENT_STATE_META,
   aiImportFromUrl,
   type DovEvent,
 } from '@/data/mockEvents'
 import { PLACE_OPTIONS, DEFAULT_PLACE_ID, areaPlace } from '@/data/mockVenues'
 import { tourOptionsList } from '@/data/mockTours'
-import { galleryOptionsList } from '@/data/mockGalleries'
 
 const tourItems = tourOptionsList()
-const galleryItems = galleryOptionsList()
 
 const props = defineProps<{ id?: string }>()
 const router = useRouter()
@@ -43,7 +42,11 @@ const empty = (): ML => ({ cs: '', en: '', de: '', pl: '' })
 
 function clone(): DovEvent {
   const s = source.value
-  if (s) return JSON.parse(JSON.stringify(s))
+  if (s) {
+    const c = JSON.parse(JSON.stringify(s)) as DovEvent
+    c.gallery = c.gallery ?? []
+    return c
+  }
   return {
     id: 'nová',
     title: empty(),
@@ -66,6 +69,7 @@ function clone(): DovEvent {
     areaId: DEFAULT_PLACE_ID,
     tourIds: [],
     galleryIds: [],
+    gallery: [],
     published: false,
   }
 }
@@ -82,7 +86,6 @@ const typeOptions = EVENT_TYPES.map((t) => ({ value: t, label: t }))
     se odvozuje z objektu). Všechna místa mají neprázdné ID. */
 const placeOptions = PLACE_OPTIONS
 const place = computed(() => areaPlace(form.areaId))
-const status = computed(() => (form.from && form.to ? eventStatus(form) : null))
 
 /* Proklik / založení objektu v Areálu z výběru místa konání (nový panel). */
 function openPlace() {
@@ -149,24 +152,9 @@ function aiImport() {
   }, 1900)
 }
 
-/* ---------- AI překlad (prototyp) — CZ → EN/DE/PL napříč ML poli. ---------- */
-const targetLangs = LANGS.filter((l) => l.code !== SOURCE_LANG)
-const translating = ref(false)
-const sourceReady = computed(() => form.title[SOURCE_LANG].trim().length > 0)
+/* ---------- AI překlad mutací (prototyp) — sdílené řešení ---------- */
 const mlFields: (keyof DovEvent)[] = ['title', 'subtitle', 'summary', 'description']
-function translateAll() {
-  if (translating.value || !sourceReady.value) return
-  translating.value = true
-  window.setTimeout(() => {
-    for (const f of mlFields) {
-      const val = form[f] as ML
-      const src = val[SOURCE_LANG]
-      for (const t of targetLangs) if (src) val[t.code] = src
-    }
-    translating.value = false
-    fireToast(`Přeloženo z CZ do ${targetLangs.map((l) => l.code.toUpperCase()).join(', ')}`)
-  }, 1500)
-}
+const { translating, translateLang, translateField } = useMlTranslate(form, mlFields)
 
 const saved = ref(false)
 function save() {
@@ -196,22 +184,22 @@ function save() {
           </h1>
         </div>
 
-        <!-- Jazykové mutace -->
-        <TabsRoot :model-value="activeLang" class="hidden lg:block" @update:model-value="(v) => (activeLang = v as LangCode)">
-          <TabsList class="inline-flex items-center gap-1 rounded-lg border border-steel-200 bg-steel-50 p-1" aria-label="Jazyková mutace">
-            <TabsTrigger
-              v-for="l in LANGS"
-              :key="l.code"
-              :value="l.code"
-              class="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12.5px] font-600 text-steel-500 outline-none transition-colors hover:text-graphite-800 data-[state=active]:bg-white data-[state=active]:text-graphite-900 data-[state=active]:shadow-sm"
-            >
-              <span>{{ l.flag }}</span>{{ l.code.toUpperCase() }}
-              <span class="h-1.5 w-1.5 rounded-full" :class="langFilled(l.code) ? 'bg-forge-500' : 'bg-steel-300'" />
-            </TabsTrigger>
-          </TabsList>
-        </TabsRoot>
+        <!-- Jazykové mutace (jediné místo, ✨ = AI překlad mutace) -->
+        <LangBar
+          v-model="activeLang"
+          :filled="filledLangs"
+          :translating="translating"
+          class="hidden lg:block"
+          @translate="translateLang"
+        />
 
         <div class="h-6 w-px bg-steel-200" />
+        <CardActionsMenu
+          v-if="isEdit"
+          :name="form.title.cs"
+          entity="akci"
+          @delete="router.push({ name: 'events-list' })"
+        />
         <AppButton variant="secondary" @click="router.push({ name: 'events-list' })">Zrušit</AppButton>
         <AppButton variant="primary" @click="save">
           <Icon :name="saved ? 'check' : 'save'" :size="16" />
@@ -266,10 +254,7 @@ function save() {
               <!-- Sekce: Obsah -->
               <TabsContent value="content" class="space-y-4 outline-none">
                 <div>
-                  <label class="mb-1.5 flex items-center justify-between">
-                    <span class="text-[13px] font-600 text-graphite-800">Název akce <span class="text-brand-500">*</span></span>
-                    <span class="field-tag">event-title · {{ activeLang.toUpperCase() }}</span>
-                  </label>
+                  <MlFieldHeader label="Název akce" :lang="activeLang" tag="event-title" required @translate="translateField('title')" />
                   <input
                     v-model="form.title[activeLang]"
                     type="text"
@@ -279,10 +264,7 @@ function save() {
                 </div>
 
                 <div>
-                  <label class="mb-1.5 flex items-center justify-between">
-                    <span class="text-[13px] font-600 text-graphite-800">Podnadpis</span>
-                    <span class="field-tag">event-subtitle · {{ activeLang.toUpperCase() }}</span>
-                  </label>
+                  <MlFieldHeader label="Podnadpis" :lang="activeLang" tag="event-subtitle" @translate="translateField('subtitle')" />
                   <input
                     v-model="form.subtitle[activeLang]"
                     type="text"
@@ -292,10 +274,7 @@ function save() {
                 </div>
 
                 <div>
-                  <label class="mb-1.5 flex items-center justify-between">
-                    <span class="text-[13px] font-600 text-graphite-800">Perex (krátké shrnutí)</span>
-                    <span class="field-tag">event-summary · {{ activeLang.toUpperCase() }}</span>
-                  </label>
+                  <MlFieldHeader label="Perex (krátké shrnutí)" :lang="activeLang" tag="event-summary" @translate="translateField('summary')" />
                   <textarea
                     v-model="form.summary[activeLang]"
                     rows="2"
@@ -305,10 +284,7 @@ function save() {
                 </div>
 
                 <div>
-                  <label class="mb-1.5 flex items-center justify-between">
-                    <span class="text-[13px] font-600 text-graphite-800">Popis akce</span>
-                    <span class="field-tag">event-description · {{ activeLang.toUpperCase() }}</span>
-                  </label>
+                  <MlFieldHeader label="Popis akce" :lang="activeLang" tag="event-description" @translate="translateField('description')" />
                   <RichTextEditor v-model="form.description[activeLang]" />
                 </div>
               </TabsContent>
@@ -374,24 +350,6 @@ function save() {
                   Stejné OD i DO = jednodenní akce. Rozdílné datumy = vícedenní / dlouhodobá akce v kalendáři.
                 </p>
 
-                <!-- Zobrazení na webu (dříve v pravém railu) -->
-                <div class="rounded-md border border-steel-200 p-4">
-                  <p class="mb-3 flex items-center gap-2 text-[13px] font-600 text-graphite-800"><Icon name="eye" :size="15" class="text-steel-400" /> Zobrazení na webu</p>
-                  <div class="space-y-3">
-                    <div class="flex items-center justify-between rounded-md bg-steel-50 px-3 py-2.5">
-                      <span class="text-[12.5px] font-500 text-steel-600">Stav akce</span>
-                      <span v-if="status" class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-600" :class="[EVENT_STATE_META[status].bg, EVENT_STATE_META[status].text]">
-                        <span class="h-1.5 w-1.5 rounded-full" :class="EVENT_STATE_META[status].dot" />
-                        {{ EVENT_STATE_META[status].label }}
-                      </span>
-                      <span v-else class="text-[12px] text-steel-400">doplňte termín</span>
-                    </div>
-                    <div class="flex items-center justify-between rounded-md border border-steel-200 px-3 py-2.5">
-                      <AppSwitch v-model="form.published" label="Zveřejnit na webu" aria-label="Zveřejnit na webu" />
-                      <span class="field-tag">event-published</span>
-                    </div>
-                  </div>
-                </div>
               </TabsContent>
 
               <!-- Sekce: Vstupenky a detaily -->
@@ -505,26 +463,13 @@ function save() {
                 </div>
               </TabsContent>
 
-              <!-- Sekce: Galerie (odkaz na alba z modulu Galerie) -->
+              <!-- Sekce: Galerie (připojené galerie + přímo nahrané fotky) -->
               <TabsContent value="gallery" class="outline-none">
-                <div class="mb-1.5 flex items-center justify-between">
-                  <span class="text-[13px] font-600 text-graphite-800">Připojené fotogalerie</span>
-                  <span class="field-tag">event-gallery_ids</span>
-                </div>
-                <p class="mb-3 flex items-start gap-1.5 text-[12px] leading-relaxed text-steel-500">
-                  <Icon name="gallery" :size="13" class="mt-0.5 shrink-0 text-steel-400" />
-                  Vyber existující galerie z modulu <span class="font-600 text-graphite-700">Galerie</span> (např. „fotky z minulého ročníku"). Fotky se nahrávají tam — tady se jen připojí a zobrazí v detailu akce na webu.
-                </p>
-                <RelationPicker
-                  v-model="form.galleryIds"
-                  :items="galleryItems"
-                  add-label="Připojit galerii"
-                  empty-label="Zatím žádná galerie."
-                  search-placeholder="Hledat galerii…"
-                  icon="gallery"
-                  item-route-name="gallery-edit"
-                  create-route-name="gallery-new"
-                  create-label="Založit novou galerii"
+                <GalleryField
+                  v-model:galleries="form.galleryIds"
+                  v-model:photos="form.gallery"
+                  link-tag="event-gallery_ids"
+                  photos-tag="event-gallery"
                 />
               </TabsContent>
             </div>
@@ -540,14 +485,6 @@ function save() {
         <FormSection title="Štítky" icon="filter" tag="event-tags">
           <TagPicker v-model="form.tags" :options="PREDEFINED_EVENT_TAGS" />
         </FormSection>
-
-        <LangMutationsCard
-          v-model="activeLang"
-          :filled="filledLangs"
-          :source-ready="sourceReady"
-          :translating="translating"
-          @translate="translateAll"
-        />
       </aside>
     </div>
 

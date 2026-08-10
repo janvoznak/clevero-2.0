@@ -89,6 +89,10 @@ export interface Product {
   gallery: GalleryImage[]
   /** Členění — ID kategorií produktů (naše taxonomie v CMS). */
   categoryIds: string[]
+  /** Připojené fotogalerie (ID z modulu Galerie). */
+  galleryIds?: string[]
+  /** Část URL (slug) — ML. Titulek/meta se odvozují automaticky. */
+  slug?: ML
   /** Odkaz do košíku Colossea (websale). Na webu z něj je tlačítko „Do košíku". */
   cartUrl: string
   metaTitle: ML

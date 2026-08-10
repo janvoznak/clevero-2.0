@@ -64,6 +64,8 @@ export interface PageItem {
   allowIndexing: boolean
   /* Média */
   gallery: GalleryImage[]
+  /** Připojené fotogalerie (ID z modulu Galerie). */
+  galleryIds?: string[]
   attachments: Attachment[]
   /* Měřící kódy & cookies */
   jsCodes: string

@@ -4,12 +4,15 @@ import { useRouter } from 'vue-router'
 import { TabsRoot, TabsList, TabsTrigger, TabsContent } from 'reka-ui'
 import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import CardActionsMenu from '@/components/admin/CardActionsMenu.vue'
 import FormSection from '@/components/admin/FormSection.vue'
-import LangMutationsCard from '@/components/admin/LangMutationsCard.vue'
+import LangBar from '@/components/admin/LangBar.vue'
+import MlFieldHeader from '@/components/admin/MlFieldHeader.vue'
+import { useMlTranslate } from '@/utils/useMlTranslate'
 import PublishCard from '@/components/admin/PublishCard.vue'
 import RichTextEditor from '@/components/admin/RichTextEditor.vue'
-import { LANGS, SOURCE_LANG } from '@/data/types'
-import type { LangCode, ML } from '@/data/types'
+import { LANGS } from '@/data/types'
+import type { LangCode } from '@/data/types'
 import {
   MOCK_PRODUCT_CATEGORIES,
   blankProductCategory,
@@ -44,24 +47,8 @@ const filledLangs = computed(() => LANGS.filter((l) => langFilled(l.code)).map((
 const products = computed(() => (isEdit.value ? productsForCategory(props.id!) : []))
 
 /* ---------- AI překlad (prototyp) ---------- */
-const targetLangs = LANGS.filter((l) => l.code !== SOURCE_LANG)
-const translating = ref(false)
-const toast = ref('')
-const sourceReady = computed(() => form.name[SOURCE_LANG].trim().length > 0)
-function translateAll() {
-  if (translating.value || !sourceReady.value) return
-  translating.value = true
-  window.setTimeout(() => {
-    for (const f of ['name', 'description'] as const) {
-      const val = form[f] as ML
-      const src = val[SOURCE_LANG]
-      for (const t of targetLangs) if (src) val[t.code] = src
-    }
-    translating.value = false
-    toast.value = `Přeloženo z CZ do ${targetLangs.map((l) => l.code.toUpperCase()).join(', ')}`
-    window.setTimeout(() => (toast.value = ''), 3000)
-  }, 1400)
-}
+const mlFields: (keyof ProductCategory)[] = ['name', 'description']
+const { translating, toast, translateLang, translateField } = useMlTranslate(form, mlFields)
 
 const saved = ref(false)
 function save() {
@@ -90,15 +77,20 @@ function goProduct(id: string) {
             {{ isEdit ? form.name.cs || 'Bez názvu' : 'Nová kategorie' }}
           </h1>
         </div>
-        <TabsRoot :model-value="activeLang" class="hidden lg:block" @update:model-value="(v) => (activeLang = v as LangCode)">
-          <TabsList class="inline-flex items-center gap-1 rounded-lg border border-steel-200 bg-steel-50 p-1" aria-label="Jazyková mutace">
-            <TabsTrigger v-for="l in LANGS" :key="l.code" :value="l.code" class="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12.5px] font-600 text-steel-500 outline-none transition-colors hover:text-graphite-800 data-[state=active]:bg-white data-[state=active]:text-graphite-900 data-[state=active]:shadow-sm">
-              <span>{{ l.flag }}</span>{{ l.code.toUpperCase() }}
-              <span class="h-1.5 w-1.5 rounded-full" :class="langFilled(l.code) ? 'bg-forge-500' : 'bg-steel-300'" />
-            </TabsTrigger>
-          </TabsList>
-        </TabsRoot>
+        <LangBar
+          v-model="activeLang"
+          :filled="filledLangs"
+          :translating="translating"
+          class="hidden lg:block"
+          @translate="translateLang"
+        />
         <div class="h-6 w-px bg-steel-200" />
+        <CardActionsMenu
+          v-if="isEdit"
+          :name="form.name.cs"
+          entity="kategorii"
+          @delete="router.push({ name: 'product-categories-list' })"
+        />
         <AppButton variant="secondary" @click="router.push({ name: 'product-categories-list' })">Zrušit</AppButton>
         <AppButton variant="primary" @click="save">
           <Icon :name="saved ? 'check' : 'save'" :size="16" />
@@ -129,17 +121,11 @@ function goProduct(id: string) {
               <!-- Sekce: Základní informace -->
               <TabsContent value="info" class="space-y-4 outline-none">
                 <div>
-                  <label class="mb-1.5 flex items-center justify-between">
-                    <span class="text-[13px] font-600 text-graphite-800">Název kategorie <span class="text-brand-500">*</span></span>
-                    <span class="field-tag">category-name · {{ activeLang.toUpperCase() }}</span>
-                  </label>
+                  <MlFieldHeader label="Název kategorie" :lang="activeLang" tag="category-name" required @translate="translateField('name')" />
                   <input v-model="form.name[activeLang]" type="text" placeholder="Např. Suvenýry" class="h-11 w-full rounded-md border border-steel-200 px-3.5 text-[15px] font-500 text-graphite-900 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
                 </div>
                 <div>
-                  <label class="mb-1.5 flex items-center justify-between">
-                    <span class="text-[13px] font-600 text-graphite-800">Popis kategorie</span>
-                    <span class="field-tag">category-description · {{ activeLang.toUpperCase() }}</span>
-                  </label>
+                  <MlFieldHeader label="Popis kategorie" :lang="activeLang" tag="category-description" @translate="translateField('description')" />
                   <RichTextEditor v-model="form.description[activeLang]" />
                 </div>
                 <div>
@@ -208,14 +194,6 @@ function goProduct(id: string) {
       <!-- PRAVÝ rail -->
       <aside class="space-y-5 xl:sticky xl:top-[76px] xl:self-start">
         <PublishCard :published="form.published" updated-by="Jana Svobodová" />
-
-        <LangMutationsCard
-          v-model="activeLang"
-          :filled="filledLangs"
-          :source-ready="sourceReady"
-          :translating="translating"
-          @translate="translateAll"
-        />
       </aside>
     </div>
 

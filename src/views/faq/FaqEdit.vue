@@ -1,18 +1,20 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { TabsRoot, TabsList, TabsTrigger } from 'reka-ui'
 import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import CardActionsMenu from '@/components/admin/CardActionsMenu.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import AppSwitch from '@/components/ui/AppSwitch.vue'
 import FormSection from '@/components/admin/FormSection.vue'
 import PublishCard from '@/components/admin/PublishCard.vue'
 import RichTextEditor from '@/components/admin/RichTextEditor.vue'
 import AiPanel from '@/components/admin/AiPanel.vue'
-import LangMutationsCard from '@/components/admin/LangMutationsCard.vue'
-import { LANGS, SOURCE_LANG } from '@/data/types'
-import type { LangCode, ML } from '@/data/types'
+import LangBar from '@/components/admin/LangBar.vue'
+import MlFieldHeader from '@/components/admin/MlFieldHeader.vue'
+import { useMlTranslate } from '@/utils/useMlTranslate'
+import { LANGS } from '@/data/types'
+import type { LangCode } from '@/data/types'
 import {
   MOCK_FAQ,
   FAQ_CATEGORY_OPTIONS,
@@ -40,11 +42,14 @@ function langFilled(code: LangCode): boolean {
 const filledLangs = computed(() => LANGS.filter((l) => langFilled(l.code)).map((l) => l.code))
 const state = computed(() => faqState(form))
 
+/* ---------- AI překlad mutací (prototyp) — sdílené řešení ---------- */
+const mlFields: (keyof FaqItem)[] = ['question', 'answer']
+const { translating, toast, translateLang, translateField } = useMlTranslate(form, mlFields)
+
 /* ---------- AI: příprava odpovědi z otázky (prototyp — žádná reálná AI) ----------
    Z otázky v aktivní mutaci připraví koncept odpovědi. V ostrém CMS by tu
    volal jazykový model; tady je jen simulovaný stav + zástupný text. */
 const answering = ref(false)
-const toast = ref('')
 const questionReady = computed(() => form.question[activeLang.value].trim().length > 0)
 
 function draftAnswer(question: string): string {
@@ -66,26 +71,6 @@ function generateAnswer() {
     toast.value = `Návrh odpovědi připraven (${l.toUpperCase()}) — zkontrolujte a upravte`
     window.setTimeout(() => (toast.value = ''), 3200)
   }, 1200)
-}
-
-/* ---------- AI překlad (prototyp) ---------- */
-const targetLangs = LANGS.filter((l) => l.code !== SOURCE_LANG)
-const translating = ref(false)
-const mlFields: (keyof FaqItem)[] = ['question', 'answer']
-const sourceReady = computed(() => form.question[SOURCE_LANG].trim().length > 0)
-function translateAll() {
-  if (translating.value || !sourceReady.value) return
-  translating.value = true
-  window.setTimeout(() => {
-    for (const field of mlFields) {
-      const val = form[field] as ML
-      const src = val[SOURCE_LANG]
-      for (const t of targetLangs) if (src) val[t.code] = src
-    }
-    translating.value = false
-    toast.value = `Přeloženo z CZ do ${targetLangs.map((l) => l.code.toUpperCase()).join(', ')}`
-    window.setTimeout(() => (toast.value = ''), 3000)
-  }, 1500)
 }
 
 const saved = ref(false)
@@ -116,16 +101,21 @@ const answerPlain = computed(() => form.answer[activeLang.value].replace(/<[^>]*
           </h1>
         </div>
 
-        <TabsRoot :model-value="activeLang" class="hidden lg:block" @update:model-value="(v) => (activeLang = v as LangCode)">
-          <TabsList class="inline-flex items-center gap-1 rounded-lg border border-steel-200 bg-steel-50 p-1" aria-label="Jazyková mutace">
-            <TabsTrigger v-for="l in LANGS" :key="l.code" :value="l.code" class="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12.5px] font-600 text-steel-500 outline-none transition-colors hover:text-graphite-800 data-[state=active]:bg-white data-[state=active]:text-graphite-900 data-[state=active]:shadow-sm">
-              <span>{{ l.flag }}</span>{{ l.code.toUpperCase() }}
-              <span class="h-1.5 w-1.5 rounded-full" :class="langFilled(l.code) ? 'bg-forge-500' : 'bg-steel-300'" />
-            </TabsTrigger>
-          </TabsList>
-        </TabsRoot>
+        <LangBar
+          v-model="activeLang"
+          :filled="filledLangs"
+          :translating="translating"
+          class="hidden lg:block"
+          @translate="translateLang"
+        />
 
         <div class="h-6 w-px bg-steel-200" />
+        <CardActionsMenu
+          v-if="isEdit"
+          :name="form.question.cs"
+          entity="dotaz"
+          @delete="router.push({ name: 'faq-list' })"
+        />
         <AppButton variant="secondary" @click="router.push({ name: 'faq-list' })">Zrušit</AppButton>
         <AppButton variant="primary" @click="save">
           <Icon :name="saved ? 'check' : 'save'" :size="16" />
@@ -146,10 +136,7 @@ const answerPlain = computed(() => form.answer[activeLang.value].replace(/<[^>]*
 
           <!-- Otázka -->
           <div class="mb-5">
-            <label class="mb-1.5 flex items-center justify-between">
-              <span class="text-[13px] font-600 text-graphite-800">Otázka <span class="text-brand-500">*</span></span>
-              <span class="field-tag">faq-question · {{ activeLang.toUpperCase() }}</span>
-            </label>
+            <MlFieldHeader label="Otázka" :lang="activeLang" tag="faq-question" required @translate="translateField('question')" />
             <input
               v-model="form.question[activeLang]"
               type="text"
@@ -182,10 +169,7 @@ const answerPlain = computed(() => form.answer[activeLang.value].replace(/<[^>]*
 
           <!-- Odpověď -->
           <div>
-            <label class="mb-1.5 flex items-center justify-between">
-              <span class="text-[13px] font-600 text-graphite-800">Odpověď</span>
-              <span class="field-tag">faq-answer · {{ activeLang.toUpperCase() }}</span>
-            </label>
+            <MlFieldHeader label="Odpověď" :lang="activeLang" tag="faq-answer" @translate="translateField('answer')" />
             <RichTextEditor v-model="form.answer[activeLang]" />
           </div>
 
@@ -233,14 +217,6 @@ const answerPlain = computed(() => form.answer[activeLang.value].replace(/<[^>]*
       <aside class="space-y-5 xl:sticky xl:top-[92px] xl:self-start">
         <!-- Zveřejnění -->
         <PublishCard :published="form.published" updated-by="Martin Kučera" />
-
-        <LangMutationsCard
-          v-model="activeLang"
-          :filled="filledLangs"
-          :source-ready="sourceReady"
-          :translating="translating"
-          @translate="translateAll"
-        />
       </aside>
     </div>
 

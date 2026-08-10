@@ -55,6 +55,8 @@ export interface Gallery {
       zrcadlí (read-only). */
   areaId: string
   name: ML
+  /** Část URL (slug) — ML. Titulek/meta se odvozují automaticky. */
+  slug?: ML
   /** Popis alba (richtext). */
   description: ML
   /** Datum pořízení / konání (nejazykové). null = neuvedeno. */

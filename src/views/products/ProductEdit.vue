@@ -4,12 +4,17 @@ import { useRouter } from 'vue-router'
 import { TabsRoot, TabsList, TabsTrigger, TabsContent, PopoverRoot, PopoverTrigger, PopoverPortal, PopoverContent } from 'reka-ui'
 import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import CardActionsMenu from '@/components/admin/CardActionsMenu.vue'
 import FormSection from '@/components/admin/FormSection.vue'
 import PublishCard from '@/components/admin/PublishCard.vue'
 import RichTextEditor from '@/components/admin/RichTextEditor.vue'
-import GalleryManager from '@/components/admin/GalleryManager.vue'
+import GalleryField from '@/components/admin/GalleryField.vue'
+import SlugField from '@/components/admin/SlugField.vue'
+import { useAutoSlug } from '@/utils/useAutoSlug'
 import RelationPicker from '@/components/admin/RelationPicker.vue'
-import LangMutationsCard from '@/components/admin/LangMutationsCard.vue'
+import LangBar from '@/components/admin/LangBar.vue'
+import MlFieldHeader from '@/components/admin/MlFieldHeader.vue'
+import { useMlTranslate } from '@/utils/useMlTranslate'
 import { LANGS, SOURCE_LANG } from '@/data/types'
 import type { LangCode, ML } from '@/data/types'
 import {
@@ -38,7 +43,12 @@ const source = computed(() => MOCK_PRODUCTS.find((p) => p.id === props.id))
 const empty = (): ML => ({ cs: '', en: '', de: '', pl: '' })
 function clone(): Product {
   const s = source.value
-  if (s) return JSON.parse(JSON.stringify(s))
+  if (s) {
+    const c = JSON.parse(JSON.stringify(s)) as Product
+    c.galleryIds = c.galleryIds ?? []
+    c.slug = c.slug ?? empty()
+    return c
+  }
   // Nový produkt zakládaný ručně v CMS — nespárovaný (ID doplní párování s Colosseem).
   return {
     id: 'nový',
@@ -54,6 +64,8 @@ function clone(): Product {
     description: empty(),
     gallery: [],
     categoryIds: [],
+    galleryIds: [],
+    slug: empty(),
     cartUrl: '',
     metaTitle: empty(),
     metaDescription: empty(),
@@ -76,7 +88,6 @@ const sections = [
   { value: 'content', label: 'Obsah', icon: 'box' },
   { value: 'commerce', label: 'Napojení a prodej', icon: 'integration' },
   { value: 'gallery', label: 'Fotogalerie', icon: 'gallery' },
-  { value: 'seo', label: 'Marketing (SEO)', icon: 'search' },
 ]
 
 /** Zobrazený název pro danou mutaci (override, jinak Colosseum název u CZ). */
@@ -137,45 +148,28 @@ function unpair() {
   window.setTimeout(() => (toast.value = ''), 3000)
 }
 
-/* ---------- SEO auto-generování (prototyp) ---------- */
-const generating = ref(false)
-function autoGenerate() {
-  generating.value = true
-  const l = activeLang.value
-  window.setTimeout(() => {
-    const title = nameFor(l) || form.name
-    const plain = form.description[l].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
-    form.metaTitle[l] = `${title} | E-shop Dolní Vítkovice`.slice(0, 60)
-    form.metaDescription[l] = (plain || title).slice(0, 155)
-    generating.value = false
-  }, 550)
-}
-const metaTitleLen = computed(() => form.metaTitle[activeLang.value].length)
-const metaDescLen = computed(() => form.metaDescription[activeLang.value].length)
-
-/* ---------- AI překlad (prototyp — žádná reálná AI) ---------- */
-const targetLangs = LANGS.filter((l) => l.code !== SOURCE_LANG)
-const translating = ref(false)
-const mlFields: (keyof Product)[] = ['nameOverride', 'description', 'metaTitle', 'metaDescription']
-const sourceReady = computed(
-  () => form.nameOverride.cs.trim().length > 0 || form.description.cs.replace(/<[^>]+>/g, '').trim().length > 0,
+/* ---------- URL slug (prototyp) — automaticky z názvu, dokud ho klient
+   neupraví ručně. Titulek a meta se odvozují automaticky. ---------- */
+const slugText = computed({
+  get: () => form.slug?.[activeLang.value] ?? '',
+  set: (v: string) => {
+    if (!form.slug) form.slug = empty()
+    form.slug[activeLang.value] = v
+  },
+})
+const { markManual } = useAutoSlug(
+  () => ({
+    cs: nameFor('cs') || form.name,
+    en: nameFor('en') || form.name,
+    de: nameFor('de') || form.name,
+    pl: nameFor('pl') || form.name,
+  }),
+  () => (form.slug ??= empty()),
 )
-function translateAll() {
-  if (translating.value || !sourceReady.value) return
-  translating.value = true
-  window.setTimeout(() => {
-    // Colosseum název doplníme do CZ override, aby bylo z čeho překládat.
-    if (!form.nameOverride.cs.trim()) form.nameOverride.cs = form.name
-    for (const field of mlFields) {
-      const val = form[field] as ML
-      const src = val[SOURCE_LANG]
-      for (const t of targetLangs) if (src) val[t.code] = src
-    }
-    translating.value = false
-    toast.value = `Přeloženo z CZ do ${targetLangs.map((l) => l.code.toUpperCase()).join(', ')}`
-    window.setTimeout(() => (toast.value = ''), 3000)
-  }, 1500)
-}
+
+/* ---------- AI překlad mutací (prototyp) — sdílené řešení ---------- */
+const mlFields: (keyof Product)[] = ['nameOverride', 'description']
+const { translating, translateLang, translateField } = useMlTranslate(form, mlFields)
 
 const saved = ref(false)
 function save() {
@@ -206,21 +200,21 @@ function save() {
         </div>
 
         <!-- Language switcher (globální) — Reka Tabs -->
-        <TabsRoot :model-value="activeLang" class="hidden lg:block" @update:model-value="(v) => (activeLang = v as LangCode)">
-          <TabsList class="inline-flex items-center gap-1 rounded-lg border border-steel-200 bg-steel-50 p-1" aria-label="Jazyková mutace">
-            <TabsTrigger
-              v-for="l in LANGS"
-              :key="l.code"
-              :value="l.code"
-              class="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12.5px] font-600 text-steel-500 outline-none transition-colors hover:text-graphite-800 data-[state=active]:bg-white data-[state=active]:text-graphite-900 data-[state=active]:shadow-sm"
-            >
-              <span>{{ l.flag }}</span>{{ l.code.toUpperCase() }}
-              <span class="h-1.5 w-1.5 rounded-full" :class="langFilled(l.code) ? 'bg-forge-500' : 'bg-steel-300'" :title="langFilled(l.code) ? 'Vyplněno' : 'Prázdné'" />
-            </TabsTrigger>
-          </TabsList>
-        </TabsRoot>
+        <LangBar
+          v-model="activeLang"
+          :filled="filledLangs"
+          :translating="translating"
+          class="hidden lg:block"
+          @translate="translateLang"
+        />
 
         <div class="h-6 w-px bg-steel-200" />
+        <CardActionsMenu
+          v-if="!isNew"
+          :name="form.name"
+          entity="produkt"
+          @delete="router.push({ name: 'products-list' })"
+        />
         <AppButton variant="secondary" @click="router.push({ name: 'products-list' })">Zrušit</AppButton>
         <AppButton variant="primary" @click="save">
           <Icon :name="saved ? 'check' : 'save'" :size="16" />
@@ -230,19 +224,7 @@ function save() {
 
       <!-- Language switcher (mobil) -->
       <div class="px-8 pb-3 lg:hidden">
-        <TabsRoot :model-value="activeLang" @update:model-value="(v) => (activeLang = v as LangCode)">
-          <TabsList class="inline-flex items-center gap-1 rounded-lg border border-steel-200 bg-steel-50 p-1">
-            <TabsTrigger
-              v-for="l in LANGS"
-              :key="l.code"
-              :value="l.code"
-              class="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12.5px] font-600 text-steel-500 outline-none transition-colors data-[state=active]:bg-white data-[state=active]:text-graphite-900 data-[state=active]:shadow-sm"
-            >
-              {{ l.flag }} {{ l.code.toUpperCase() }}
-              <span class="h-1.5 w-1.5 rounded-full" :class="langFilled(l.code) ? 'bg-forge-500' : 'bg-steel-300'" />
-            </TabsTrigger>
-          </TabsList>
-        </TabsRoot>
+        <LangBar v-model="activeLang" :filled="filledLangs" :translating="translating" @translate="translateLang" />
       </div>
     </div>
 
@@ -282,10 +264,7 @@ function save() {
                   </div>
 
                   <div>
-                    <label class="mb-1.5 flex items-center justify-between">
-                      <span class="text-[13px] font-600 text-graphite-800">Název pro web <span v-if="isNew" class="text-brand-500">*</span></span>
-                      <span class="field-tag">product-name_override · {{ activeLang.toUpperCase() }}</span>
-                    </label>
+                    <MlFieldHeader label="Název pro web" :lang="activeLang" tag="product-name_override" :required="isNew" @translate="translateField('nameOverride')" />
                     <input
                       v-model="form.nameOverride[activeLang]"
                       type="text"
@@ -295,11 +274,14 @@ function save() {
                     <p class="mt-1 text-[11.5px] text-steel-500">Prázdné = na webu se použije název z Colossea.</p>
                   </div>
 
+                  <SlugField
+                    v-model="slugText"
+                    :tag="`product-url · ${activeLang.toUpperCase()}`"
+                    @edit="markManual(activeLang)"
+                  />
+
                   <div>
-                    <label class="mb-1.5 flex items-center justify-between">
-                      <span class="text-[13px] font-600 text-graphite-800">Popis produktu</span>
-                      <span class="field-tag">product-description · {{ activeLang.toUpperCase() }}</span>
-                    </label>
+                    <MlFieldHeader label="Popis produktu" :lang="activeLang" tag="product-description" @translate="translateField('description')" />
                     <RichTextEditor v-model="form.description[activeLang]" />
                   </div>
                 </div>
@@ -513,12 +495,8 @@ function save() {
 
               <!-- Sekce: Fotogalerie (CMS) -->
               <TabsContent value="gallery" class="outline-none">
-                <p class="mb-4 flex items-center gap-2 text-[12.5px] text-steel-500">
-                  Colosseum má u produktu jen jeden obrázek. Další fotky pro web přidáte tady.
-                  <span class="field-tag rounded bg-steel-100 px-1.5 py-0.5">product-gallery</span>
-                </p>
                 <!-- Obrázek z Colossea (read-only referenční) -->
-                <div v-if="form.colosseumImage" class="mb-4 flex items-center gap-3 rounded-md border border-steel-200 bg-steel-50 p-3">
+                <div v-if="form.colosseumImage" class="mb-5 flex items-center gap-3 rounded-md border border-steel-200 bg-steel-50 p-3">
                   <span class="h-16 w-20 shrink-0 overflow-hidden rounded bg-steel-100">
                     <img :src="form.colosseumImage" alt="" class="h-full w-full object-cover" />
                   </span>
@@ -527,93 +505,22 @@ function save() {
                     <p class="mt-0.5 text-[12px] text-steel-500">Zobrazí se, dokud nepřidáte vlastní hlavní fotku.</p>
                   </div>
                 </div>
-                <GalleryManager v-model="form.gallery" />
+                <GalleryField
+                  v-model:galleries="form.galleryIds"
+                  v-model:photos="form.gallery"
+                  link-tag="product-gallery_ids"
+                  photos-tag="product-gallery"
+                />
               </TabsContent>
 
-              <!-- Sekce: Marketing (SEO) -->
-              <TabsContent value="seo" class="outline-none">
-                <p class="mb-4 flex items-center gap-2 text-[12.5px] text-steel-500">
-                  Meta údaje pro vyhledávače — samostatně pro každý jazyk.
-                  <span class="field-tag rounded bg-steel-100 px-1.5 py-0.5">ML</span>
-                </p>
-                <div class="space-y-4">
-                  <div class="flex items-center justify-between rounded-md border border-brand-500/20 bg-brand-50 px-4 py-3">
-                    <div class="flex items-center gap-2.5">
-                      <Icon name="sparkles" :size="18" class="text-brand-500" />
-                      <div>
-                        <p class="text-[13px] font-600 text-graphite-800">Automatické vygenerování</p>
-                        <p class="text-[11.5px] text-steel-500">Titulek a popis z názvu a popisu ({{ activeLang.toUpperCase() }})</p>
-                      </div>
-                    </div>
-                    <AppButton variant="primary" size="sm" :disabled="generating" @click="autoGenerate">
-                      <Icon name="sparkles" :size="15" :class="generating && 'animate-pulse'" />
-                      {{ generating ? 'Generuji…' : 'Vygenerovat' }}
-                    </AppButton>
-                  </div>
-
-                  <div>
-                    <label class="mb-1.5 flex items-center justify-between">
-                      <span class="text-[13px] font-600 text-graphite-800">Titulek stránky</span>
-                      <span class="field-tag">product-meta_title · {{ activeLang.toUpperCase() }}</span>
-                    </label>
-                    <input
-                      v-model="form.metaTitle[activeLang]"
-                      type="text"
-                      placeholder="Meta title ve výsledcích vyhledávání"
-                      class="h-10 w-full rounded-md border border-steel-200 px-3.5 text-[13.5px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none"
-                    />
-                    <div class="mt-1 flex justify-end">
-                      <span class="font-mono text-[10.5px]" :class="metaTitleLen > 60 ? 'text-danger-500' : 'text-steel-400'">{{ metaTitleLen }} / 60</span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label class="mb-1.5 flex items-center justify-between">
-                      <span class="text-[13px] font-600 text-graphite-800">Meta description</span>
-                      <span class="field-tag">product-meta_description · {{ activeLang.toUpperCase() }}</span>
-                    </label>
-                    <textarea
-                      v-model="form.metaDescription[activeLang]"
-                      rows="2"
-                      placeholder="Meta popis produktu"
-                      class="w-full resize-y rounded-md border border-steel-200 px-3.5 py-2.5 text-[13.5px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none"
-                    />
-                    <div class="mt-1 flex justify-end">
-                      <span class="font-mono text-[10.5px]" :class="metaDescLen > 155 ? 'text-danger-500' : 'text-steel-400'">{{ metaDescLen }} / 155</span>
-                    </div>
-                  </div>
-
-                  <!-- SERP preview -->
-                  <div class="rounded-md border border-steel-200 bg-steel-50 p-4">
-                    <p class="mb-2 flex items-center gap-1.5 field-tag"><Icon name="globe" :size="13" /> Náhled ve vyhledávači</p>
-                    <div class="rounded bg-white p-3 shadow-sm">
-                      <p class="text-[12px] text-forge-600">dolnivitkovice.cz › eshop</p>
-                      <p class="mt-0.5 text-[16px] font-500 text-[#1a0dab]">
-                        {{ form.metaTitle[activeLang] || nameFor(activeLang) || form.name || 'Titulek stránky' }}
-                      </p>
-                      <p class="mt-0.5 text-[12.5px] leading-snug text-steel-600">
-                        {{ form.metaDescription[activeLang] || 'Meta popis se zobrazí zde…' }}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </TabsContent>
             </div>
           </TabsRoot>
         </div>
       </div>
 
-      <!-- PRAVÝ rail: Publikace + Jazykové mutace (produkty nemají štítky) -->
+      <!-- PRAVÝ rail: Publikace (produkty nemají štítky) -->
       <aside class="space-y-5 xl:sticky xl:top-[76px] xl:self-start">
         <PublishCard :published="form.published" updated-by="Jana Svobodová" />
-
-        <LangMutationsCard
-          v-model="activeLang"
-          :filled="filledLangs"
-          :source-ready="sourceReady"
-          :translating="translating"
-          @translate="translateAll"
-        />
       </aside>
     </div>
 

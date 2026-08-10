@@ -11,23 +11,26 @@ import {
 } from 'reka-ui'
 import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import CardActionsMenu from '@/components/admin/CardActionsMenu.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import AppSwitch from '@/components/ui/AppSwitch.vue'
 import FormSection from '@/components/admin/FormSection.vue'
 import PublishCard from '@/components/admin/PublishCard.vue'
 import ContentBuilder from '@/components/admin/ContentBuilder.vue'
-import GalleryManager from '@/components/admin/GalleryManager.vue'
+import GalleryField from '@/components/admin/GalleryField.vue'
 import AttachmentsManager from '@/components/admin/AttachmentsManager.vue'
 import OpeningHoursEditor from '@/components/admin/OpeningHoursEditor.vue'
 import PageFormBuilder from '@/components/admin/PageFormBuilder.vue'
 import PageGroupBar from '@/components/admin/PageGroupBar.vue'
-import LangMutationsCard from '@/components/admin/LangMutationsCard.vue'
-import { LANGS, SOURCE_LANG } from '@/data/types'
+import SlugField from '@/components/admin/SlugField.vue'
+import { useAutoSlug } from '@/utils/useAutoSlug'
+import LangBar from '@/components/admin/LangBar.vue'
+import MlFieldHeader from '@/components/admin/MlFieldHeader.vue'
+import { useMlTranslate } from '@/utils/useMlTranslate'
+import { LANGS } from '@/data/types'
 import type { LangCode, ML } from '@/data/types'
 import {
   MOCK_PAGES,
-  pageState,
-  PAGE_STATE_META,
   PAGE_SECTIONS,
   slugPath,
   parentOptions,
@@ -51,7 +54,11 @@ const source = computed(() => MOCK_PAGES.find((p) => p.id === props.id))
 const empty = (): ML => ({ cs: '', en: '', de: '', pl: '' })
 function clone(): PageItem {
   const s = source.value
-  if (s) return JSON.parse(JSON.stringify(s))
+  if (s) {
+    const c = JSON.parse(JSON.stringify(s)) as PageItem
+    c.galleryIds = c.galleryIds ?? []
+    return c
+  }
   const parentId = typeof route.query.parent === 'string' ? route.query.parent : null
   const parent = parentId ? MOCK_PAGES.find((p) => p.id === parentId) : null
   const qs = route.query.section
@@ -82,6 +89,7 @@ function clone(): PageItem {
     canonicalUrl: empty(),
     allowIndexing: true,
     gallery: [],
+    galleryIds: [],
     attachments: [],
     jsCodes: '',
     usedCookies: [],
@@ -97,7 +105,6 @@ const sections = [
   { value: 'basic', label: 'Základní informace', icon: 'page' },
   { value: 'settings', label: 'Nastavení a vztahy', icon: 'settings' },
   { value: 'forms', label: 'Formuláře', icon: 'reference' },
-  { value: 'seo', label: 'Marketing & SEO', icon: 'search' },
   { value: 'media', label: 'Obrázky & Přílohy', icon: 'gallery' },
   { value: 'codes', label: 'Měřící kódy', icon: 'code' },
 ]
@@ -122,7 +129,6 @@ function langFilled(code: LangCode): boolean {
   return form.title[code].trim().length > 0
 }
 const filledLangs = computed(() => LANGS.filter((l) => langFilled(l.code)).map((l) => l.code))
-const state = computed(() => pageState(form))
 
 /* Hierarchická URL náhled (dle rodiče z mock stromu + vlastní slug). */
 const urlPreview = computed(() => {
@@ -132,39 +138,9 @@ const urlPreview = computed(() => {
   return parent ? `${slugPath(MOCK_PAGES, parent)}/${slug}` : '/' + slug
 })
 
-/* ---------- Slug + SEO auto-generování (prototyp) ---------- */
-function slugify(s: string): string {
-  return s
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-}
-function generateSlug() {
-  const l = activeLang.value
-  form.slug[l] = slugify(form.title[l] || 'stranka')
-}
-const generating = ref(false)
-function autoGenerateSeo() {
-  generating.value = true
-  const l = activeLang.value
-  window.setTimeout(() => {
-    const title = form.title[l] || 'Stránka'
-    const plain = form.text[l].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
-    form.metaTitle[l] = `${title} | Dolní Vítkovice`.slice(0, 60)
-    form.metaDescription[l] = (form.perex[l] || plain || title).slice(0, 160)
-    const words = (title + ' ' + plain)
-      .toLowerCase()
-      .replace(/[^\p{L}\s]/gu, '')
-      .split(/\s+/)
-      .filter((w) => w.length > 3)
-    form.metaKeywords[l] = Array.from(new Set(words)).slice(0, 6).join(', ')
-    generating.value = false
-  }, 550)
-}
-const metaTitleLen = computed(() => form.metaTitle[activeLang.value].length)
-const metaDescLen = computed(() => form.metaDescription[activeLang.value].length)
+/* ---------- URL slug (prototyp) — automaticky z nadpisu, dokud ho klient
+   neupraví ručně. Titulek a meta se odvozují automaticky. ---------- */
+const { markManual } = useAutoSlug(() => form.title, () => form.slug)
 
 /* ---------- Cookies (multiselect přes checkboxy) ---------- */
 function toggleCookie(value: string, v: boolean | 'indeterminate') {
@@ -212,36 +188,9 @@ function saveAndClose() {
   router.push({ name: 'pages-list' })
 }
 
-/* ---------- AI překlad (prototyp) ---------- */
-const targetLangs = LANGS.filter((l) => l.code !== SOURCE_LANG)
-const translating = ref(false)
-const toast = ref('')
-const mlFields: (keyof PageItem)[] = [
-  'title',
-  'slug',
-  'perex',
-  'text',
-  'contactFormText',
-  'metaTitle',
-  'metaDescription',
-  'metaKeywords',
-  'canonicalUrl',
-]
-const sourceReady = computed(() => form.title[SOURCE_LANG].trim().length > 0)
-function translateAll() {
-  if (translating.value || !sourceReady.value) return
-  translating.value = true
-  window.setTimeout(() => {
-    for (const field of mlFields) {
-      const val = form[field] as ML
-      const src = val[SOURCE_LANG]
-      for (const t of targetLangs) if (src) val[t.code] = src
-    }
-    translating.value = false
-    toast.value = `Přeloženo z CZ do ${targetLangs.map((l) => l.code.toUpperCase()).join(', ')}`
-    window.setTimeout(() => (toast.value = ''), 3000)
-  }, 1500)
-}
+/* ---------- AI překlad mutací (prototyp) — sdílené řešení ---------- */
+const mlFields: (keyof PageItem)[] = ['title', 'perex', 'text', 'contactFormText']
+const { translating, toast, translateLang, translateField } = useMlTranslate(form, mlFields)
 </script>
 
 <template>
@@ -268,23 +217,22 @@ function translateAll() {
           </h1>
         </div>
 
-        <!-- Jazykový přepínač (pilulky) -->
-        <TabsRoot :model-value="activeLang" class="hidden lg:block" @update:model-value="(v) => (activeLang = v as LangCode)">
-          <TabsList class="inline-flex items-center gap-1 rounded-lg border border-steel-200 bg-steel-50 p-1" aria-label="Jazyková mutace">
-            <TabsTrigger
-              v-for="l in LANGS"
-              :key="l.code"
-              :value="l.code"
-              class="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12.5px] font-600 text-steel-500 outline-none transition-colors hover:text-graphite-800 data-[state=active]:bg-white data-[state=active]:text-graphite-900 data-[state=active]:shadow-sm"
-            >
-              <span>{{ l.flag }}</span>
-              {{ l.code.toUpperCase() }}
-              <span class="h-1.5 w-1.5 rounded-full" :class="langFilled(l.code) ? 'bg-forge-500' : 'bg-steel-300'" />
-            </TabsTrigger>
-          </TabsList>
-        </TabsRoot>
+        <!-- Jazykové mutace (jediné místo, ✨ = AI překlad mutace) -->
+        <LangBar
+          v-model="activeLang"
+          :filled="filledLangs"
+          :translating="translating"
+          class="hidden lg:block"
+          @translate="translateLang"
+        />
 
         <div class="h-6 w-px bg-steel-200" />
+        <CardActionsMenu
+          v-if="isEdit"
+          :name="form.title.cs"
+          entity="stránku"
+          @delete="router.push({ name: 'pages-list' })"
+        />
         <AppButton variant="secondary" @click="save">
           <Icon :name="saved ? 'check' : 'save'" :size="16" />
           {{ saved ? 'Uloženo' : 'Uložit a zůstat' }}
@@ -294,20 +242,9 @@ function translateAll() {
         </AppButton>
       </div>
 
-      <!-- Jazykový přepínač (mobil) -->
+      <!-- Jazykové mutace (mobil) -->
       <div class="px-8 pb-3 lg:hidden">
-        <TabsRoot :model-value="activeLang" @update:model-value="(v) => (activeLang = v as LangCode)">
-          <TabsList class="inline-flex items-center gap-1 rounded-lg border border-steel-200 bg-steel-50 p-1">
-            <TabsTrigger
-              v-for="l in LANGS"
-              :key="l.code"
-              :value="l.code"
-              class="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12.5px] font-600 text-steel-500 outline-none transition-colors data-[state=active]:bg-white data-[state=active]:text-graphite-900 data-[state=active]:shadow-sm"
-            >
-              {{ l.flag }} {{ l.code.toUpperCase() }}
-            </TabsTrigger>
-          </TabsList>
-        </TabsRoot>
+        <LangBar v-model="activeLang" :filled="filledLangs" :translating="translating" @translate="translateLang" />
       </div>
     </div>
 
@@ -337,10 +274,7 @@ function translateAll() {
                   <span class="field-tag rounded bg-steel-100 px-1.5 py-0.5">ML</span>
                 </p>
                 <div>
-                  <label class="mb-1.5 flex items-center justify-between">
-                    <span class="text-[13px] font-600 text-graphite-800">Nadpis <span class="text-brand-500">*</span></span>
-                    <span class="field-tag">page-title · {{ activeLang.toUpperCase() }}</span>
-                  </label>
+                  <MlFieldHeader label="Nadpis" :lang="activeLang" tag="page-title" required @translate="translateField('title')" />
                   <input
                     v-model="form.title[activeLang]"
                     type="text"
@@ -348,11 +282,13 @@ function translateAll() {
                     class="h-11 w-full rounded-md border border-steel-200 px-3.5 text-[15px] font-500 text-graphite-900 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none"
                   />
                 </div>
+                <SlugField
+                  v-model="form.slug[activeLang]"
+                  :tag="`page-url · ${activeLang.toUpperCase()}`"
+                  @edit="markManual(activeLang)"
+                />
                 <div>
-                  <label class="mb-1.5 flex items-center justify-between">
-                    <span class="text-[13px] font-600 text-graphite-800">Perex</span>
-                    <span class="field-tag">page-perex · {{ activeLang.toUpperCase() }}</span>
-                  </label>
+                  <MlFieldHeader label="Perex" :lang="activeLang" tag="page-perex" @translate="translateField('perex')" />
                   <textarea
                     v-model="form.perex[activeLang]"
                     rows="2"
@@ -368,9 +304,22 @@ function translateAll() {
                   <ContentBuilder v-model="form.contentBlocks" />
                 </div>
 
-                <!-- Zařazení a viditelnost -->
-                <div class="mt-2 rounded-md border border-steel-200 bg-steel-50/60 p-4">
-                  <p class="mb-3 text-[12.5px] font-600 text-graphite-800">Zařazení</p>
+              </TabsContent>
+
+              <!-- TAB: Nastavení a vztahy (dříve v pravém railu) -->
+              <TabsContent value="settings" class="space-y-5 outline-none">
+                <!-- Přidružené stránky (podstránky + externí odkazy) -->
+                <PageGroupBar
+                  :key="form.id"
+                  :current-id="form.id"
+                  :lang="activeLang"
+                  @navigate="goPage"
+                  @add-child-new="onAddChildNew"
+                  @add-link-new="onAddLinkNew"
+                />
+
+                <!-- Zařazení -->
+                <FormSection title="Zařazení" icon="layers" tag="page-entityParentId">
                   <div>
                     <label class="mb-1.5 flex items-center justify-between">
                       <span class="text-[13px] font-600 text-graphite-800">Nadřazená stránka</span>
@@ -389,35 +338,11 @@ function translateAll() {
                     <Icon name="grip" :size="13" class="mt-0.5 shrink-0 text-steel-400" />
                     Pořadí a zanoření stránky nastavíte přetažením přímo v seznamu stránek.
                   </p>
-                </div>
-              </TabsContent>
+                </FormSection>
 
-              <!-- TAB: Nastavení a vztahy (dříve v pravém railu) -->
-              <TabsContent value="settings" class="space-y-5 outline-none">
-                <!-- Přidružené stránky (podstránky + externí odkazy) -->
-                <PageGroupBar
-                  :key="form.id"
-                  :current-id="form.id"
-                  :lang="activeLang"
-                  @navigate="goPage"
-                  @add-child-new="onAddChildNew"
-                  @add-link-new="onAddLinkNew"
-                />
-
-                <!-- Zobrazení na webu -->
-                <FormSection title="Zobrazení na webu" icon="globe" tag="page-enabled">
+                <!-- Adresa a náhled (publikaci řeší pravý panel) -->
+                <FormSection title="Adresa a náhled" icon="globe" tag="page-url">
                   <div class="space-y-3">
-                    <div class="flex items-center justify-between rounded-md bg-steel-50 px-3 py-2.5">
-                      <span class="text-[12.5px] font-500 text-steel-600">Aktuální stav</span>
-                      <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-600" :class="[PAGE_STATE_META[state].bg, PAGE_STATE_META[state].text]">
-                        <span class="h-1.5 w-1.5 rounded-full" :class="PAGE_STATE_META[state].dot" />
-                        {{ PAGE_STATE_META[state].label }}
-                      </span>
-                    </div>
-                    <div class="flex items-center justify-between rounded-md border border-steel-200 px-3 py-2.5">
-                      <AppSwitch v-model="form.enabled" label="Zobrazovat (aktivní)" hint="Hlavní vypínač viditelnosti stránky na webu" aria-label="Zobrazovat" />
-                      <span class="field-tag">page-enabled</span>
-                    </div>
                     <div class="rounded-md border border-steel-200 px-3 py-2.5">
                       <p class="mb-0.5 field-tag">Adresa na webu</p>
                       <p class="break-all font-mono text-[11.5px] text-graphite-700">/cs{{ urlPreview }}</p>
@@ -463,126 +388,16 @@ function translateAll() {
                 </div>
               </TabsContent>
 
-              <!-- TAB 3: Marketing & SEO -->
-              <TabsContent value="seo" class="space-y-4 outline-none">
-                <div class="flex items-center justify-between rounded-md border border-brand-500/20 bg-brand-50 px-4 py-3">
-                  <div class="flex items-center gap-2.5">
-                    <Icon name="sparkles" :size="18" class="text-brand-500" />
-                    <div>
-                      <p class="text-[13px] font-600 text-graphite-800">Automatické vygenerování</p>
-                      <p class="text-[11.5px] text-steel-500">Titulek a popis z nadpisu a obsahu ({{ activeLang.toUpperCase() }})</p>
-                    </div>
-                  </div>
-                  <AppButton variant="primary" size="sm" :disabled="generating" @click="autoGenerateSeo">
-                    <Icon name="sparkles" :size="15" :class="generating && 'animate-pulse'" />
-                    {{ generating ? 'Generuji…' : 'Vygenerovat' }}
-                  </AppButton>
-                </div>
-
-                <div>
-                  <label class="mb-1.5 flex items-center justify-between">
-                    <span class="text-[13px] font-600 text-graphite-800">Část URL (slug) <span class="text-brand-500">*</span></span>
-                    <span class="field-tag">page-urlPart · {{ activeLang.toUpperCase() }}</span>
-                  </label>
-                  <div class="flex items-stretch gap-2">
-                    <input
-                      v-model="form.slug[activeLang]"
-                      type="text"
-                      placeholder="cast-url"
-                      class="h-10 w-full rounded-md border border-steel-200 px-3 font-mono text-[13px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none"
-                    />
-                    <AppButton variant="secondary" size="sm" @click="generateSlug">
-                      <Icon name="sparkles" :size="14" /> Z nadpisu
-                    </AppButton>
-                  </div>
-                  <p class="mt-1 text-[11px] text-steel-400">Pouze malá písmena bez diakritiky, čísla a pomlčky.</p>
-                </div>
-
-                <div class="grid gap-4 md:grid-cols-2">
-                  <div class="md:col-span-2">
-                    <label class="mb-1.5 flex items-center justify-between">
-                      <span class="text-[13px] font-600 text-graphite-800">SEO titulek</span>
-                      <span class="field-tag">page-meta_title · {{ activeLang.toUpperCase() }}</span>
-                    </label>
-                    <input
-                      v-model="form.metaTitle[activeLang]"
-                      type="text"
-                      placeholder="Pokud prázdné, použije se nadpis stránky"
-                      class="h-10 w-full rounded-md border border-steel-200 px-3.5 text-[13.5px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none"
-                    />
-                    <div class="mt-1 flex justify-end">
-                      <span class="font-mono text-[10.5px]" :class="metaTitleLen > 60 ? 'text-danger-500' : 'text-steel-400'">{{ metaTitleLen }} / 60</span>
-                    </div>
-                  </div>
-                  <div class="md:col-span-2">
-                    <label class="mb-1.5 flex items-center justify-between">
-                      <span class="text-[13px] font-600 text-graphite-800">META description</span>
-                      <span class="field-tag">page-meta_description · {{ activeLang.toUpperCase() }}</span>
-                    </label>
-                    <textarea
-                      v-model="form.metaDescription[activeLang]"
-                      rows="2"
-                      placeholder="Popis pro vyhledávače"
-                      class="w-full resize-y rounded-md border border-steel-200 px-3.5 py-2.5 text-[13.5px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none"
-                    />
-                    <div class="mt-1 flex justify-end">
-                      <span class="font-mono text-[10.5px]" :class="metaDescLen > 160 ? 'text-danger-500' : 'text-steel-400'">{{ metaDescLen }} / 160</span>
-                    </div>
-                  </div>
-                  <div>
-                    <label class="mb-1.5 flex items-center justify-between">
-                      <span class="text-[13px] font-600 text-graphite-800">META keywords</span>
-                      <span class="field-tag">page-meta_keywords · {{ activeLang.toUpperCase() }}</span>
-                    </label>
-                    <input
-                      v-model="form.metaKeywords[activeLang]"
-                      type="text"
-                      placeholder="klíčová slova oddělená čárkou"
-                      class="h-10 w-full rounded-md border border-steel-200 px-3.5 text-[13.5px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label class="mb-1.5 flex items-center justify-between">
-                      <span class="text-[13px] font-600 text-graphite-800">Kanonická URL</span>
-                      <span class="field-tag">page-canonicalUrl · {{ activeLang.toUpperCase() }}</span>
-                    </label>
-                    <input
-                      v-model="form.canonicalUrl[activeLang]"
-                      type="text"
-                      placeholder="https://…"
-                      class="h-10 w-full rounded-md border border-steel-200 px-3.5 text-[13.5px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div class="flex items-center justify-between rounded-md border border-steel-200 bg-steel-50 px-3 py-2.5">
-                  <AppSwitch v-model="form.allowIndexing" label="Povolit indexaci" hint="Při vypnutí se generuje noindex, nofollow" aria-label="Povolit indexaci" />
-                  <span class="field-tag">page-allowIndexing</span>
-                </div>
-
-                <!-- SERP preview -->
-                <div class="rounded-md border border-steel-200 bg-steel-50 p-4">
-                  <p class="mb-2 flex items-center gap-1.5 field-tag"><Icon name="globe" :size="13" /> Náhled ve vyhledávači</p>
-                  <div class="rounded bg-white p-3 shadow-sm">
-                    <p class="text-[12px] text-forge-600">dolnivitkovice.cz{{ urlPreview }}</p>
-                    <p class="mt-0.5 text-[16px] font-500 text-[#1a0dab]">
-                      {{ form.metaTitle[activeLang] || form.title[activeLang] || 'Titulek stránky' }}
-                    </p>
-                    <p class="mt-0.5 text-[12.5px] leading-snug text-steel-600">
-                      {{ form.metaDescription[activeLang] || form.perex[activeLang] || 'Meta popis se zobrazí zde…' }}
-                    </p>
-                  </div>
-                </div>
-              </TabsContent>
 
               <!-- TAB 4: Obrázky & Přílohy -->
               <TabsContent value="media" class="space-y-6 outline-none">
                 <div>
-                  <p class="mb-3 flex items-center gap-2 text-[12.5px] text-steel-500">
-                    Galerie obrázků stránky. První obrázek = hlavní.
-                    <span class="field-tag rounded bg-steel-100 px-1.5 py-0.5">page-images</span>
-                  </p>
-                  <GalleryManager v-model="form.gallery" />
+                  <GalleryField
+                    v-model:galleries="form.galleryIds"
+                    v-model:photos="form.gallery"
+                    link-tag="page-gallery_ids"
+                    photos-tag="page-images"
+                  />
                 </div>
                 <div>
                   <p class="mb-3 flex items-center gap-2 text-[12.5px] text-steel-500">
@@ -642,14 +457,6 @@ function translateAll() {
       <!-- PRAVÝ rail -->
       <aside class="space-y-5 xl:sticky xl:top-[92px] xl:self-start">
         <PublishCard :published="form.enabled" updated-by="Jan Voznak" />
-
-        <LangMutationsCard
-          v-model="activeLang"
-          :filled="filledLangs"
-          :source-ready="sourceReady"
-          :translating="translating"
-          @translate="translateAll"
-        />
       </aside>
     </div>
 

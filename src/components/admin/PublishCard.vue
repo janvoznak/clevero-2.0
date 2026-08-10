@@ -1,11 +1,15 @@
 <script setup lang="ts">
 /**
  * Sdílená karta „Publikace" pro pravý rail detailů napříč moduly
- * (princip 0b: jeden prvek = jedna komponenta).
- * - Stav: Koncept / Publikováno / Naplánováno (s datem a časem zveřejnění).
- * - Metadata záznamu: vytvořeno, naposledy upraveno + kým.
- * Prototyp — stav i metadata jsou jen lokální/zástupné, žádné API.
- * `metaOnly` = jen metadata (pro moduly, které publikaci řídí časovým oknem).
+ * (princip 0b: jeden prvek = jedna komponenta). Jediné místo pro publikaci:
+ * - Stav: Koncept / Publikováno / Naplánováno.
+ * - Naplánování: „Zveřejnit v" (datum a čas automatického zveřejnění).
+ * - Omezení zobrazení: „Zobrazovat do" (prázdné = neomezeně).
+ * - Metadata: vytvořeno, naposledy upraveno + kým.
+ *
+ * Datumová pole jsou volitelné v-modely (`publishFrom`, `publishTo`): moduly
+ * s reálným časovým oknem je napojí (v-model:publish-from/publish-to), ostatní
+ * je nechají neřízené a karta si drží vlastní lokální stav (vizuální prototyp).
  */
 import { ref } from 'vue'
 import Icon from '@/components/ui/Icon.vue'
@@ -16,30 +20,31 @@ type Status = 'draft' | 'published' | 'scheduled'
 const props = withDefaults(
   defineProps<{
     published?: boolean
-    /** Předvyplněné datum a čas plánovaného zveřejnění (datetime-local). */
-    scheduledAt?: string
+    /** Výchozí stav karty (má přednost před `published`). */
+    initialStatus?: Status
     created?: string
     updated?: string
     updatedBy?: string
-    metaOnly?: boolean
   }>(),
   {
     published: true,
-    scheduledAt: '',
+    initialStatus: undefined,
     created: '4. 8. 2025 · 14:00',
     updated: 'dnes · 9:14',
     updatedBy: 'Jan Voznak',
-    metaOnly: false,
   },
 )
+
+/** Datum zveřejnění (naplánování) a konec zobrazení — datetime-local. */
+const publishFrom = defineModel<string>('publishFrom', { default: '' })
+const publishTo = defineModel<string>('publishTo', { default: '' })
 
 const STATES: { value: Status; label: string }[] = [
   { value: 'draft', label: 'Koncept' },
   { value: 'published', label: 'Publikováno' },
   { value: 'scheduled', label: 'Naplánováno' },
 ]
-const status = ref<Status>(props.published ? 'published' : 'draft')
-const publishAt = ref(props.scheduledAt)
+const status = ref<Status>(props.initialStatus ?? (props.published ? 'published' : 'draft'))
 
 function initials(name: string): string {
   return name
@@ -53,9 +58,9 @@ function initials(name: string): string {
 </script>
 
 <template>
-  <FormSection :title="metaOnly ? 'Záznam' : 'Publikace'" :icon="metaOnly ? 'clock' : 'eye'" :tag="metaOnly ? undefined : 'record-publish'">
+  <FormSection title="Publikace" icon="eye" tag="record-publish">
     <!-- Stav publikace + plánování -->
-    <div v-if="!metaOnly" class="mb-4">
+    <div class="mb-4">
       <div class="flex gap-1 rounded-lg border border-steel-200 bg-steel-50 p-1">
         <button
           v-for="s in STATES"
@@ -76,13 +81,30 @@ function initials(name: string): string {
           <span class="field-tag">publish-at</span>
         </label>
         <input
-          v-model="publishAt"
+          v-model="publishFrom"
           type="datetime-local"
           class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13px] text-graphite-800 focus:border-brand-500 focus:outline-none"
         />
         <p class="mt-1.5 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
           <Icon name="calendar" :size="13" class="mt-0.5 shrink-0 text-amber-500" />
           Do zadaného termínu zůstane jako koncept, pak se zveřejní automaticky.
+        </p>
+      </div>
+
+      <!-- Omezení zobrazení (konec zveřejnění) -->
+      <div v-if="status !== 'draft'" class="mt-3">
+        <label class="mb-1.5 flex items-center justify-between">
+          <span class="text-[12.5px] font-600 text-graphite-800">Zobrazovat do</span>
+          <span class="field-tag">publish-until</span>
+        </label>
+        <input
+          v-model="publishTo"
+          type="datetime-local"
+          class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13px] text-graphite-800 focus:border-brand-500 focus:outline-none"
+        />
+        <p class="mt-1.5 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
+          <Icon name="clock" :size="13" class="mt-0.5 shrink-0 text-steel-400" />
+          Po tomto termínu se přestane zobrazovat. Prázdné = zobrazovat neomezeně.
         </p>
       </div>
 

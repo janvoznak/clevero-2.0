@@ -4,13 +4,16 @@ import { useRouter } from 'vue-router'
 import { TabsRoot, TabsList, TabsTrigger, TabsContent } from 'reka-ui'
 import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import CardActionsMenu from '@/components/admin/CardActionsMenu.vue'
 import FormSection from '@/components/admin/FormSection.vue'
 import PublishCard from '@/components/admin/PublishCard.vue'
 import RichTextEditor from '@/components/admin/RichTextEditor.vue'
 import TagPicker from '@/components/admin/TagPicker.vue'
-import LangMutationsCard from '@/components/admin/LangMutationsCard.vue'
-import { LANGS, SOURCE_LANG } from '@/data/types'
-import type { LangCode, ML } from '@/data/types'
+import LangBar from '@/components/admin/LangBar.vue'
+import MlFieldHeader from '@/components/admin/MlFieldHeader.vue'
+import { useMlTranslate } from '@/utils/useMlTranslate'
+import { LANGS } from '@/data/types'
+import type { LangCode } from '@/data/types'
 import {
   MOCK_PROGRAMS, SCHOOL_LEVELS, GRADES, FOCUS_AREAS, PROGRAM_TAGS, blankProgram,
   type Program,
@@ -31,7 +34,7 @@ const activeLang = ref<LangCode>('cs')
 const activeSection = ref('basic')
 const sections = [
   { value: 'basic', label: 'Základní informace', icon: 'education' },
-  { value: 'zarazeni', label: 'Zařazení', icon: 'layers' },
+  { value: 'zarazeni', label: 'Zařazení a vazby', icon: 'layers' },
   { value: 'params', label: 'Parametry programu', icon: 'reference' },
 ]
 function langFilled(code: LangCode): boolean {
@@ -49,26 +52,9 @@ function removeParam(i: number) {
   form.params.splice(i, 1)
 }
 
-/* ---------- AI překlad (prototyp) ---------- */
-const targetLangs = LANGS.filter((l) => l.code !== SOURCE_LANG)
-const translating = ref(false)
-const toast = ref('')
+/* ---------- AI překlad mutací (prototyp) — sdílené řešení ---------- */
 const mlFields: (keyof Program)[] = ['title', 'perex', 'description']
-const sourceReady = computed(() => form.title[SOURCE_LANG].trim().length > 0)
-function translateAll() {
-  if (translating.value || !sourceReady.value) return
-  translating.value = true
-  window.setTimeout(() => {
-    for (const field of mlFields) {
-      const val = form[field] as ML
-      const src = val[SOURCE_LANG]
-      for (const t of targetLangs) if (src) val[t.code] = src
-    }
-    translating.value = false
-    toast.value = `Přeloženo z CZ do ${targetLangs.map((l) => l.code.toUpperCase()).join(', ')}`
-    window.setTimeout(() => (toast.value = ''), 3000)
-  }, 1500)
-}
+const { translating, toast, translateLang, translateField } = useMlTranslate(form, mlFields)
 
 const saved = ref(false)
 function save() {
@@ -94,15 +80,20 @@ function save() {
             {{ isEdit ? form.title.cs || 'Bez názvu' : 'Nový program' }}
           </h1>
         </div>
-        <TabsRoot :model-value="activeLang" class="hidden lg:block" @update:model-value="(v) => (activeLang = v as LangCode)">
-          <TabsList class="inline-flex items-center gap-1 rounded-lg border border-steel-200 bg-steel-50 p-1" aria-label="Jazyková mutace">
-            <TabsTrigger v-for="l in LANGS" :key="l.code" :value="l.code" class="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12.5px] font-600 text-steel-500 outline-none transition-colors hover:text-graphite-800 data-[state=active]:bg-white data-[state=active]:text-graphite-900 data-[state=active]:shadow-sm">
-              <span>{{ l.flag }}</span>{{ l.code.toUpperCase() }}
-              <span class="h-1.5 w-1.5 rounded-full" :class="langFilled(l.code) ? 'bg-forge-500' : 'bg-steel-300'" />
-            </TabsTrigger>
-          </TabsList>
-        </TabsRoot>
+        <LangBar
+          v-model="activeLang"
+          :filled="filledLangs"
+          :translating="translating"
+          class="hidden lg:block"
+          @translate="translateLang"
+        />
         <div class="h-6 w-px bg-steel-200" />
+        <CardActionsMenu
+          v-if="isEdit"
+          :name="form.title.cs"
+          entity="program"
+          @delete="router.push({ name: 'programs-list' })"
+        />
         <AppButton variant="secondary" @click="router.push({ name: 'programs-list' })">Zrušit</AppButton>
         <AppButton variant="primary" @click="save">
           <Icon :name="saved ? 'check' : 'save'" :size="16" />
@@ -132,24 +123,15 @@ function save() {
                 </p>
                 <div class="space-y-4">
                   <div>
-                    <label class="mb-1.5 flex items-center justify-between">
-                      <span class="text-[13px] font-600 text-graphite-800">Název programu <span class="text-brand-500">*</span></span>
-                      <span class="field-tag">program-title · {{ activeLang.toUpperCase() }}</span>
-                    </label>
+                    <MlFieldHeader label="Název programu" :lang="activeLang" tag="program-title" required @translate="translateField('title')" />
                     <input v-model="form.title[activeLang]" type="text" placeholder="Např. Co za to stojí" class="h-11 w-full rounded-md border border-steel-200 px-3.5 text-[15px] font-500 text-graphite-900 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
                   </div>
                   <div>
-                    <label class="mb-1.5 flex items-center justify-between">
-                      <span class="text-[13px] font-600 text-graphite-800">Perex</span>
-                      <span class="field-tag">program-perex · {{ activeLang.toUpperCase() }}</span>
-                    </label>
+                    <MlFieldHeader label="Perex" :lang="activeLang" tag="program-perex" @translate="translateField('perex')" />
                     <textarea v-model="form.perex[activeLang]" rows="2" placeholder="Krátký výtah zobrazený ve výpisu programů" class="w-full resize-y rounded-md border border-steel-200 px-3.5 py-2.5 text-[14px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
                   </div>
                   <div>
-                    <label class="mb-1.5 flex items-center justify-between">
-                      <span class="text-[13px] font-600 text-graphite-800">Popis programu</span>
-                      <span class="field-tag">program-description · {{ activeLang.toUpperCase() }}</span>
-                    </label>
+                    <MlFieldHeader label="Popis programu" :lang="activeLang" tag="program-description" @translate="translateField('description')" />
                     <RichTextEditor v-model="form.description[activeLang]" />
                   </div>
                   <div>
@@ -251,14 +233,6 @@ function save() {
         <FormSection title="Štítky" icon="filter" tag="program-tags">
           <TagPicker v-model="form.tags" :options="PROGRAM_TAGS" add-label="Přidat štítek" empty-label="Zatím žádné štítky." color-label="Barva štítku" />
         </FormSection>
-
-        <LangMutationsCard
-          v-model="activeLang"
-          :filled="filledLangs"
-          :source-ready="sourceReady"
-          :translating="translating"
-          @translate="translateAll"
-        />
       </aside>
     </div>
 
