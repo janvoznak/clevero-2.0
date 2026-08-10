@@ -68,6 +68,8 @@ export interface AreaObject {
   tags: string[]
   /** Základní fotky objektu (inline galerie — statické, mění se málo). */
   photos: GalleryImage[]
+  /** Připojené fotogalerie (ID z modulu Galerie). */
+  galleryIds?: string[]
   /** Bezbariérový přístup. */
   accessible: boolean
   openState: OpenState

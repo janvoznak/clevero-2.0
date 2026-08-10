@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { TabsRoot, TabsList, TabsTrigger, TabsContent } from 'reka-ui'
 import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import CardActionsMenu from '@/components/admin/CardActionsMenu.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import AppSwitch from '@/components/ui/AppSwitch.vue'
 import FormSection from '@/components/admin/FormSection.vue'
@@ -11,10 +12,12 @@ import PublishCard from '@/components/admin/PublishCard.vue'
 import ContentBuilder from '@/components/admin/ContentBuilder.vue'
 import OpeningHoursEditor from '@/components/admin/OpeningHoursEditor.vue'
 import TagPicker from '@/components/admin/TagPicker.vue'
-import GalleryManager from '@/components/admin/GalleryManager.vue'
-import LangMutationsCard from '@/components/admin/LangMutationsCard.vue'
-import { LANGS, SOURCE_LANG } from '@/data/types'
-import type { LangCode, ML } from '@/data/types'
+import GalleryField from '@/components/admin/GalleryField.vue'
+import LangBar from '@/components/admin/LangBar.vue'
+import MlFieldHeader from '@/components/admin/MlFieldHeader.vue'
+import { useMlTranslate } from '@/utils/useMlTranslate'
+import { LANGS } from '@/data/types'
+import type { LangCode } from '@/data/types'
 import {
   MOCK_VENUES,
   PREDEFINED_AREA_TAGS,
@@ -22,7 +25,7 @@ import {
   blankVenue,
   type AreaObject,
 } from '@/data/mockVenues'
-import { galleriesForVenue, galleryCover, galleryCount } from '@/data/mockGalleries'
+import { galleriesForVenue } from '@/data/mockGalleries'
 import { toursForVenue, availability, AVAILABILITY_META, category } from '@/data/mockTours'
 
 const props = defineProps<{ id?: string }>()
@@ -32,7 +35,13 @@ const isEdit = computed(() => !!props.id)
 const source = computed(() => MOCK_VENUES.find((v) => v.id === props.id))
 function clone(): AreaObject {
   const s = source.value
-  return s ? JSON.parse(JSON.stringify(s)) : blankVenue()
+  if (s) {
+    const c = JSON.parse(JSON.stringify(s)) as AreaObject
+    // Předvyplnění z existující vazby (Gallery.areaId) — nově editovatelné přímo tady.
+    c.galleryIds = c.galleryIds ?? galleriesForVenue(c.id).map((g) => g.id)
+    return c
+  }
+  return blankVenue()
 }
 const form = reactive<AreaObject>(clone())
 const activeLang = ref<LangCode>('cs')
@@ -71,10 +80,6 @@ function goToGallery() {
   activeSection.value = 'gallery'
 }
 
-/* ---------- Galerie určené pro tento objekt (read-only zrcadlo) ----------
-   Vazbu vlastní modul Galerie (Gallery.areaId) — tady se jen zobrazuje. */
-const venueGalleries = computed(() => galleriesForVenue(form.id))
-
 /* ---------- Nabízené prohlídky = odvozené z místa konání (read-only) ----------
    Jediný zdroj pravdy je `tour.areaId` (nastavuje se v modulu Prohlídky).
    Areál nabízené prohlídky needituje, jen zrcadlí — žádná dvojí správa. */
@@ -84,31 +89,9 @@ function goToTour(id: string) {
 }
 
 
-/* ---------- AI překlad (prototyp) ---------- */
-const targetLangs = LANGS.filter((l) => l.code !== SOURCE_LANG)
-const translating = ref(false)
-const sourceReady = computed(() => form.title[SOURCE_LANG].trim().length > 0)
+/* ---------- AI překlad mutací (prototyp) — sdílené řešení ---------- */
 const mlFields: (keyof AreaObject)[] = ['title', 'summary']
-const toast = ref('')
-let toastTimer: number | undefined
-function fireToast(msg: string) {
-  toast.value = msg
-  window.clearTimeout(toastTimer)
-  toastTimer = window.setTimeout(() => (toast.value = ''), 3000)
-}
-function translateAll() {
-  if (translating.value || !sourceReady.value) return
-  translating.value = true
-  window.setTimeout(() => {
-    for (const f of mlFields) {
-      const val = form[f] as ML
-      const src = val[SOURCE_LANG]
-      for (const t of targetLangs) if (src) val[t.code] = src
-    }
-    translating.value = false
-    fireToast(`Přeloženo z CZ do ${targetLangs.map((l) => l.code.toUpperCase()).join(', ')}`)
-  }, 1500)
-}
+const { translating, toast, translateLang, translateField } = useMlTranslate(form, mlFields)
 
 const saved = ref(false)
 function save() {
@@ -138,21 +121,21 @@ function save() {
           </h1>
         </div>
 
-        <TabsRoot :model-value="activeLang" class="hidden lg:block" @update:model-value="(v) => (activeLang = v as LangCode)">
-          <TabsList class="inline-flex items-center gap-1 rounded-lg border border-steel-200 bg-steel-50 p-1" aria-label="Jazyková mutace">
-            <TabsTrigger
-              v-for="l in LANGS"
-              :key="l.code"
-              :value="l.code"
-              class="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12.5px] font-600 text-steel-500 outline-none transition-colors hover:text-graphite-800 data-[state=active]:bg-white data-[state=active]:text-graphite-900 data-[state=active]:shadow-sm"
-            >
-              <span>{{ l.flag }}</span>{{ l.code.toUpperCase() }}
-              <span class="h-1.5 w-1.5 rounded-full" :class="langFilled(l.code) ? 'bg-forge-500' : 'bg-steel-300'" />
-            </TabsTrigger>
-          </TabsList>
-        </TabsRoot>
+        <LangBar
+          v-model="activeLang"
+          :filled="filledLangs"
+          :translating="translating"
+          class="hidden lg:block"
+          @translate="translateLang"
+        />
 
         <div class="h-6 w-px bg-steel-200" />
+        <CardActionsMenu
+          v-if="isEdit"
+          :name="form.title.cs"
+          entity="objekt"
+          @delete="router.push({ name: 'area-list' })"
+        />
         <AppButton variant="secondary" @click="router.push({ name: 'area-list' })">Zrušit</AppButton>
         <AppButton variant="primary" @click="save">
           <Icon :name="saved ? 'check' : 'save'" :size="16" />
@@ -182,10 +165,7 @@ function save() {
               <!-- Sekce: Základní informace -->
               <TabsContent value="basic" class="space-y-4 outline-none">
                 <div>
-                  <label class="mb-1.5 flex items-center justify-between">
-                    <span class="text-[13px] font-600 text-graphite-800">Název objektu <span class="text-brand-500">*</span></span>
-                    <span class="field-tag">area-title · {{ activeLang.toUpperCase() }}</span>
-                  </label>
+                  <MlFieldHeader label="Název objektu" :lang="activeLang" tag="area-title" required @translate="translateField('title')" />
                   <input
                     v-model="form.title[activeLang]"
                     type="text"
@@ -195,10 +175,7 @@ function save() {
                 </div>
 
                 <div>
-                  <label class="mb-1.5 flex items-center justify-between">
-                    <span class="text-[13px] font-600 text-graphite-800">Krátký popis (perex)</span>
-                    <span class="field-tag">area-summary · {{ activeLang.toUpperCase() }}</span>
-                  </label>
+                  <MlFieldHeader label="Krátký popis (perex)" :lang="activeLang" tag="area-summary" @translate="translateField('summary')" />
                   <textarea
                     v-model="form.summary[activeLang]"
                     rows="3"
@@ -346,47 +323,13 @@ function save() {
               </TabsContent>
 
               <!-- Sekce: Galerie -->
-              <TabsContent value="gallery" class="space-y-6 outline-none">
-                <!-- Základní fotky objektu (inline, statické) -->
-                <div>
-                  <div class="mb-1.5 flex items-center justify-between">
-                    <span class="text-[13px] font-600 text-graphite-800">Základní fotky objektu</span>
-                    <span class="field-tag">area-photos</span>
-                  </div>
-                  <p class="mb-3 flex items-start gap-1.5 text-[12px] leading-relaxed text-steel-500">
-                    <Icon name="image" :size="13" class="mt-0.5 shrink-0 text-steel-400" />
-                    Hlavní fotky budovy přímo tady — mění se málo. První (★) je hlavní.
-                  </p>
-                  <GalleryManager v-model="form.photos" />
-                </div>
-
-                <!-- Fotogalerie z modulu Galerie (read-only zrcadlo — vazbu vlastní Galerie) -->
-                <div class="border-t border-steel-100 pt-5">
-                  <div class="mb-1.5 flex items-center justify-between">
-                    <span class="text-[13px] font-600 text-graphite-800">Fotogalerie objektu</span>
-                    <span class="field-tag">gallery-area_id</span>
-                  </div>
-                  <p class="mb-3 flex items-start gap-1.5 text-[12px] leading-relaxed text-steel-500">
-                    <Icon name="gallery" :size="13" class="mt-0.5 shrink-0 text-steel-400" />
-                    Galerie určené pro tento objekt. Přiřazení se nastavuje v modulu
-                    <span class="font-600 text-graphite-700">Galerie</span> (detail galerie → „Objekt v areálu").
-                  </p>
-                  <ul v-if="venueGalleries.length" class="grid gap-2 sm:grid-cols-2">
-                    <li v-for="g in venueGalleries" :key="g.id" class="flex items-center gap-2.5 rounded-lg border border-steel-200 bg-white px-2.5 py-2">
-                      <span class="grid h-9 w-12 shrink-0 place-items-center overflow-hidden rounded bg-steel-100 text-steel-400">
-                        <img v-if="galleryCover(g)" :src="galleryCover(g)" alt="" class="h-full w-full object-cover" />
-                        <Icon v-else name="image" :size="14" />
-                      </span>
-                      <span class="min-w-0">
-                        <span class="block truncate text-[13px] font-600 text-graphite-800">{{ g.name.cs }}</span>
-                        <span class="block font-mono text-[10.5px] text-steel-400">{{ galleryCount(g) }} fotek</span>
-                      </span>
-                    </li>
-                  </ul>
-                  <p v-else class="rounded-md bg-steel-50 px-3 py-4 text-center text-[12.5px] text-steel-500">
-                    Pro tento objekt zatím není určená žádná galerie.
-                  </p>
-                </div>
+              <TabsContent value="gallery" class="outline-none">
+                <GalleryField
+                  v-model:galleries="form.galleryIds"
+                  v-model:photos="form.photos"
+                  link-tag="gallery-area_id"
+                  photos-tag="area-photos"
+                />
               </TabsContent>
 
               <!-- Sekce: Otevírací doba -->
@@ -412,13 +355,6 @@ function save() {
           <TagPicker v-model="form.tags" :options="PREDEFINED_AREA_TAGS" />
         </FormSection>
 
-        <LangMutationsCard
-          v-model="activeLang"
-          :filled="filledLangs"
-          :source-ready="sourceReady"
-          :translating="translating"
-          @translate="translateAll"
-        />
       </aside>
     </div>
 

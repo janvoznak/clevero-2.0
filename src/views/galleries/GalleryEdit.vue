@@ -4,16 +4,21 @@ import { useRoute, useRouter } from 'vue-router'
 import { TabsRoot, TabsList, TabsTrigger, TabsContent } from 'reka-ui'
 import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import CardActionsMenu from '@/components/admin/CardActionsMenu.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import AppSwitch from '@/components/ui/AppSwitch.vue'
 import FormSection from '@/components/admin/FormSection.vue'
 import PublishCard from '@/components/admin/PublishCard.vue'
 import RichTextEditor from '@/components/admin/RichTextEditor.vue'
 import GalleryManager from '@/components/admin/GalleryManager.vue'
+import SlugField from '@/components/admin/SlugField.vue'
+import { useAutoSlug } from '@/utils/useAutoSlug'
 import TagPicker from '@/components/admin/TagPicker.vue'
-import LangMutationsCard from '@/components/admin/LangMutationsCard.vue'
-import { LANGS, SOURCE_LANG } from '@/data/types'
-import type { LangCode, ML } from '@/data/types'
+import LangBar from '@/components/admin/LangBar.vue'
+import MlFieldHeader from '@/components/admin/MlFieldHeader.vue'
+import { useMlTranslate } from '@/utils/useMlTranslate'
+import { LANGS } from '@/data/types'
+import type { LangCode } from '@/data/types'
 import {
   MOCK_GALLERIES,
   galleryState,
@@ -34,7 +39,11 @@ const isEdit = computed(() => !!props.id)
 const source = computed(() => MOCK_GALLERIES.find((g) => g.id === props.id))
 function clone(): Gallery {
   const s = source.value
-  if (s) return JSON.parse(JSON.stringify(s))
+  if (s) {
+    const c = JSON.parse(JSON.stringify(s)) as Gallery
+    c.slug = c.slug ?? { cs: '', en: '', de: '', pl: '' }
+    return c
+  }
   return blankGallery(typeof route.query.section === 'string' ? route.query.section : '')
 }
 const form = reactive<Gallery>(clone())
@@ -56,8 +65,8 @@ const areaLabel = computed(() => PLACE_OPTIONS.find((o) => o.value === form.area
 const activeSection = ref('basic')
 const sections = [
   { value: 'basic', label: 'Základní informace', icon: 'page' },
+  { value: 'relations', label: 'Zařazení a vazby', icon: 'layers' },
   { value: 'photos', label: 'Fotografie', icon: 'gallery' },
-  { value: 'seo', label: 'Marketing (SEO)', icon: 'search' },
 ]
 
 function langFilled(code: LangCode): boolean {
@@ -68,27 +77,19 @@ const filledLangs = computed(() => LANGS.filter((l) => langFilled(l.code)).map((
 /** Živý stav zveřejnění (odznak). */
 const state = computed(() => galleryState(form))
 
-/* ---------- SEO auto-generování (prototyp) ---------- */
-const generating = ref(false)
-function autoGenerate() {
-  generating.value = true
-  const l = activeLang.value
-  window.setTimeout(() => {
-    const title = form.name[l] || 'Galerie'
-    const plain = form.description[l].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
-    form.metaTitle[l] = `${title} | Dolní Vítkovice`.slice(0, 60)
-    form.metaDescription[l] = (plain || title).slice(0, 155)
-    const words = (title + ' ' + plain)
-      .toLowerCase()
-      .replace(/[^\p{L}\s]/gu, '')
-      .split(/\s+/)
-      .filter((w) => w.length > 3)
-    form.metaKeywords[l] = Array.from(new Set(words)).slice(0, 6).join(', ')
-    generating.value = false
-  }, 550)
-}
-const metaTitleLen = computed(() => form.metaTitle[activeLang.value].length)
-const metaDescLen = computed(() => form.metaDescription[activeLang.value].length)
+/* ---------- URL slug (prototyp) — automaticky z názvu, dokud ho klient
+   neupraví ručně. Titulek a meta se odvozují automaticky. ---------- */
+const slugText = computed({
+  get: () => form.slug?.[activeLang.value] ?? '',
+  set: (v: string) => {
+    if (!form.slug) form.slug = { cs: '', en: '', de: '', pl: '' }
+    form.slug[activeLang.value] = v
+  },
+})
+const { markManual } = useAutoSlug(
+  () => form.name,
+  () => (form.slug ??= { cs: '', en: '', de: '', pl: '' }),
+)
 
 const saved = ref(false)
 function save() {
@@ -96,26 +97,9 @@ function save() {
   window.setTimeout(() => (saved.value = false), 2200)
 }
 
-/* ---------- AI překlad (prototyp — žádná reálná AI) ---------- */
-const targetLangs = LANGS.filter((l) => l.code !== SOURCE_LANG)
-const translating = ref(false)
-const toast = ref('')
-const mlFields: (keyof Gallery)[] = ['name', 'description', 'metaTitle', 'metaDescription', 'metaKeywords']
-const sourceReady = computed(() => form.name[SOURCE_LANG].trim().length > 0)
-function translateAll() {
-  if (translating.value || !sourceReady.value) return
-  translating.value = true
-  window.setTimeout(() => {
-    for (const field of mlFields) {
-      const val = form[field] as ML
-      const src = val[SOURCE_LANG]
-      for (const t of targetLangs) if (src) val[t.code] = src
-    }
-    translating.value = false
-    toast.value = `Přeloženo z CZ do ${targetLangs.map((l) => l.code.toUpperCase()).join(', ')}`
-    window.setTimeout(() => (toast.value = ''), 3000)
-  }, 1500)
-}
+/* ---------- AI překlad mutací (prototyp) — sdílené řešení ---------- */
+const mlFields: (keyof Gallery)[] = ['name', 'description']
+const { translating, toast, translateLang, translateField } = useMlTranslate(form, mlFields)
 
 function backToSection() {
   if (form.sectionId) router.push({ name: 'gallery-section-edit', params: { id: form.sectionId } })
@@ -141,16 +125,21 @@ function backToSection() {
           </h1>
         </div>
 
-        <TabsRoot :model-value="activeLang" class="hidden lg:block" @update:model-value="(v) => (activeLang = v as LangCode)">
-          <TabsList class="inline-flex items-center gap-1 rounded-lg border border-steel-200 bg-steel-50 p-1" aria-label="Jazyková mutace">
-            <TabsTrigger v-for="l in LANGS" :key="l.code" :value="l.code" class="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12.5px] font-600 text-steel-500 outline-none transition-colors hover:text-graphite-800 data-[state=active]:bg-white data-[state=active]:text-graphite-900 data-[state=active]:shadow-sm">
-              <span>{{ l.flag }}</span>{{ l.code.toUpperCase() }}
-              <span class="h-1.5 w-1.5 rounded-full" :class="langFilled(l.code) ? 'bg-forge-500' : 'bg-steel-300'" />
-            </TabsTrigger>
-          </TabsList>
-        </TabsRoot>
+        <LangBar
+          v-model="activeLang"
+          :filled="filledLangs"
+          :translating="translating"
+          class="hidden lg:block"
+          @translate="translateLang"
+        />
 
         <div class="h-6 w-px bg-steel-200" />
+        <CardActionsMenu
+          v-if="isEdit"
+          :name="form.name.cs"
+          entity="galerii"
+          @delete="backToSection()"
+        />
         <AppButton variant="secondary" @click="backToSection">Zrušit</AppButton>
         <AppButton variant="primary" @click="save">
           <Icon :name="saved ? 'check' : 'save'" :size="16" />
@@ -187,17 +176,16 @@ function backToSection() {
                 </p>
                 <div class="space-y-4">
                   <div>
-                    <label class="mb-1.5 flex items-center justify-between">
-                      <span class="text-[13px] font-600 text-graphite-800">Název galerie <span class="text-brand-500">*</span></span>
-                      <span class="field-tag">gallery-name · {{ activeLang.toUpperCase() }}</span>
-                    </label>
+                    <MlFieldHeader label="Název galerie" :lang="activeLang" tag="gallery-name" required @translate="translateField('name')" />
                     <input v-model="form.name[activeLang]" type="text" placeholder="Např. Malý svět techniky U6" class="h-11 w-full rounded-md border border-steel-200 px-3.5 text-[15px] font-500 text-graphite-900 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
                   </div>
+                  <SlugField
+                    v-model="slugText"
+                    :tag="`gallery-url · ${activeLang.toUpperCase()}`"
+                    @edit="markManual(activeLang)"
+                  />
                   <div>
-                    <label class="mb-1.5 flex items-center justify-between">
-                      <span class="text-[13px] font-600 text-graphite-800">Popis</span>
-                      <span class="field-tag">gallery-description · {{ activeLang.toUpperCase() }}</span>
-                    </label>
+                    <MlFieldHeader label="Popis" :lang="activeLang" tag="gallery-description" @translate="translateField('description')" />
                     <RichTextEditor v-model="form.description[activeLang]" />
                   </div>
                   <div>
@@ -208,27 +196,31 @@ function backToSection() {
                     <input v-model="form.date" type="date" class="h-10 rounded-md border border-steel-200 px-3 text-[13px] text-graphite-800 focus:border-brand-500 focus:outline-none" />
                   </div>
 
-                  <!-- Zařazení a vazby — dříve v pravém railu -->
-                  <div class="rounded-md border border-steel-200 p-4">
-                    <p class="mb-3 flex items-center gap-2 text-[13px] font-600 text-graphite-800"><Icon name="layers" :size="15" class="text-steel-400" /> Zařazení a vazby</p>
-                    <div class="space-y-4">
-                      <div>
-                        <label class="mb-1.5 flex items-center justify-between">
-                          <span class="text-[13px] font-600 text-graphite-800">Zařazení do sekce</span>
-                          <span class="field-tag">gallery-section_id</span>
-                        </label>
-                        <AppSelect v-model="form.sectionId" :options="sectionSelectOptions" placeholder="Vyberte sekci…" />
-                        <p class="mt-1 text-[11.5px] text-steel-500">Sekce určuje, kde se galerie na webu zobrazí.</p>
-                      </div>
-                      <div>
-                        <label class="mb-1.5 flex items-center justify-between">
-                          <span class="text-[13px] font-600 text-graphite-800">Objekt v areálu</span>
-                          <span class="field-tag">gallery-area_id</span>
-                        </label>
-                        <AppSelect v-model="areaModel" :options="areaOptions" />
-                        <p class="mt-1 text-[11.5px] text-steel-500">Na webu se galerie zobrazí u daného objektu (např. Bolt Tower). Nepovinné.</p>
-                      </div>
-                    </div>
+                </div>
+              </TabsContent>
+
+              <!-- Sekce: Zařazení a vazby -->
+              <TabsContent value="relations" class="outline-none">
+                <p class="mb-4 flex items-center gap-2 text-[12.5px] text-steel-500">
+                  Kam galerie patří a u čeho se na webu zobrazí.
+                  <span class="field-tag rounded bg-steel-100 px-1.5 py-0.5">gallery-relations</span>
+                </p>
+                <div class="space-y-4">
+                  <div>
+                    <label class="mb-1.5 flex items-center justify-between">
+                      <span class="text-[13px] font-600 text-graphite-800">Zařazení do sekce</span>
+                      <span class="field-tag">gallery-section_id</span>
+                    </label>
+                    <AppSelect v-model="form.sectionId" :options="sectionSelectOptions" placeholder="Vyberte sekci…" />
+                    <p class="mt-1 text-[11.5px] text-steel-500">Sekce určuje, kde se galerie na webu zobrazí.</p>
+                  </div>
+                  <div>
+                    <label class="mb-1.5 flex items-center justify-between">
+                      <span class="text-[13px] font-600 text-graphite-800">Objekt v areálu</span>
+                      <span class="field-tag">gallery-area_id</span>
+                    </label>
+                    <AppSelect v-model="areaModel" :options="areaOptions" />
+                    <p class="mt-1 text-[11.5px] text-steel-500">Na webu se galerie zobrazí u daného objektu (např. Bolt Tower). Nepovinné.</p>
                   </div>
                 </div>
               </TabsContent>
@@ -240,83 +232,6 @@ function backToSection() {
                   <span class="field-tag rounded bg-steel-100 px-1.5 py-0.5">gallery-photos</span>
                 </p>
                 <GalleryManager v-model="form.photos" />
-              </TabsContent>
-
-              <!-- Sekce: Marketing (SEO) -->
-              <TabsContent value="seo" class="outline-none">
-                <p class="mb-4 flex items-center gap-2 text-[12.5px] text-steel-500">
-                  Meta údaje pro vyhledávače a sociální sítě — samostatně pro každý jazyk.
-                  <span class="field-tag rounded bg-steel-100 px-1.5 py-0.5">ML</span>
-                </p>
-                <div class="space-y-4">
-                  <div class="flex items-center justify-between rounded-md border border-brand-500/20 bg-brand-50 px-4 py-3">
-                    <div class="flex items-center gap-2.5">
-                      <Icon name="sparkles" :size="18" class="text-brand-500" />
-                      <div>
-                        <p class="text-[13px] font-600 text-graphite-800">Automatické vygenerování</p>
-                        <p class="text-[11.5px] text-steel-500">Titulek a popis z názvu a popisu ({{ activeLang.toUpperCase() }})</p>
-                      </div>
-                    </div>
-                    <AppButton variant="primary" size="sm" :disabled="generating" @click="autoGenerate">
-                      <Icon name="sparkles" :size="15" :class="generating && 'animate-pulse'" />
-                      {{ generating ? 'Generuji…' : 'Vygenerovat' }}
-                    </AppButton>
-                  </div>
-
-                  <div class="grid gap-4 md:grid-cols-2">
-                    <div class="md:col-span-2">
-                      <label class="mb-1.5 flex items-center justify-between">
-                        <span class="text-[13px] font-600 text-graphite-800">Titulek stránky</span>
-                        <span class="field-tag">gallery-meta_title · {{ activeLang.toUpperCase() }}</span>
-                      </label>
-                      <input v-model="form.metaTitle[activeLang]" type="text" placeholder="Meta title zobrazený ve výsledcích vyhledávání" class="h-10 w-full rounded-md border border-steel-200 px-3.5 text-[13.5px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
-                      <div class="mt-1 flex justify-end">
-                        <span class="font-mono text-[10.5px]" :class="metaTitleLen > 60 ? 'text-danger-500' : 'text-steel-400'">{{ metaTitleLen }} / 60</span>
-                      </div>
-                    </div>
-                    <div class="md:col-span-2">
-                      <label class="mb-1.5 flex items-center justify-between">
-                        <span class="text-[13px] font-600 text-graphite-800">Meta description</span>
-                        <span class="field-tag">gallery-meta_description · {{ activeLang.toUpperCase() }}</span>
-                      </label>
-                      <textarea v-model="form.metaDescription[activeLang]" rows="2" placeholder="Meta popis stránky" class="w-full resize-y rounded-md border border-steel-200 px-3.5 py-2.5 text-[13.5px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
-                      <div class="mt-1 flex justify-end">
-                        <span class="font-mono text-[10.5px]" :class="metaDescLen > 155 ? 'text-danger-500' : 'text-steel-400'">{{ metaDescLen }} / 155</span>
-                      </div>
-                    </div>
-                    <div>
-                      <label class="mb-1.5 flex items-center justify-between">
-                        <span class="text-[13px] font-600 text-graphite-800">Meta keywords</span>
-                        <span class="field-tag">gallery-meta_keywords</span>
-                      </label>
-                      <input v-model="form.metaKeywords[activeLang]" type="text" placeholder="klíčová slova oddělená čárkou" class="h-10 w-full rounded-md border border-steel-200 px-3.5 text-[13.5px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
-                    </div>
-                    <div>
-                      <label class="mb-1.5 flex items-center justify-between">
-                        <span class="text-[13px] font-600 text-graphite-800">Obrázek pro sociální sítě</span>
-                        <span class="field-tag">gallery-og_image</span>
-                      </label>
-                      <!-- prototyp — nahrání OG je nefunkční vizuální zástupka -->
-                      <button class="flex w-full items-center gap-3 rounded-md border border-dashed border-steel-300 px-4 py-[9px] text-left transition-colors hover:border-brand-400 hover:bg-brand-50/40">
-                        <span class="grid h-9 w-14 shrink-0 place-items-center rounded bg-steel-100 text-steel-400"><Icon name="image" :size="17" /></span>
-                        <span>
-                          <span class="block text-[12.5px] font-600 text-graphite-800">Nahrát OG obrázek</span>
-                          <span class="block text-[11px] text-steel-500">1200 × 630 px</span>
-                        </span>
-                      </button>
-                    </div>
-                  </div>
-
-                  <!-- SERP preview -->
-                  <div class="rounded-md border border-steel-200 bg-steel-50 p-4">
-                    <p class="mb-2 flex items-center gap-1.5 field-tag"><Icon name="globe" :size="13" /> Náhled ve vyhledávači</p>
-                    <div class="rounded bg-white p-3 shadow-sm">
-                      <p class="text-[12px] text-forge-600">dolnivitkovice.cz › galerie</p>
-                      <p class="mt-0.5 text-[16px] font-500 text-[#1a0dab]">{{ form.metaTitle[activeLang] || form.name[activeLang] || 'Titulek stránky' }}</p>
-                      <p class="mt-0.5 text-[12.5px] leading-snug text-steel-600">{{ form.metaDescription[activeLang] || 'Meta popis se zobrazí zde…' }}</p>
-                    </div>
-                  </div>
-                </div>
               </TabsContent>
             </div>
           </TabsRoot>
@@ -332,14 +247,6 @@ function backToSection() {
         <FormSection title="Štítky" icon="filter" tag="gallery-tags">
           <TagPicker v-model="form.tags" :options="PREDEFINED_TAGS" />
         </FormSection>
-
-        <LangMutationsCard
-          v-model="activeLang"
-          :filled="filledLangs"
-          :source-ready="sourceReady"
-          :translating="translating"
-          @translate="translateAll"
-        />
       </aside>
     </div>
 

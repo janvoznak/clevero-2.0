@@ -9,6 +9,7 @@ import AppSwitch from '@/components/ui/AppSwitch.vue'
 import TagChip from '@/components/ui/TagChip.vue'
 import TagPicker from '@/components/admin/TagPicker.vue'
 import RelationPicker from '@/components/admin/RelationPicker.vue'
+import GalleryField from '@/components/admin/GalleryField.vue'
 import RichTextEditor from '@/components/admin/RichTextEditor.vue'
 import { SOURCE_LANG } from '@/data/types'
 import type { ML } from '@/data/types'
@@ -18,11 +19,9 @@ import {
 } from '@/data/mockEvents'
 import { PLACE_OPTIONS, DEFAULT_PLACE_ID, areaPlace } from '@/data/mockVenues'
 import { tourOptionsList } from '@/data/mockTours'
-import { galleryOptionsList } from '@/data/mockGalleries'
 
 const router = useRouter()
 const tourItems = tourOptionsList()
-const galleryItems = galleryOptionsList()
 const typeOptions = EVENT_TYPES.map((t) => ({ value: t, label: t }))
 
 const empty = (): ML => ({ cs: '', en: '', de: '', pl: '' })
@@ -30,7 +29,7 @@ const form = reactive<DovEvent>({
   id: 'nová', title: empty(), subtitle: empty(), type: 'Festival',
   from: '', to: '', time: '', timeTo: '', summary: empty(), description: empty(),
   image: '', price: '', ticketUrl: '', ticketMode: 'none', ageLimit: '', duration: '', performers: '',
-  tags: [], areaId: DEFAULT_PLACE_ID, tourIds: [], galleryIds: [], published: false,
+  tags: [], areaId: DEFAULT_PLACE_ID, tourIds: [], galleryIds: [], gallery: [], published: false,
 })
 
 /* ---------- Kroky ---------- */
@@ -418,9 +417,13 @@ const canFinish = computed(() => !!form.title.cs.trim() && !!form.from && !!form
         </div>
 
         <div class="rounded-2xl border border-steel-200 bg-white p-5">
-          <h3 class="mb-1.5 flex items-center gap-2 text-[13px] font-700 text-graphite-900"><Icon name="gallery" :size="15" class="text-steel-400" /> Fotogalerie</h3>
-          <p class="mb-3 text-[12px] leading-relaxed text-steel-500">Připoj existující galerie z modulu Galerie (např. „fotky z minulého ročníku"). Fotky se nahrávají tam.</p>
-          <RelationPicker v-model="form.galleryIds" :items="galleryItems" add-label="Připojit galerii" empty-label="Zatím žádná galerie." search-placeholder="Hledat galerii…" icon="gallery" item-route-name="gallery-edit" create-route-name="gallery-new" create-label="Založit novou galerii" />
+          <h3 class="mb-3 flex items-center gap-2 text-[13px] font-700 text-graphite-900"><Icon name="gallery" :size="15" class="text-steel-400" /> Fotogalerie</h3>
+          <GalleryField
+            v-model:galleries="form.galleryIds"
+            v-model:photos="form.gallery"
+            link-tag="event-gallery_ids"
+            photos-tag="event-gallery"
+          />
         </div>
       </div>
 

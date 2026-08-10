@@ -6,14 +6,16 @@ import {
   TabsList,
   TabsTrigger,
   TabsContent,
-  TooltipProvider,
-  TooltipRoot,
-  TooltipTrigger,
-  TooltipPortal,
-  TooltipContent,
+  DialogRoot,
+  DialogPortal,
+  DialogOverlay,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
 } from 'reka-ui'
 import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import RowActionsMenu from '@/components/admin/RowActionsMenu.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import TagChip from '@/components/ui/TagChip.vue'
 import EventTimeline from '@/components/admin/calendar/EventTimeline.vue'
@@ -36,6 +38,9 @@ const view = ref<'table' | 'calendar'>('table')
 const filterVenue = ref('all')
 const filterType = ref('all')
 const filterStatus = ref('all')
+
+/* Prototyp: smazané akce jen skryjeme (mock data nemutujeme). */
+const hiddenIds = ref<Set<string>>(new Set())
 
 const venueOptions = [{ value: 'all', label: 'Všechna místa' }, ...MOCK_VENUES.map((v) => ({ value: v.id, label: v.title.cs }))]
 /** Popisek a barva místa (objektu v Areálu) pro výpis. */
@@ -67,7 +72,7 @@ const visible = computed(() =>
     const mV = filterVenue.value === 'all' || e.areaId === filterVenue.value
     const mT = filterType.value === 'all' || e.type === filterType.value
     const mS = filterStatus.value === 'all' || eventStatus(e) === filterStatus.value
-    return mV && mT && mS
+    return mV && mT && mS && !hiddenIds.value.has(e.id)
   }),
 )
 
@@ -88,6 +93,24 @@ function goDetail(e: DovEvent) {
 }
 function goNew() {
   router.push({ name: 'event-new' })
+}
+
+/* ---------- Akce nad řádkem (kontextové menu ⋮) ---------- */
+const rowActions = [
+  { key: 'edit', label: 'Editovat akci', icon: 'edit' },
+  { key: 'preview', label: 'Náhled na webu', icon: 'eye' },
+  { key: 'delete', label: 'Smazat akci', icon: 'trash', danger: true },
+]
+const deleteTarget = ref<DovEvent | null>(null)
+function onRowAction(key: string, e: DovEvent) {
+  if (key === 'edit') goDetail(e)
+  else if (key === 'delete') deleteTarget.value = e
+  // 'preview' — prototyp: náhled na webu je mrtvý odkaz
+}
+function confirmDelete() {
+  if (!deleteTarget.value) return
+  hiddenIds.value = new Set(hiddenIds.value).add(deleteTarget.value.id)
+  deleteTarget.value = null
 }
 </script>
 
@@ -215,25 +238,13 @@ function goNew() {
                   </div>
                 </td>
                 <td class="px-4 py-3 align-middle">
-                  <TooltipProvider :delay-duration="250">
-                    <div class="flex items-center justify-end gap-1">
-                      <TooltipRoot>
-                        <TooltipTrigger as-child>
-                          <button
-                            class="grid h-8 w-8 place-items-center rounded-md text-steel-400 transition-colors hover:bg-steel-100 hover:text-graphite-800"
-                            @click="goDetail(e)"
-                          >
-                            <Icon name="edit" :size="16" />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipPortal>
-                          <TooltipContent side="top" class="rounded bg-graphite-900 px-2 py-1 text-[11.5px] text-white">
-                            Detail / editace
-                          </TooltipContent>
-                        </TooltipPortal>
-                      </TooltipRoot>
-                    </div>
-                  </TooltipProvider>
+                  <div class="flex justify-end">
+                    <RowActionsMenu
+                      :actions="rowActions"
+                      label="Akce s akcí"
+                      @select="(key) => onRowAction(key, e)"
+                    />
+                  </div>
                 </td>
               </tr>
               <tr v-if="rows.length === 0">
@@ -255,5 +266,21 @@ function goNew() {
         <EventTimeline :events="visible" navigable show-hint @select="goDetail" />
       </TabsContent>
     </TabsRoot>
+
+    <!-- Potvrzení smazání akce (prototyp) -->
+    <DialogRoot :open="!!deleteTarget" @update:open="(v) => !v && (deleteTarget = null)">
+      <DialogPortal>
+        <DialogOverlay class="fixed inset-0 z-50 bg-graphite-950/40 backdrop-blur-[1px]" />
+        <DialogContent class="fixed left-1/2 top-1/2 z-50 w-[440px] max-w-[92vw] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-steel-200 bg-white p-6 shadow-2xl">
+          <div class="mb-3 grid h-11 w-11 place-items-center rounded-lg bg-danger-500/10 text-danger-500"><Icon name="trash" :size="22" /></div>
+          <DialogTitle class="font-display text-lg font-700 text-graphite-900">Smazat akci?</DialogTitle>
+          <DialogDescription class="mt-1.5 text-[13.5px] leading-relaxed text-steel-500">Chystáte se smazat <span class="font-600 text-graphite-800">„{{ deleteTarget?.title.cs }}"</span>. Tato akce je nevratná.</DialogDescription>
+          <div class="mt-5 flex justify-end gap-2">
+            <AppButton variant="secondary" @click="deleteTarget = null">Zrušit</AppButton>
+            <AppButton variant="danger" @click="confirmDelete">Smazat</AppButton>
+          </div>
+        </DialogContent>
+      </DialogPortal>
+    </DialogRoot>
   </div>
 </template>

@@ -45,6 +45,8 @@ export interface NewsItem {
   author: string
   /** Nadpis (ML) — v seznamu zobrazujeme CZ. */
   title: ML
+  /** Část URL (slug) — ML. Titulek/meta se odvozují automaticky. */
+  slug?: ML
   summary: ML
   text: ML
   videoLink: string
@@ -64,6 +66,8 @@ export interface NewsItem {
   areaId: string
   /** Související prohlídky (ID z modulu Prohlídky). */
   tourIds: string[]
+  /** Připojené fotogalerie (ID z modulu Galerie). */
+  galleryIds?: string[]
 }
 
 /** Předdefinovaný štítek s barvou (barva = hex, kvůli jednoduchosti mimo Tailwind shade). */

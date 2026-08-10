@@ -17,6 +17,7 @@ import {
 } from 'reka-ui'
 import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import CardActionsMenu from '@/components/admin/CardActionsMenu.vue'
 import AppSwitch from '@/components/ui/AppSwitch.vue'
 import FormSection from '@/components/admin/FormSection.vue'
 import PublishCard from '@/components/admin/PublishCard.vue'
@@ -24,11 +25,13 @@ import RichTextEditor from '@/components/admin/RichTextEditor.vue'
 import PopupPositionPicker from '@/components/admin/popup/PopupPositionPicker.vue'
 import PopupSizePreview from '@/components/admin/popup/PopupSizePreview.vue'
 import PopupTemplateBar from '@/components/admin/popup/PopupTemplateBar.vue'
-import LangMutationsCard from '@/components/admin/LangMutationsCard.vue'
+import LangBar from '@/components/admin/LangBar.vue'
+import MlFieldHeader from '@/components/admin/MlFieldHeader.vue'
+import { useMlTranslate } from '@/utils/useMlTranslate'
 import EditorVersionSwitch from '@/components/admin/popup/EditorVersionSwitch.vue'
 import { LANGS, SOURCE_LANG } from '@/data/types'
 import type { LangCode, ML } from '@/data/types'
-import { MOCK_POPUPS, popupState, POPUP_STATE_META, PREDEFINED_TEMPLATES } from '@/data/mockPopups'
+import { MOCK_POPUPS, popupState, PREDEFINED_TEMPLATES } from '@/data/mockPopups'
 import type { PopupItem, PopupTemplate } from '@/data/mockPopups'
 
 const props = defineProps<{ id?: string }>()
@@ -85,6 +88,19 @@ const widthValue = computed({
 
 const state = computed(() => popupState(form))
 
+/* Publikace/plánování řešíme jen v pravém panelu (PublishCard) — okno od–do. */
+const publishFromModel = computed({
+  get: () => form.from ?? '',
+  set: (v: string) => (form.from = v || null),
+})
+const publishToModel = computed({
+  get: () => form.to ?? '',
+  set: (v: string) => (form.to = v || null),
+})
+const cardStatus = computed<'draft' | 'published' | 'scheduled'>(() =>
+  state.value === 'scheduled' ? 'scheduled' : state.value === 'active' ? 'published' : 'draft',
+)
+
 function langFilled(code: LangCode): boolean {
   return form.title[code].trim().length > 0
 }
@@ -100,28 +116,9 @@ function saveAndBack() {
   router.push({ name: 'popups-list' })
 }
 
-/* ---------- AI překlad (prototyp — žádná reálná AI) ----------
-   Přeloží ML pole (nadpis, text) ze zdrojové CZ do EN/DE/PL. */
-const targetLangs = LANGS.filter((l) => l.code !== SOURCE_LANG)
-const translating = ref(false)
-const toast = ref('')
+/* ---------- AI překlad mutací (prototyp) — sdílené řešení ---------- */
 const mlFields: (keyof PopupItem)[] = ['title', 'text']
-const sourceReady = computed(() => form.title[SOURCE_LANG].trim().length > 0)
-
-function translateAll() {
-  if (translating.value || !sourceReady.value) return
-  translating.value = true
-  window.setTimeout(() => {
-    for (const field of mlFields) {
-      const val = form[field] as ML
-      const src = val[SOURCE_LANG]
-      for (const t of targetLangs) if (src) val[t.code] = src
-    }
-    translating.value = false
-    toast.value = `Přeloženo z CZ do ${targetLangs.map((l) => l.code.toUpperCase()).join(', ')}`
-    window.setTimeout(() => (toast.value = ''), 3000)
-  }, 1500)
-}
+const { translating, toast, translateLang, translateField } = useMlTranslate(form, mlFields)
 
 /* ---------- Předdefinované šablony (prototyp — předvyplňovač) ----------
    Prázdný formulář = aplikuje rovnou; rozepsaný obsah = potvrzení přepsání. */
@@ -180,34 +177,22 @@ function applyTemplate(tpl: PopupTemplate) {
 
         <EditorVersionSwitch :id="props.id" class="hidden md:inline-flex" />
 
-        <!-- Jazykový přepínač (globální) — Reka Tabs, pilulky -->
-        <TabsRoot
-          :model-value="activeLang"
+        <!-- Jazykové mutace (globální) — jediné místo, ✨ = AI překlad mutace -->
+        <LangBar
+          v-model="activeLang"
+          :filled="filledLangs"
+          :translating="translating"
           class="hidden lg:block"
-          @update:model-value="(v) => (activeLang = v as LangCode)"
-        >
-          <TabsList
-            class="inline-flex items-center gap-1 rounded-lg border border-steel-200 bg-steel-50 p-1"
-            aria-label="Jazyková mutace"
-          >
-            <TabsTrigger
-              v-for="l in LANGS"
-              :key="l.code"
-              :value="l.code"
-              class="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12.5px] font-600 text-steel-500 outline-none transition-colors hover:text-graphite-800 data-[state=active]:bg-white data-[state=active]:text-graphite-900 data-[state=active]:shadow-sm"
-            >
-              <span>{{ l.flag }}</span>
-              {{ l.code.toUpperCase() }}
-              <span
-                class="h-1.5 w-1.5 rounded-full"
-                :class="langFilled(l.code) ? 'bg-forge-500' : 'bg-steel-300'"
-                :title="langFilled(l.code) ? 'Vyplněno' : 'Prázdné'"
-              />
-            </TabsTrigger>
-          </TabsList>
-        </TabsRoot>
+          @translate="translateLang"
+        />
 
         <div class="h-6 w-px bg-steel-200" />
+        <CardActionsMenu
+          v-if="isEdit"
+          :name="form.title.cs"
+          entity="pop-up okno"
+          @delete="router.push({ name: 'popups-list' })"
+        />
         <AppButton variant="secondary" @click="save">
           <Icon :name="saved ? 'check' : 'save'" :size="16" />
           {{ saved ? 'Uloženo' : 'Uložit a zůstat' }}
@@ -218,21 +203,9 @@ function applyTemplate(tpl: PopupTemplate) {
         </AppButton>
       </div>
 
-      <!-- Jazykový přepínač (mobil / <lg) -->
+      <!-- Jazykové mutace (mobil / <lg) -->
       <div class="px-8 pb-3 lg:hidden">
-        <TabsRoot :model-value="activeLang" @update:model-value="(v) => (activeLang = v as LangCode)">
-          <TabsList class="inline-flex items-center gap-1 rounded-lg border border-steel-200 bg-steel-50 p-1">
-            <TabsTrigger
-              v-for="l in LANGS"
-              :key="l.code"
-              :value="l.code"
-              class="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12.5px] font-600 text-steel-500 outline-none transition-colors data-[state=active]:bg-white data-[state=active]:text-graphite-900 data-[state=active]:shadow-sm"
-            >
-              {{ l.flag }} {{ l.code.toUpperCase() }}
-              <span class="h-1.5 w-1.5 rounded-full" :class="langFilled(l.code) ? 'bg-forge-500' : 'bg-steel-300'" />
-            </TabsTrigger>
-          </TabsList>
-        </TabsRoot>
+        <LangBar v-model="activeLang" :filled="filledLangs" :translating="translating" @translate="translateLang" />
       </div>
     </div>
 
@@ -265,10 +238,7 @@ function applyTemplate(tpl: PopupTemplate) {
               <TabsContent value="basic" class="outline-none">
                 <div class="space-y-4">
             <div>
-              <label class="mb-1.5 flex items-center justify-between">
-                <span class="text-[13px] font-600 text-graphite-800">Název (nadpis) <span class="text-brand-500">*</span></span>
-                <span class="field-tag">popup-title · {{ activeLang.toUpperCase() }}</span>
-              </label>
+              <MlFieldHeader label="Název (nadpis)" :lang="activeLang" tag="popup-title" required @translate="translateField('title')" />
               <input
                 v-model="form.title[activeLang]"
                 type="text"
@@ -278,10 +248,7 @@ function applyTemplate(tpl: PopupTemplate) {
             </div>
 
             <div>
-              <label class="mb-1.5 flex items-center justify-between">
-                <span class="text-[13px] font-600 text-graphite-800">Text</span>
-                <span class="field-tag">popup-text · {{ activeLang.toUpperCase() }}</span>
-              </label>
+              <MlFieldHeader label="Text" :lang="activeLang" tag="popup-text" @translate="translateField('text')" />
               <RichTextEditor v-model="form.text[activeLang]" />
             </div>
 
@@ -414,37 +381,10 @@ function applyTemplate(tpl: PopupTemplate) {
                 </div>
               </TabsContent>
 
-              <!-- Zobrazování (dříve v pravém railu) -->
+              <!-- Chování a náhled (publikaci a plánování řeší pravý panel) -->
               <TabsContent value="schedule" class="space-y-5 outline-none">
-                <FormSection title="Zobrazování" icon="calendar" tag="popup-from / popup-to">
+                <FormSection title="Chování a náhled" icon="settings" tag="popup-behavior">
                   <div class="space-y-4">
-                    <div class="flex items-center justify-between rounded-md bg-steel-50 px-3 py-2.5">
-                      <span class="text-[12.5px] font-500 text-steel-600">Aktuální stav</span>
-                      <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-600" :class="[POPUP_STATE_META[state].bg, POPUP_STATE_META[state].text]">
-                        <span class="h-1.5 w-1.5 rounded-full" :class="POPUP_STATE_META[state].dot" />
-                        {{ POPUP_STATE_META[state].label }}
-                      </span>
-                    </div>
-                    <div class="flex items-center justify-between rounded-md border border-steel-200 px-3 py-2.5">
-                      <AppSwitch v-model="form.enabled" label="Zobrazovat" hint="Okno je aktivní" aria-label="Zobrazovat" />
-                      <span class="field-tag">popup-enabled</span>
-                    </div>
-                    <div class="grid gap-4 sm:grid-cols-2">
-                      <div>
-                        <label class="mb-1.5 flex items-center justify-between">
-                          <span class="text-[13px] font-600 text-graphite-800">Od</span>
-                          <span class="field-tag">popup-from</span>
-                        </label>
-                        <input v-model="form.from" type="datetime-local" class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13px] text-graphite-800 focus:border-brand-500 focus:outline-none" />
-                      </div>
-                      <div>
-                        <label class="mb-1.5 flex items-center justify-between">
-                          <span class="text-[13px] font-600 text-graphite-800">Do</span>
-                          <span class="field-tag">popup-to</span>
-                        </label>
-                        <input v-model="form.to" type="datetime-local" class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13px] text-graphite-800 focus:border-brand-500 focus:outline-none" />
-                      </div>
-                    </div>
                     <div>
                       <label class="mb-1.5 flex items-center justify-between">
                         <span class="text-[13px] font-600 text-graphite-800">Platnost blokace (dny)</span>
@@ -466,15 +406,13 @@ function applyTemplate(tpl: PopupTemplate) {
 
       <!-- PRAVÝ rail -->
       <aside class="space-y-5 xl:sticky xl:top-[92px] xl:self-start">
-        <PublishCard :published="form.enabled" updated-by="Jan Voznak" />
-
-        <LangMutationsCard
-          v-model="activeLang"
-          :filled="filledLangs"
-          :source-ready="sourceReady"
-          :translating="translating"
-          @translate="translateAll"
+        <PublishCard
+          :initial-status="cardStatus"
+          v-model:publish-from="publishFromModel"
+          v-model:publish-to="publishToModel"
+          updated-by="Jan Voznak"
         />
+
       </aside>
     </div>
 
