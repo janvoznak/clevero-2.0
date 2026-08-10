@@ -1,14 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import {
-  TabsRoot,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
-  CheckboxRoot,
-  CheckboxIndicator,
-} from 'reka-ui'
+import { TabsRoot, TabsList, TabsTrigger, TabsContent } from 'reka-ui'
 import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import CardActionsMenu from '@/components/admin/CardActionsMenu.vue'
@@ -40,7 +33,6 @@ import {
   addAssociatedLink,
   defaultOpeningHours,
   FORM_TEMPLATES,
-  COOKIE_CATEGORIES,
 } from '@/data/mockPages'
 import type { PageItem } from '@/data/mockPages'
 
@@ -107,7 +99,6 @@ const sections = [
   { value: 'settings', label: 'Nastavení a vztahy', icon: 'settings' },
   { value: 'forms', label: 'Formuláře', icon: 'reference' },
   { value: 'media', label: 'Obrázky & Přílohy', icon: 'gallery' },
-  { value: 'codes', label: 'Měřící kódy', icon: 'code' },
 ]
 
 /* ---------- Proxy pro typované selecty ---------- */
@@ -142,15 +133,6 @@ const urlPreview = computed(() => {
 /* ---------- URL slug (prototyp) — automaticky z nadpisu, dokud ho klient
    neupraví ručně. Titulek a meta se odvozují automaticky. ---------- */
 const { markManual } = useAutoSlug(() => form.title, () => form.slug)
-
-/* ---------- Cookies (multiselect přes checkboxy) ---------- */
-function toggleCookie(value: string, v: boolean | 'indeterminate') {
-  if (v === true) {
-    if (!form.usedCookies.includes(value)) form.usedCookies = [...form.usedCookies, value]
-  } else {
-    form.usedCookies = form.usedCookies.filter((c) => c !== value)
-  }
-}
 
 /* ---------- Přepínání mezi přidruženými stránkami ---------- */
 function goPage(id: string) {
@@ -403,48 +385,6 @@ const { translating, toast, translateLang, translateField } = useMlTranslate(for
                     <span class="field-tag rounded bg-steel-100 px-1.5 py-0.5">page-attachments · ML</span>
                   </p>
                   <AttachmentsManager v-model="form.attachments" :lang="activeLang" />
-                </div>
-              </TabsContent>
-
-              <!-- TAB 5: Měřící kódy & Cookies -->
-              <TabsContent value="codes" class="space-y-4 outline-none">
-                <div>
-                  <label class="mb-1.5 flex items-center justify-between">
-                    <span class="text-[13px] font-600 text-graphite-800">Vlastní JS kódy</span>
-                    <span class="field-tag">page-js_codes</span>
-                  </label>
-                  <textarea
-                    v-model="form.jsCodes"
-                    rows="5"
-                    spellcheck="false"
-                    placeholder="<!-- HTML / JS vkládané do stránky -->"
-                    class="w-full resize-y rounded-md border border-steel-200 bg-graphite-950 px-3.5 py-2.5 font-mono text-[12.5px] text-steel-100 placeholder:text-steel-500 focus:border-brand-500 focus:outline-none"
-                  />
-                  <p class="mt-1 flex items-center gap-1.5 text-[11px] text-amber-600">
-                    <Icon name="help" :size="13" /> Vyžaduje oprávnění super-admin. Kódy se blokují dle souhlasu s cookies.
-                  </p>
-                </div>
-                <div>
-                  <label class="mb-2 flex items-center justify-between">
-                    <span class="text-[13px] font-600 text-graphite-800">Použité cookies</span>
-                    <span class="field-tag">page-usedCookies[]</span>
-                  </label>
-                  <div class="flex flex-wrap gap-2">
-                    <label
-                      v-for="c in COOKIE_CATEGORIES"
-                      :key="c.value"
-                      class="flex cursor-pointer items-center gap-2 rounded-md border border-steel-200 px-3 py-2 text-[13px] transition-colors has-[[data-state=checked]]:border-brand-500 has-[[data-state=checked]]:bg-brand-50"
-                    >
-                      <CheckboxRoot
-                        :model-value="form.usedCookies.includes(c.value)"
-                        class="grid h-4 w-4 place-items-center rounded border border-steel-300 bg-white data-[state=checked]:border-brand-500 data-[state=checked]:bg-brand-500"
-                        @update:model-value="(v) => toggleCookie(c.value, v)"
-                      >
-                        <CheckboxIndicator class="text-white"><Icon name="check" :size="12" /></CheckboxIndicator>
-                      </CheckboxRoot>
-                      <span class="font-500 text-graphite-800">{{ c.label }}</span>
-                    </label>
-                  </div>
                 </div>
               </TabsContent>
             </div>
