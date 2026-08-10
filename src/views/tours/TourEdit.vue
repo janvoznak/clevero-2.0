@@ -10,11 +10,11 @@ import AppSwitch from '@/components/ui/AppSwitch.vue'
 import FormSection from '@/components/admin/FormSection.vue'
 import PublishCard from '@/components/admin/PublishCard.vue'
 import AiPanel from '@/components/admin/AiPanel.vue'
-import RichTextEditor from '@/components/admin/RichTextEditor.vue'
+import ContentBuilder from '@/components/admin/ContentBuilder.vue'
 import LangBar from '@/components/admin/LangBar.vue'
 import MlFieldHeader from '@/components/admin/MlFieldHeader.vue'
 import { useMlTranslate } from '@/utils/useMlTranslate'
-import { LANGS, SOURCE_LANG } from '@/data/types'
+import { LANGS, SOURCE_LANG, defaultContentBlocks } from '@/data/types'
 import type { LangCode } from '@/data/types'
 import {
   MOCK_TOURS,
@@ -44,8 +44,11 @@ const isEdit = computed(() => !!props.id)
 const source = computed(() => MOCK_TOURS.find((t) => t.id === props.id))
 function clone(): Tour {
   const s = source.value
-  if (s) return JSON.parse(JSON.stringify(s))
-  return blankTour(typeof route.query.category === 'string' ? route.query.category : 'cat-dov')
+  const c = s
+    ? (JSON.parse(JSON.stringify(s)) as Tour)
+    : blankTour(typeof route.query.category === 'string' ? route.query.category : 'cat-dov')
+  c.contentBlocks = c.contentBlocks ?? defaultContentBlocks()
+  return c
 }
 const form = reactive<Tour>(clone())
 const activeLang = ref<LangCode>('cs')
@@ -55,9 +58,10 @@ function langFilled(code: LangCode): boolean {
 const filledLangs = computed(() => LANGS.filter((l) => langFilled(l.code)).map((l) => l.code))
 
 /* ---------- Sekce ---------- */
-const activeSection = ref('content')
+const activeSection = ref('basic')
 const sections = [
-  { value: 'content', label: 'Obsah', icon: 'page' },
+  { value: 'basic', label: 'Základní informace', icon: 'page' },
+  { value: 'content', label: 'Obsah', icon: 'text' },
   { value: 'pricing', label: 'Ceník a kontakt', icon: 'ticket' },
   { value: 'colosseum', label: 'Dostupnost a Colosseum', icon: 'integration' },
   { value: 'media', label: 'Obrázek', icon: 'image' },
@@ -108,14 +112,14 @@ function aiDescribe() {
     }
     if (!form.scheduleNote.cs) form.scheduleNote[SOURCE_LANG] = 'Denně v 10:00, 12:00 a 14:00. Kapacita skupiny je omezená, doporučujeme rezervaci předem.'
     activeLang.value = SOURCE_LANG
-    activeSection.value = 'content'
+    activeSection.value = 'basic'
     aiWorking.value = false
     fireToast('AI připravila popis prohlídky — zkontrolujte a doplňte')
   }, 1600)
 }
 
 /* ---------- AI překlad mutací (prototyp) — sdílené řešení ---------- */
-const mlFields: (keyof Tour)[] = ['title', 'perex', 'description', 'scheduleNote', 'paymentNote']
+const mlFields: (keyof Tour)[] = ['title', 'perex', 'scheduleNote', 'paymentNote']
 const { translating, translateLang, translateField } = useMlTranslate(form, mlFields)
 
 const toast = ref('')
@@ -198,8 +202,8 @@ function backToCategory() {
             </TabsList>
 
             <div class="p-5">
-              <!-- Obsah -->
-              <TabsContent value="content" class="space-y-4 outline-none">
+              <!-- Základní informace -->
+              <TabsContent value="basic" class="space-y-4 outline-none">
                 <div>
                   <MlFieldHeader label="Název prohlídky" :lang="activeLang" tag="tour-title" required @translate="translateField('title')" />
                   <input v-model="form.title[activeLang]" type="text" placeholder="Např. Vysokopecní okruh vč. návštěvy Bolt Tower" class="h-11 w-full rounded-md border border-steel-200 px-3.5 text-[15px] font-500 text-graphite-900 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
@@ -217,11 +221,6 @@ function backToCategory() {
                     </label>
                     <input v-model="form.duration" type="text" placeholder="např. 100 minut" class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13.5px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
                   </div>
-                </div>
-
-                <div>
-                  <MlFieldHeader label="Popis prohlídky" :lang="activeLang" tag="tour-description" @translate="translateField('description')" />
-                  <RichTextEditor v-model="form.description[activeLang]" />
                 </div>
 
                 <!-- Co vás čeká -->
@@ -246,6 +245,11 @@ function backToCategory() {
                   <MlFieldHeader label="Kdy prohlídky začínají" :lang="activeLang" tag="tour-schedule" @translate="translateField('scheduleNote')" />
                   <textarea v-model="form.scheduleNote[activeLang]" rows="3" placeholder="Např. Denně v 10:00, 12:00, 14:00 a 16:00. Max. kapacita skupiny 17 osob." class="w-full resize-y rounded-md border border-steel-200 px-3.5 py-2.5 text-[13.5px] leading-relaxed text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
                 </div>
+              </TabsContent>
+
+              <!-- Obsah (jednotný ContentBuilder — nic dalšího pod ním) -->
+              <TabsContent value="content" class="outline-none">
+                <ContentBuilder v-model="form.contentBlocks" />
               </TabsContent>
 
               <!-- Ceník a kontakt -->

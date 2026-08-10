@@ -1,5 +1,5 @@
 import { imageFor, TAG_PALETTE } from './mockNews'
-import type { ML, Tag, GalleryImage } from './types'
+import type { ML, Tag, GalleryImage, ContentBlock } from './types'
 
 /** „Dnešek" prototypu — kvůli stavům a zvýraznění v kalendáři. */
 export const EVENTS_NOW = new Date('2026-07-28T12:00:00')
@@ -28,6 +28,16 @@ export const TICKET_MODE_OPTIONS: { value: TicketMode; label: string; hint: stri
   { value: 'colosseum', label: 'Přes Colosseum', hint: 'Vstupenky prodává navázaná prohlídka — dostupnost i košík táhne Colosseum.', icon: 'ticket' },
   { value: 'external', label: 'Externí odkaz', hint: 'Prodej řeší pořadatel / nájemce na svém webu — web jen odkáže.', icon: 'link' },
   { value: 'none', label: 'Zdarma / bez prodeje', hint: 'Akce nemá online prodej vstupenek (vstup zdarma nebo na místě).', icon: 'check' },
+]
+
+/** Předdefinované možnosti věkového omezení (dropdown v detailu akce).
+    Prázdná hodnota = bez omezení (řeší se sentinelem v komponentě). */
+export const AGE_LIMIT_OPTIONS: { value: string; label: string }[] = [
+  { value: 'Od 3 let', label: 'Od 3 let' },
+  { value: 'Od 6 let', label: 'Od 6 let' },
+  { value: 'Od 12 let', label: 'Od 12 let' },
+  { value: 'Od 15 let', label: 'Od 15 let' },
+  { value: 'Od 18 let', label: 'Od 18 let' },
 ]
 
 /** Předdefinované štítky akcí s barvami — stejný model jako v Aktualitách
@@ -63,6 +73,8 @@ export interface DovEvent {
   summary: ML
   /** Vícejazyčný dlouhý popis (ML, richtext). */
   description: ML
+  /** Obsah akce jako bloky (ContentBuilder) — jednotná sekce „Obsah". */
+  contentBlocks?: ContentBlock[]
   image: string
   /** Vstupné (krátký text, např. „Vstup zdarma" / „od 390 Kč"). */
   price: string
@@ -126,7 +138,7 @@ const RAW_EVENTS: RawEvent[] = [
   { id: 'e-salon', title: 'Letní salón 2', areaId: 'v-galerie', type: 'Výstava', from: '2026-06-23', to: '2026-08-28', summary: 'Přehlídka současné regionální tvorby.', image: imageFor(6), published: true },
 
   // — Vzdělávací programy (konec července) —
-  { id: 'e-tabor', areaId: 'v-u6', title: 'Letní příměstský tábor U6', type: 'Vzdělávací program', from: '2026-07-27', to: '2026-07-31', summary: 'Týdenní tábor plný experimentů ve Světě techniky.', image: imageFor(4), published: true, price: '2 900 Kč', ageLimit: '7–12 let', tags: ['Pro školy', 'Rodinné'] },
+  { id: 'e-tabor', areaId: 'v-u6', title: 'Letní příměstský tábor U6', type: 'Vzdělávací program', from: '2026-07-27', to: '2026-07-31', summary: 'Týdenní tábor plný experimentů ve Světě techniky.', image: imageFor(4), published: true, price: '2 900 Kč', ageLimit: 'Od 6 let', tags: ['Pro školy', 'Rodinné'] },
   { id: 'e-scienceshow', areaId: 'v-u6', title: 'Science Show: Živly', type: 'Vzdělávací program', from: '2026-07-29', to: '2026-07-29', time: '15:00', timeTo: '16:00', summary: 'Interaktivní představení o přírodních živlech.', image: imageFor(13), published: true, price: 'Vstup zdarma', duration: '60 min', tags: ['Rodinné', 'Zdarma'] },
   // — Srpen: festivaly a akce (více budov v jeden den) —
   { id: 'e-plameny', title: 'Ostrava v plamenech 2026', areaId: 'v-areal', type: 'Festival', from: '2026-08-01', to: '2026-08-01', time: '18:00', summary: 'Ohnivá show a doprovodný program v celém areálu.', image: imageFor(1), published: true, price: 'od 290 Kč', tags: ['Venku', 'Hudba'], galleryIds: ['g-akce'] },
@@ -254,7 +266,7 @@ export function aiImportFromUrl(url: string): EventDraft {
       price: 'od 390 Kč',
       ticketUrl: url,
       ticketMode: 'external',
-      ageLimit: '12+ (děti v doprovodu)',
+      ageLimit: 'Od 12 let',
       duration: 'celodenní program',
       performers: '',
       tags: ['Sport', 'Venku', 'Industriál', 'Rodinné'],
@@ -279,7 +291,7 @@ export function aiImportFromUrl(url: string): EventDraft {
       price: 'Vstup zdarma (nutná rezervace)',
       ticketUrl: url,
       ticketMode: 'external',
-      ageLimit: '15+',
+      ageLimit: 'Od 15 let',
       duration: '90 min',
       performers: '',
       tags: ['Komedie', 'Zdarma', 'Noční'],

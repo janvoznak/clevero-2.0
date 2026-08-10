@@ -123,7 +123,7 @@ const nav: NavEntry[] = [
     to: '/admin/products',
     children: [
       { label: 'Produkty', to: '/admin/products', match: '/admin/products' },
-      { label: 'Nový produkt', to: '/admin/products/new', match: '/admin/products/new' },
+      { label: 'Vouchery', to: '/admin/vouchers', match: '/admin/vouchers' },
       { label: 'Kategorie', to: '/admin/product-categories', match: '/admin/product-categories' },
     ],
   },

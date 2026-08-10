@@ -1,5 +1,5 @@
 import { imageFor } from './mockNews'
-import type { ML } from './types'
+import type { ML, ContentBlock } from './types'
 
 /* ============================================================
    Modul „Prohlídky" (dříve Vstupenky).
@@ -57,6 +57,8 @@ export interface Tour {
   perex: ML
   /** Hlavní popis (richtext). */
   description: ML
+  /** Obsah prohlídky jako bloky (ContentBuilder) — jednotná sekce „Obsah". */
+  contentBlocks?: ContentBlock[]
   image: string
   /** Délka prohlídky (např. „100 minut"). */
   duration: string

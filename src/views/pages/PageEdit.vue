@@ -27,7 +27,7 @@ import { useAutoSlug } from '@/utils/useAutoSlug'
 import LangBar from '@/components/admin/LangBar.vue'
 import MlFieldHeader from '@/components/admin/MlFieldHeader.vue'
 import { useMlTranslate } from '@/utils/useMlTranslate'
-import { LANGS } from '@/data/types'
+import { LANGS, defaultContentBlocks } from '@/data/types'
 import type { LangCode, ML } from '@/data/types'
 import {
   MOCK_PAGES,
@@ -71,7 +71,7 @@ function clone(): PageItem {
     slug: empty(),
     perex: empty(),
     text: empty(),
-    contentBlocks: [],
+    contentBlocks: defaultContentBlocks(),
     associatedLinks: [],
     allowMenu: false,
     allowFooter: '0',
@@ -103,6 +103,7 @@ const activeLang = ref<LangCode>('cs')
 const activeSection = ref('basic')
 const sections = [
   { value: 'basic', label: 'Základní informace', icon: 'page' },
+  { value: 'content', label: 'Obsah', icon: 'text' },
   { value: 'settings', label: 'Nastavení a vztahy', icon: 'settings' },
   { value: 'forms', label: 'Formuláře', icon: 'reference' },
   { value: 'media', label: 'Obrázky & Přílohy', icon: 'gallery' },
@@ -296,14 +297,11 @@ const { translating, toast, translateLang, translateField } = useMlTranslate(for
                     class="w-full resize-y rounded-md border border-steel-200 px-3.5 py-2.5 text-[14px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none"
                   />
                 </div>
-                <div>
-                  <label class="mb-1.5 flex items-center justify-between">
-                    <span class="text-[13px] font-600 text-graphite-800">Obsah</span>
-                    <span class="field-tag">page-content</span>
-                  </label>
-                  <ContentBuilder v-model="form.contentBlocks" />
-                </div>
+              </TabsContent>
 
+              <!-- TAB: Obsah (jednotný ContentBuilder — nic dalšího pod ním) -->
+              <TabsContent value="content" class="outline-none">
+                <ContentBuilder v-model="form.contentBlocks" />
               </TabsContent>
 
               <!-- TAB: Nastavení a vztahy (dříve v pravém railu) -->

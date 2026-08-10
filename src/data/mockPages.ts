@@ -1,4 +1,5 @@
-import type { ML, LangCode, GalleryImage, Attachment } from './types'
+import type { ML, LangCode, GalleryImage, Attachment, ContentBlock } from './types'
+import { defaultContentBlocks } from './types'
 
 /* ============================================================
    Modul Stránky (entita `page`) — statické stránky webu.
@@ -111,11 +112,10 @@ export const COOKIE_CATEGORIES = [
    Stránka se skládá z hotových „grafických vzorů" (jako ContentBuilder.js).
    Vzor je vizuální šablona úseku stránky (hero, odstavec, obrázek, CTA…),
    `kind` řídí náhled. Reálný obsah vzoru vyplní editor — tady jen zástupka. */
-export interface ContentBlock {
-  id: string
-  /** Druh grafického vzoru (řídí náhled). */
-  kind: string
-}
+// ContentBlock + defaultContentBlocks žijí ve sdílených types (jednotná sekce
+// „Obsah" napříč moduly). Re-export kvůli stávajícím importům z '@/data/mockPages'.
+export type { ContentBlock }
+export { defaultContentBlocks }
 /** Externí odkaz zobrazený jako přidružená záložka (otevře se v novém okně).
     Popisek je vícejazyčný, URL je společná pro všechny mutace. */
 export interface AssociatedLink {

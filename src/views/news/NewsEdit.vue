@@ -8,7 +8,7 @@ import CardActionsMenu from '@/components/admin/CardActionsMenu.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import FormSection from '@/components/admin/FormSection.vue'
 import PublishCard from '@/components/admin/PublishCard.vue'
-import RichTextEditor from '@/components/admin/RichTextEditor.vue'
+import ContentBuilder from '@/components/admin/ContentBuilder.vue'
 import SlugField from '@/components/admin/SlugField.vue'
 import { useAutoSlug } from '@/utils/useAutoSlug'
 import GalleryField from '@/components/admin/GalleryField.vue'
@@ -18,7 +18,7 @@ import RelationPicker from '@/components/admin/RelationPicker.vue'
 import LangBar from '@/components/admin/LangBar.vue'
 import MlFieldHeader from '@/components/admin/MlFieldHeader.vue'
 import { useMlTranslate } from '@/utils/useMlTranslate'
-import { LANGS } from '@/data/types'
+import { LANGS, defaultContentBlocks } from '@/data/types'
 import type { LangCode, NewsItem, ML } from '@/data/types'
 import { MOCK_NEWS, publishState, PREDEFINED_TAGS, PREDEFINED_CATEGORIES } from '@/data/mockNews'
 import { tourOptionsList } from '@/data/mockTours'
@@ -34,13 +34,11 @@ const areaOptions = [{ value: AREA_NONE, label: '— nepropojeno' }, ...PLACE_OP
 const props = defineProps<{ id?: string }>()
 const router = useRouter()
 
-/* Proklik / založení objektu v Areálu z výběru (nový panel — zachová práci). */
+/* Proklik na objekt v Areálu z výběru (nový panel — zachová práci).
+   Objekty se zakládají v modulu Areál, ne odsud. */
 function openPlace() {
   if (!form.areaId) return
   window.open(router.resolve({ name: 'area-edit', params: { id: form.areaId } }).href, '_blank')
-}
-function createPlace() {
-  window.open(router.resolve({ name: 'area-new' }).href, '_blank')
 }
 
 const isEdit = computed(() => !!props.id)
@@ -53,6 +51,7 @@ function clone(): NewsItem {
     const c = JSON.parse(JSON.stringify(s)) as NewsItem
     c.galleryIds = c.galleryIds ?? []
     c.slug = c.slug ?? empty()
+    c.contentBlocks = c.contentBlocks ?? defaultContentBlocks()
     return c
   }
   return {
@@ -60,6 +59,7 @@ function clone(): NewsItem {
     author: 'Jan Voznak',
     title: empty(),
     slug: empty(),
+    contentBlocks: defaultContentBlocks(),
     summary: empty(),
     text: empty(),
     videoLink: '',
@@ -90,6 +90,7 @@ const areaModel = computed({
 const activeSection = ref('basic')
 const sections = [
   { value: 'basic', label: 'Základní informace', icon: 'news' },
+  { value: 'content', label: 'Obsah', icon: 'text' },
   { value: 'relations', label: 'Zařazení a vazby', icon: 'layers' },
   { value: 'gallery', label: 'Fotogalerie', icon: 'gallery' },
   { value: 'attachments', label: 'Přílohy', icon: 'paperclip' },
@@ -135,7 +136,7 @@ function save() {
 }
 
 /* ---------- AI překlad mutací (prototyp) — sdílené řešení ---------- */
-const mlFields: (keyof NewsItem)[] = ['title', 'summary', 'text']
+const mlFields: (keyof NewsItem)[] = ['title', 'summary']
 const { translating, toast, translateLang, translateField } = useMlTranslate(form, mlFields)
 </script>
 
@@ -247,11 +248,6 @@ const { translating, toast, translateLang, translateField } = useMlTranslate(for
             </div>
 
             <div>
-              <MlFieldHeader label="Text" :lang="activeLang" tag="news-text" @translate="translateField('text')" />
-              <RichTextEditor v-model="form.text[activeLang]" />
-            </div>
-
-            <div>
               <label class="mb-1.5 flex items-center justify-between">
                 <span class="text-[13px] font-600 text-graphite-800">Odkaz na video</span>
                 <span class="field-tag">news-videoLink</span>
@@ -270,43 +266,32 @@ const { translating, toast, translateLang, translateField } = useMlTranslate(for
                 </div>
               </TabsContent>
 
+              <!-- Sekce: Obsah (jednotný ContentBuilder — nic dalšího pod ním) -->
+              <TabsContent value="content" class="outline-none">
+                <ContentBuilder v-model="form.contentBlocks" />
+              </TabsContent>
+
               <!-- Sekce: Zařazení a vazby -->
-              <TabsContent value="relations" class="outline-none">
-                <p class="mb-4 flex items-center gap-2 text-[12.5px] text-steel-500">
-                  Kam aktualita patří a na co na webu odkazuje.
-                  <span class="field-tag rounded bg-steel-100 px-1.5 py-0.5">news-relations</span>
-                </p>
-                <div class="space-y-4">
-                  <div>
-                    <label class="mb-1.5 flex items-center justify-between">
-                      <span class="text-[13px] font-600 text-graphite-800">Objekt v areálu</span>
-                      <span class="field-tag">news-area_id</span>
-                    </label>
-                    <AppSelect v-model="areaModel" :options="areaOptions" />
-                    <div class="mt-1.5 flex items-center gap-3 text-[11.5px]">
-                      <button v-if="form.areaId" type="button" class="inline-flex items-center gap-1 font-600 text-brand-600 transition-colors hover:text-brand-700" @click="openPlace">
-                        <Icon name="externalLink" :size="12" /> Otevřít objekt
-                      </button>
-                      <button type="button" class="inline-flex items-center gap-1 font-600 text-steel-500 transition-colors hover:text-brand-600" @click="createPlace">
-                        <Icon name="plus" :size="12" /> Nový objekt
-                      </button>
-                    </div>
-                  </div>
-                  <div>
-                    <label class="mb-1.5 flex items-center justify-between">
-                      <span class="text-[13px] font-600 text-graphite-800">Kategorie</span>
-                      <span class="field-tag">news-categories</span>
-                    </label>
-                    <TagPicker v-model="form.categories" :options="PREDEFINED_CATEGORIES" add-label="Přidat kategorii" empty-label="Zatím žádné kategorie." color-label="Barva kategorie" />
-                  </div>
-                  <div>
-                    <label class="mb-1.5 flex items-center justify-between">
-                      <span class="text-[13px] font-600 text-graphite-800">Související prohlídky</span>
-                      <span class="field-tag">news-tours</span>
-                    </label>
-                    <RelationPicker v-model="form.tourIds" :items="tourItems" add-label="Přidat prohlídku" empty-label="Zatím žádné prohlídky." search-placeholder="Hledat prohlídku…" icon="ticket" item-route-name="tour-edit" create-route-name="tour-new" create-label="Založit novou prohlídku" />
-                  </div>
-                </div>
+              <TabsContent value="relations" class="space-y-4 outline-none">
+                <FormSection title="Objekt v areálu" icon="map" hint="Ke kterému objektu aktualita patří — na webu se propojí s jeho detailem." tag="news-area_id">
+                  <AppSelect v-model="areaModel" :options="areaOptions" />
+                  <button
+                    v-if="form.areaId"
+                    type="button"
+                    class="mt-2 inline-flex items-center gap-1 text-[12px] font-600 text-brand-600 transition-colors hover:text-brand-700"
+                    @click="openPlace"
+                  >
+                    <Icon name="externalLink" :size="13" /> Otevřít objekt
+                  </button>
+                </FormSection>
+
+                <FormSection title="Kategorie" icon="filter" hint="Obsahové zařazení pro filtrování aktualit na webu." tag="news-categories">
+                  <TagPicker v-model="form.categories" :options="PREDEFINED_CATEGORIES" add-label="Přidat kategorii" empty-label="Zatím žádné kategorie." color-label="Barva kategorie" />
+                </FormSection>
+
+                <FormSection title="Související prohlídky" icon="ticket" hint="Prohlídky, na které aktualita na webu odkazuje." tag="news-tours">
+                  <RelationPicker v-model="form.tourIds" :items="tourItems" add-label="Přidat prohlídku" empty-label="Zatím žádné prohlídky." search-placeholder="Hledat prohlídku…" icon="ticket" item-route-name="tour-edit" create-route-name="tour-new" create-label="Založit novou prohlídku" />
+                </FormSection>
               </TabsContent>
 
               <!-- Sekce: Fotogalerie -->

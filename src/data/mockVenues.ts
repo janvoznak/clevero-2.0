@@ -1,5 +1,6 @@
 import { imageFor, TAG_PALETTE } from './mockNews'
 import { defaultOpeningHours } from './mockPages'
+import { defaultContentBlocks } from './types'
 import type { ML, Tag, GalleryImage } from './types'
 import type { OpeningDay } from './mockPages'
 import type { ContentBlock } from './mockPages'
@@ -72,7 +73,10 @@ export interface AreaObject {
   galleryIds?: string[]
   /** Bezbariérový přístup. */
   accessible: boolean
+  /** Provozní stav (nadřazený otevírací době: „closed" = na webu zavřeno). */
   openState: OpenState
+  /** Poznámka k provozu zobrazená na webu (ML) — např. „Zavřeno kvůli rekonstrukci do jara 2027". */
+  statusNote: ML
   openingHours: OpeningDay[]
   showOpeningHours: boolean
   published: boolean
@@ -95,6 +99,7 @@ type RawVenue = {
   tags: string[]
   accessible: boolean
   openState: OpenState
+  statusNote?: string
   showOpeningHours: boolean
   published: boolean
   stats?: VenueStat[]
@@ -189,6 +194,7 @@ const RAW: RawVenue[] = [
     photos: vphotos(3, 5),
     accessible: false,
     openState: 'seasonal',
+    statusNote: 'Sezónní provoz duben–říjen. Mimo sezónu jen po předchozí domluvě pro skupiny.',
     showOpeningHours: true,
     published: true,
     stats: [stat('1852', 'rok založení dolu')],
@@ -251,7 +257,7 @@ export const MOCK_VENUES: AreaObject[] = RAW.map((r) => ({
   id: r.id,
   title: ml(r.title),
   summary: ml(r.summary),
-  contentBlocks: [],
+  contentBlocks: defaultContentBlocks(),
   stats: r.stats ?? [],
   image: r.image,
   color: r.color,
@@ -260,6 +266,7 @@ export const MOCK_VENUES: AreaObject[] = RAW.map((r) => ({
   photos: r.photos ?? [],
   accessible: r.accessible,
   openState: r.openState,
+  statusNote: ml(r.statusNote ?? ''),
   openingHours: defaultOpeningHours(),
   showOpeningHours: r.showOpeningHours,
   published: r.published,
@@ -282,7 +289,7 @@ export function blankVenue(): AreaObject {
     id: 'nový',
     title: { cs: '', en: '', de: '', pl: '' },
     summary: { cs: '', en: '', de: '', pl: '' },
-    contentBlocks: [],
+    contentBlocks: defaultContentBlocks(),
     stats: [],
     image: '',
     color: '#64748b',
@@ -291,6 +298,7 @@ export function blankVenue(): AreaObject {
     photos: [],
     accessible: false,
     openState: 'open',
+    statusNote: { cs: '', en: '', de: '', pl: '' },
     openingHours: defaultOpeningHours(),
     showOpeningHours: true,
     published: false,

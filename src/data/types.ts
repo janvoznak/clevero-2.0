@@ -39,6 +39,22 @@ export interface Attachment {
   lang: LangCode
 }
 
+/** Blok obsahu (ContentBuilder) — grafický vzor. Sdílený napříč moduly;
+    v prototypu vizuální zástupka (bez reálného textu, řídí jen náhled). */
+export interface ContentBlock {
+  id: string
+  kind: string
+}
+/** Výchozí sada bloků pro nový obsah — ContentBuilder nezačíná prázdný. */
+export function defaultContentBlocks(): ContentBlock[] {
+  return [
+    { id: 'cb-default-hero', kind: 'hero' },
+    { id: 'cb-default-lead', kind: 'lead' },
+    { id: 'cb-default-text', kind: 'paragraph' },
+    { id: 'cb-default-image', kind: 'image' },
+  ]
+}
+
 export interface NewsItem {
   id: string
   /** Autor aktuality (redaktor). */
@@ -49,6 +65,8 @@ export interface NewsItem {
   slug?: ML
   summary: ML
   text: ML
+  /** Obsah aktuality jako bloky (ContentBuilder) — jednotná sekce „Obsah". */
+  contentBlocks?: ContentBlock[]
   videoLink: string
   dateFrom: string | null
   dateTo: string | null

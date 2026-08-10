@@ -1,5 +1,5 @@
 import { imageFor } from './mockNews'
-import type { ML, GalleryImage } from './types'
+import type { ML, GalleryImage, ContentBlock } from './types'
 
 /* ============================================================
    Modul Galerie.
@@ -59,6 +59,8 @@ export interface Gallery {
   slug?: ML
   /** Popis alba (richtext). */
   description: ML
+  /** Obsah galerie jako bloky (ContentBuilder) — jednotná sekce „Obsah". */
+  contentBlocks?: ContentBlock[]
   /** Datum pořízení / konání (nejazykové). null = neuvedeno. */
   date: string | null
   photos: GalleryImage[]

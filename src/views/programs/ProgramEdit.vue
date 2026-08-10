@@ -7,12 +7,12 @@ import AppButton from '@/components/ui/AppButton.vue'
 import CardActionsMenu from '@/components/admin/CardActionsMenu.vue'
 import FormSection from '@/components/admin/FormSection.vue'
 import PublishCard from '@/components/admin/PublishCard.vue'
-import RichTextEditor from '@/components/admin/RichTextEditor.vue'
+import ContentBuilder from '@/components/admin/ContentBuilder.vue'
 import TagPicker from '@/components/admin/TagPicker.vue'
 import LangBar from '@/components/admin/LangBar.vue'
 import MlFieldHeader from '@/components/admin/MlFieldHeader.vue'
 import { useMlTranslate } from '@/utils/useMlTranslate'
-import { LANGS } from '@/data/types'
+import { LANGS, defaultContentBlocks } from '@/data/types'
 import type { LangCode } from '@/data/types'
 import {
   MOCK_PROGRAMS, SCHOOL_LEVELS, GRADES, FOCUS_AREAS, PROGRAM_TAGS, blankProgram,
@@ -26,7 +26,9 @@ const isEdit = computed(() => !!props.id)
 const source = computed(() => MOCK_PROGRAMS.find((p) => p.id === props.id))
 function clone(): Program {
   const s = source.value
-  return s ? JSON.parse(JSON.stringify(s)) : blankProgram()
+  const c = s ? (JSON.parse(JSON.stringify(s)) as Program) : blankProgram()
+  c.contentBlocks = c.contentBlocks ?? defaultContentBlocks()
+  return c
 }
 const form = reactive<Program>(clone())
 const activeLang = ref<LangCode>('cs')
@@ -34,6 +36,7 @@ const activeLang = ref<LangCode>('cs')
 const activeSection = ref('basic')
 const sections = [
   { value: 'basic', label: 'Základní informace', icon: 'education' },
+  { value: 'content', label: 'Obsah', icon: 'text' },
   { value: 'zarazeni', label: 'Zařazení a vazby', icon: 'layers' },
   { value: 'params', label: 'Parametry programu', icon: 'reference' },
 ]
@@ -53,7 +56,7 @@ function removeParam(i: number) {
 }
 
 /* ---------- AI překlad mutací (prototyp) — sdílené řešení ---------- */
-const mlFields: (keyof Program)[] = ['title', 'perex', 'description']
+const mlFields: (keyof Program)[] = ['title', 'perex']
 const { translating, toast, translateLang, translateField } = useMlTranslate(form, mlFields)
 
 const saved = ref(false)
@@ -131,10 +134,6 @@ function save() {
                     <textarea v-model="form.perex[activeLang]" rows="2" placeholder="Krátký výtah zobrazený ve výpisu programů" class="w-full resize-y rounded-md border border-steel-200 px-3.5 py-2.5 text-[14px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
                   </div>
                   <div>
-                    <MlFieldHeader label="Popis programu" :lang="activeLang" tag="program-description" @translate="translateField('description')" />
-                    <RichTextEditor v-model="form.description[activeLang]" />
-                  </div>
-                  <div>
                     <label class="mb-1.5 flex items-center justify-between">
                       <span class="text-[13px] font-600 text-graphite-800">Obrázek programu</span>
                       <span class="field-tag">program-image</span>
@@ -148,6 +147,11 @@ function save() {
                     </div>
                   </div>
                 </div>
+              </TabsContent>
+
+              <!-- Obsah (jednotný ContentBuilder — nic dalšího pod ním) -->
+              <TabsContent value="content" class="outline-none">
+                <ContentBuilder v-model="form.contentBlocks" />
               </TabsContent>
 
               <!-- Zařazení -->
