@@ -1,5 +1,5 @@
 import { imageFor } from './mockNews'
-import type { ML, GalleryImage, LangCode } from './types'
+import type { ML, GalleryImage, LangCode, ContentBlock } from './types'
 
 /* ============================================================
    Modul „Produkty" (e-shop).
@@ -34,19 +34,6 @@ export const PRODUCT_TYPE_OPTIONS = [
   { value: 'all', label: 'Všechny typy' },
   ...(Object.keys(PRODUCT_TYPE_META) as ProductType[]).map((t) => ({ value: t, label: PRODUCT_TYPE_META[t].label })),
 ]
-
-/* ---------- Katalog zboží v Colosseu (pro ruční párování dle ID) ----------
-   Zjednodušená projekce toho, co je v Colosseu k dispozici. Při ručním
-   párování se z něj podle ID/názvu vybere položka a doplní se do produktu
-   cena, sklad, název a obrázek. V prototypu mock — žádné volání API. */
-export interface ColosseumGood {
-  colosseumId: string
-  name: string
-  type: ProductType
-  price: number
-  stock: number
-  image: string
-}
 
 /* ---------- Členění (kategorie produktů, ovládané v CMS) ---------- */
 export interface ProductCategory {
@@ -85,6 +72,8 @@ export interface Product {
   nameOverride: ML
   /** Formátovaný popis produktu (richtext, ML). */
   description: ML
+  /** Obsah produktu jako bloky (ContentBuilder) — jednotná sekce „Obsah". */
+  contentBlocks?: ContentBlock[]
   /** Fotogalerie doplněná v CMS (Colosseum má jen jeden obrázek). */
   gallery: GalleryImage[]
   /** Členění — ID kategorií produktů (naše taxonomie v CMS). */
@@ -285,36 +274,21 @@ const RAW_PRODUCTS: RawProduct[] = [
     published: true,
   },
   {
-    // Ručně založený produkt v CMS — zatím NESPÁROVANÝ s Colosseem.
-    // Bez párování se nenačítá cena ani sklad a produkt nelze na webu koupit.
     id: 'p-taska-dov',
     type: 'goods',
-    colosseumId: '',
+    colosseumId: 'COL-GOODS-2101',
     name: 'Dárková taška DOV',
-    price: 0,
-    stock: 0,
-    colosseumImage: '',
+    price: 39,
+    stock: 40,
+    colosseumImage: imageFor(3),
     importedAt: '2026-08-05T08:00',
-    syncedAt: '',
+    syncedAt: '2026-08-06T09:00',
     nameOverride: { cs: 'Dárková taška DOV' },
     description: { cs: '<p>Papírová dárková taška s potiskem industriálního areálu Dolních Vítkovic.</p>' },
     categoryIds: ['pc-suvenyry'],
     cartUrl: '',
-    published: false,
+    published: true,
   },
-]
-
-/** Katalog zboží dostupného v Colosseu — pro ruční párování dle ID. */
-export const COLOSSEUM_CATALOG: ColosseumGood[] = [
-  // Položky, které už jsou u produktů spárované (kvůli „změnit párování").
-  { colosseumId: 'COL-GOODS-2071', name: 'Magnetka Bolt Tower', type: 'souvenir', price: 79, stock: 1, image: imageFor(2) },
-  { colosseumId: 'COL-GOODS-2072', name: 'Hrnek Vysoká pec č. 1', type: 'souvenir', price: 199, stock: 0, image: imageFor(4) },
-  { colosseumId: 'COL-GOODS-2080', name: 'Vítkovice — příběh železa', type: 'publication', price: 450, stock: 0, image: imageFor(7) },
-  // Dosud nespárované — k dispozici pro spárování.
-  { colosseumId: 'COL-GOODS-2101', name: 'Dárková taška velká (potisk DOV)', type: 'goods', price: 39, stock: 40, image: imageFor(3) },
-  { colosseumId: 'COL-GOODS-2102', name: 'Placka DOV kovová', type: 'souvenir', price: 25, stock: 120, image: imageFor(10) },
-  { colosseumId: 'COL-GOODS-2103', name: 'Sada pohlednic (10 ks)', type: 'souvenir', price: 59, stock: 8, image: imageFor(1) },
-  { colosseumId: 'COL-VOUCHER-9003', name: 'Voucher — Hornické muzeum', type: 'voucher', price: 220, stock: 999, image: imageFor(14) },
 ]
 
 /** Normalizace raw dat na plný datový model (doplní všechny jazyky + prázdná pole). */
@@ -343,11 +317,6 @@ export function productsForCategory(categoryId: string): Product[] {
 /** Zobrazený název na webu — override (CZ), jinak název z Colossea. */
 export function displayName(p: Product): string {
   return p.nameOverride.cs.trim() || p.name
-}
-
-/** Je produkt spárovaný s Colosseem (má ID)? Nespárovaný = založený ručně v CMS. */
-export function isPaired(p: Product): boolean {
-  return p.colosseumId.trim().length > 0
 }
 
 /** Má produkt vyplněný popis (v češtině)? Bez popisu = kandidát na nástěnku. */
@@ -392,6 +361,19 @@ export function stockLabel(p: Product): string {
   return `${p.stock} ks`
 }
 
+/** Produkt se na webu zobrazuje, pokud je prodejný (není vyprodaný).
+    Napojení na Colosseum je vždy — viditelnost řídí jen dostupnost skladu,
+    žádné ruční publikování. */
+export function productVisible(p: Product): boolean {
+  return availability(p) !== 'soldout'
+}
+
+/** Kategorie se v navigaci zobrazuje automaticky, pokud má aspoň jeden
+    dostupný (prodejný) produkt — bez ručního přepínání. */
+export function categoryVisible(categoryId: string): boolean {
+  return productsForCategory(categoryId).some((p) => productVisible(p))
+}
+
 export function fmtPrice(price: number): string {
   return `${price.toLocaleString('cs-CZ')} Kč`
 }
@@ -422,9 +404,3 @@ export const CATEGORY_FILTER_OPTIONS = [
   ...MOCK_PRODUCT_CATEGORIES.map((c) => ({ value: c.id, label: c.name.cs })),
 ]
 
-/** Volby stavu párování s Colosseem (filtr v seznamu). */
-export const PAIRING_FILTER_OPTIONS = [
-  { value: 'all', label: 'Párování: vše' },
-  { value: 'paired', label: 'Spárováno' },
-  { value: 'unpaired', label: 'Nespárováno' },
-]

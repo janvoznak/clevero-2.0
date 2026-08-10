@@ -12,7 +12,7 @@ import {
 import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import RowActionsMenu from '@/components/admin/RowActionsMenu.vue'
-import { MOCK_PRODUCT_CATEGORIES, productsForCategory, type ProductCategory } from '@/data/mockProducts'
+import { MOCK_PRODUCT_CATEGORIES, productsForCategory, categoryVisible, type ProductCategory } from '@/data/mockProducts'
 
 const router = useRouter()
 
@@ -97,10 +97,11 @@ const total = computed(() => rows.value.length)
             <td class="px-2 py-3 align-middle">
               <span
                 class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-600"
-                :class="c.published ? 'bg-forge-500/10 text-forge-600' : 'bg-steel-100 text-steel-500'"
+                :class="categoryVisible(c.id) ? 'bg-forge-500/10 text-forge-600' : 'bg-steel-100 text-steel-500'"
+                :title="categoryVisible(c.id) ? 'Má dostupné produkty — zobrazuje se v navigaci' : 'Bez dostupných produktů — skryto'"
               >
-                <span class="h-1.5 w-1.5 rounded-full" :class="c.published ? 'bg-forge-500' : 'bg-steel-300'" />
-                {{ c.published ? 'Zveřejněno' : 'Skryto' }}
+                <span class="h-1.5 w-1.5 rounded-full" :class="categoryVisible(c.id) ? 'bg-forge-500' : 'bg-steel-300'" />
+                {{ categoryVisible(c.id) ? 'V navigaci' : 'Skryto' }}
               </span>
             </td>
             <td class="px-3 py-3 align-middle">

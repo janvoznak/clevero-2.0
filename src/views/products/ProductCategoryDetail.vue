@@ -9,7 +9,6 @@ import FormSection from '@/components/admin/FormSection.vue'
 import LangBar from '@/components/admin/LangBar.vue'
 import MlFieldHeader from '@/components/admin/MlFieldHeader.vue'
 import { useMlTranslate } from '@/utils/useMlTranslate'
-import PublishCard from '@/components/admin/PublishCard.vue'
 import RichTextEditor from '@/components/admin/RichTextEditor.vue'
 import { LANGS } from '@/data/types'
 import type { LangCode } from '@/data/types'
@@ -19,6 +18,8 @@ import {
   productsForCategory,
   displayName,
   fmtPrice,
+  productVisible,
+  categoryVisible,
   type ProductCategory,
 } from '@/data/mockProducts'
 
@@ -172,9 +173,9 @@ function goProduct(id: string) {
                           </td>
                           <td class="px-2 py-2.5 text-right align-middle text-[13px] font-700 text-graphite-900 tabular-nums">{{ fmtPrice(p.price) }}</td>
                           <td class="px-2 py-2.5 align-middle">
-                            <span class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-600" :class="p.published ? 'bg-forge-500/10 text-forge-600' : 'bg-steel-100 text-steel-500'">
-                              <span class="h-1.5 w-1.5 rounded-full" :class="p.published ? 'bg-forge-500' : 'bg-steel-300'" />
-                              {{ p.published ? 'Web' : 'Skryto' }}
+                            <span class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-600" :class="productVisible(p) ? 'bg-forge-500/10 text-forge-600' : 'bg-steel-100 text-steel-500'">
+                              <span class="h-1.5 w-1.5 rounded-full" :class="productVisible(p) ? 'bg-forge-500' : 'bg-steel-300'" />
+                              {{ productVisible(p) ? 'Web' : 'Skryto' }}
                             </span>
                           </td>
                         </tr>
@@ -191,9 +192,23 @@ function goProduct(id: string) {
         </div>
       </div>
 
-      <!-- PRAVÝ rail -->
+      <!-- PRAVÝ rail: zobrazení v navigaci (automaticky dle dostupných produktů) -->
       <aside class="space-y-5 xl:sticky xl:top-[76px] xl:self-start">
-        <PublishCard :published="form.published" updated-by="Jana Svobodová" />
+        <FormSection title="Zobrazení v navigaci" icon="eye" tag="category-visibility">
+          <div class="flex items-center justify-between rounded-md bg-steel-50 px-3 py-2.5">
+            <span class="text-[12.5px] font-500 text-steel-600">Stav</span>
+            <span v-if="categoryVisible(form.id)" class="inline-flex items-center gap-1.5 rounded-full bg-forge-500/10 px-2.5 py-1 text-[11.5px] font-600 text-forge-600">
+              <span class="h-1.5 w-1.5 rounded-full bg-forge-500" /> V navigaci
+            </span>
+            <span v-else class="inline-flex items-center gap-1.5 rounded-full bg-steel-200 px-2.5 py-1 text-[11.5px] font-600 text-steel-500">
+              <span class="h-1.5 w-1.5 rounded-full bg-steel-400" /> Skryto
+            </span>
+          </div>
+          <p class="mt-2 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
+            <Icon name="layers" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
+            Kategorie se v navigaci zobrazí automaticky, když má aspoň jeden dostupný produkt. Bez ručního přepínání.
+          </p>
+        </FormSection>
       </aside>
     </div>
 

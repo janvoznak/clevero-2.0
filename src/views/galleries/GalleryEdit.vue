@@ -9,7 +9,7 @@ import AppSelect from '@/components/ui/AppSelect.vue'
 import AppSwitch from '@/components/ui/AppSwitch.vue'
 import FormSection from '@/components/admin/FormSection.vue'
 import PublishCard from '@/components/admin/PublishCard.vue'
-import RichTextEditor from '@/components/admin/RichTextEditor.vue'
+import ContentBuilder from '@/components/admin/ContentBuilder.vue'
 import GalleryManager from '@/components/admin/GalleryManager.vue'
 import SlugField from '@/components/admin/SlugField.vue'
 import { useAutoSlug } from '@/utils/useAutoSlug'
@@ -17,7 +17,7 @@ import TagPicker from '@/components/admin/TagPicker.vue'
 import LangBar from '@/components/admin/LangBar.vue'
 import MlFieldHeader from '@/components/admin/MlFieldHeader.vue'
 import { useMlTranslate } from '@/utils/useMlTranslate'
-import { LANGS } from '@/data/types'
+import { LANGS, defaultContentBlocks } from '@/data/types'
 import type { LangCode } from '@/data/types'
 import {
   MOCK_GALLERIES,
@@ -42,9 +42,12 @@ function clone(): Gallery {
   if (s) {
     const c = JSON.parse(JSON.stringify(s)) as Gallery
     c.slug = c.slug ?? { cs: '', en: '', de: '', pl: '' }
+    c.contentBlocks = c.contentBlocks ?? defaultContentBlocks()
     return c
   }
-  return blankGallery(typeof route.query.section === 'string' ? route.query.section : '')
+  const c = blankGallery(typeof route.query.section === 'string' ? route.query.section : '')
+  c.contentBlocks = c.contentBlocks ?? defaultContentBlocks()
+  return c
 }
 const form = reactive<Gallery>(clone())
 const activeLang = ref<LangCode>('cs')
@@ -65,6 +68,7 @@ const areaLabel = computed(() => PLACE_OPTIONS.find((o) => o.value === form.area
 const activeSection = ref('basic')
 const sections = [
   { value: 'basic', label: 'Základní informace', icon: 'page' },
+  { value: 'content', label: 'Obsah', icon: 'text' },
   { value: 'relations', label: 'Zařazení a vazby', icon: 'layers' },
   { value: 'photos', label: 'Fotografie', icon: 'gallery' },
 ]
@@ -98,7 +102,7 @@ function save() {
 }
 
 /* ---------- AI překlad mutací (prototyp) — sdílené řešení ---------- */
-const mlFields: (keyof Gallery)[] = ['name', 'description']
+const mlFields: (keyof Gallery)[] = ['name']
 const { translating, toast, translateLang, translateField } = useMlTranslate(form, mlFields)
 
 function backToSection() {
@@ -185,10 +189,6 @@ function backToSection() {
                     @edit="markManual(activeLang)"
                   />
                   <div>
-                    <MlFieldHeader label="Popis" :lang="activeLang" tag="gallery-description" @translate="translateField('description')" />
-                    <RichTextEditor v-model="form.description[activeLang]" />
-                  </div>
-                  <div>
                     <label class="mb-1.5 flex items-center justify-between">
                       <span class="text-[13px] font-600 text-graphite-800">Datum pořízení / konání</span>
                       <span class="field-tag">gallery-date</span>
@@ -199,30 +199,19 @@ function backToSection() {
                 </div>
               </TabsContent>
 
+              <!-- Sekce: Obsah (jednotný ContentBuilder — nic dalšího pod ním) -->
+              <TabsContent value="content" class="outline-none">
+                <ContentBuilder v-model="form.contentBlocks" />
+              </TabsContent>
+
               <!-- Sekce: Zařazení a vazby -->
-              <TabsContent value="relations" class="outline-none">
-                <p class="mb-4 flex items-center gap-2 text-[12.5px] text-steel-500">
-                  Kam galerie patří a u čeho se na webu zobrazí.
-                  <span class="field-tag rounded bg-steel-100 px-1.5 py-0.5">gallery-relations</span>
-                </p>
-                <div class="space-y-4">
-                  <div>
-                    <label class="mb-1.5 flex items-center justify-between">
-                      <span class="text-[13px] font-600 text-graphite-800">Zařazení do sekce</span>
-                      <span class="field-tag">gallery-section_id</span>
-                    </label>
-                    <AppSelect v-model="form.sectionId" :options="sectionSelectOptions" placeholder="Vyberte sekci…" />
-                    <p class="mt-1 text-[11.5px] text-steel-500">Sekce určuje, kde se galerie na webu zobrazí.</p>
-                  </div>
-                  <div>
-                    <label class="mb-1.5 flex items-center justify-between">
-                      <span class="text-[13px] font-600 text-graphite-800">Objekt v areálu</span>
-                      <span class="field-tag">gallery-area_id</span>
-                    </label>
-                    <AppSelect v-model="areaModel" :options="areaOptions" />
-                    <p class="mt-1 text-[11.5px] text-steel-500">Na webu se galerie zobrazí u daného objektu (např. Bolt Tower). Nepovinné.</p>
-                  </div>
-                </div>
+              <TabsContent value="relations" class="space-y-4 outline-none">
+                <FormSection title="Zařazení do sekce" icon="layers" hint="Sekce určuje, kde se galerie na webu zobrazí." tag="gallery-section_id">
+                  <AppSelect v-model="form.sectionId" :options="sectionSelectOptions" placeholder="Vyberte sekci…" />
+                </FormSection>
+                <FormSection title="Objekt v areálu" icon="map" hint="Na webu se galerie zobrazí u daného objektu (např. Bolt Tower). Nepovinné." tag="gallery-area_id">
+                  <AppSelect v-model="areaModel" :options="areaOptions" />
+                </FormSection>
               </TabsContent>
 
               <!-- Sekce: Fotografie -->

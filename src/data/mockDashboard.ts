@@ -102,17 +102,6 @@ export interface AttentionItem {
 
 export const ATTENTION: AttentionItem[] = [
   {
-    id: 'at-colosseum-product',
-    severity: 'action',
-    icon: 'integration',
-    source: 'Colosseum',
-    title: 'Nový produkt čeká na propojení',
-    detail: 'V Colosseu přibylo „Rodinné vstupné U6". Zatím není propojené s žádným produktem v administraci.',
-    ai: 'Spárovat s produktem „Vstupné U6" — shoduje se název i cena.',
-    actionLabel: 'Propojit produkt',
-    to: '/admin/integrations/colosseum',
-  },
-  {
     id: 'at-products-no-description',
     severity: 'review',
     icon: 'box',

@@ -16,14 +16,15 @@ import { useMlTranslate } from '@/utils/useMlTranslate'
 import AiPanel from '@/components/admin/AiPanel.vue'
 import RelationPicker from '@/components/admin/RelationPicker.vue'
 import GalleryField from '@/components/admin/GalleryField.vue'
-import RichTextEditor from '@/components/admin/RichTextEditor.vue'
-import { LANGS, SOURCE_LANG } from '@/data/types'
+import ContentBuilder from '@/components/admin/ContentBuilder.vue'
+import { LANGS, SOURCE_LANG, defaultContentBlocks } from '@/data/types'
 import type { LangCode, ML } from '@/data/types'
 import {
   MOCK_EVENTS,
   EVENT_TYPES,
   PREDEFINED_EVENT_TAGS,
   TICKET_MODE_OPTIONS,
+  AGE_LIMIT_OPTIONS,
   aiImportFromUrl,
   type DovEvent,
 } from '@/data/mockEvents'
@@ -45,12 +46,14 @@ function clone(): DovEvent {
   if (s) {
     const c = JSON.parse(JSON.stringify(s)) as DovEvent
     c.gallery = c.gallery ?? []
+    c.contentBlocks = c.contentBlocks ?? defaultContentBlocks()
     return c
   }
   return {
     id: 'nová',
     title: empty(),
     subtitle: empty(),
+    contentBlocks: defaultContentBlocks(),
     type: 'Festival',
     from: '',
     to: '',
@@ -87,19 +90,26 @@ const typeOptions = EVENT_TYPES.map((t) => ({ value: t, label: t }))
 const placeOptions = PLACE_OPTIONS
 const place = computed(() => areaPlace(form.areaId))
 
-/* Proklik / založení objektu v Areálu z výběru místa konání (nový panel). */
+/* Věkové omezení = dropdown; sentinel pro „bez omezení" (Reka Select nechce ''). */
+const AGE_NONE = '__none__'
+const ageLimitOptions = [{ value: AGE_NONE, label: 'Bez omezení' }, ...AGE_LIMIT_OPTIONS]
+const ageLimitModel = computed({
+  get: () => form.ageLimit || AGE_NONE,
+  set: (v: string) => (form.ageLimit = v === AGE_NONE ? '' : v),
+})
+
+/* Proklik na objekt v Areálu z výběru místa konání (nový panel).
+   Objekty se zakládají v modulu Areál, ne odsud. */
 function openPlace() {
   if (!form.areaId) return
   window.open(router.resolve({ name: 'area-edit', params: { id: form.areaId } }).href, '_blank')
 }
-function createPlace() {
-  window.open(router.resolve({ name: 'area-new' }).href, '_blank')
-}
 
 /** Sekce detailu (podtržené záložky). */
-const activeSection = ref('content')
+const activeSection = ref('basic')
 const sections = [
-  { value: 'content', label: 'Obsah', icon: 'page' },
+  { value: 'basic', label: 'Základní informace', icon: 'page' },
+  { value: 'content', label: 'Obsah', icon: 'text' },
   { value: 'when', label: 'Termín a místo', icon: 'calendar' },
   { value: 'tickets', label: 'Vstupenky a detaily', icon: 'ticket' },
   { value: 'media', label: 'Plakát', icon: 'image' },
@@ -146,14 +156,14 @@ function aiImport() {
     form.tags = [...d.tags]
     if (d.image) form.image = d.image
     activeLang.value = SOURCE_LANG
-    activeSection.value = 'content'
+    activeSection.value = 'basic'
     importing.value = false
     fireToast('AI připravila obsah akce z odkazu — zkontrolujte a doplňte detaily')
   }, 1900)
 }
 
 /* ---------- AI překlad mutací (prototyp) — sdílené řešení ---------- */
-const mlFields: (keyof DovEvent)[] = ['title', 'subtitle', 'summary', 'description']
+const mlFields: (keyof DovEvent)[] = ['title', 'subtitle', 'summary']
 const { translating, translateLang, translateField } = useMlTranslate(form, mlFields)
 
 const saved = ref(false)
@@ -251,8 +261,8 @@ function save() {
             </TabsList>
 
             <div class="p-5">
-              <!-- Sekce: Obsah -->
-              <TabsContent value="content" class="space-y-4 outline-none">
+              <!-- Sekce: Základní informace -->
+              <TabsContent value="basic" class="space-y-4 outline-none">
                 <div>
                   <MlFieldHeader label="Název akce" :lang="activeLang" tag="event-title" required @translate="translateField('title')" />
                   <input
@@ -282,11 +292,11 @@ function save() {
                     class="w-full resize-y rounded-md border border-steel-200 px-3.5 py-2.5 text-[14px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none"
                   />
                 </div>
+              </TabsContent>
 
-                <div>
-                  <MlFieldHeader label="Popis akce" :lang="activeLang" tag="event-description" @translate="translateField('description')" />
-                  <RichTextEditor v-model="form.description[activeLang]" />
-                </div>
+              <!-- Sekce: Obsah (jednotný ContentBuilder — nic dalšího pod ním) -->
+              <TabsContent value="content" class="outline-none">
+                <ContentBuilder v-model="form.contentBlocks" />
               </TabsContent>
 
               <!-- Sekce: Termín a místo -->
@@ -298,14 +308,14 @@ function save() {
                       <span class="field-tag">event-area_id</span>
                     </label>
                     <AppSelect v-model="form.areaId" :options="placeOptions" />
-                    <div class="mt-1.5 flex items-center gap-3 text-[11.5px]">
-                      <button v-if="form.areaId" type="button" class="inline-flex items-center gap-1 font-600 text-brand-600 transition-colors hover:text-brand-700" @click="openPlace">
-                        <Icon name="externalLink" :size="12" /> Otevřít objekt
-                      </button>
-                      <button type="button" class="inline-flex items-center gap-1 font-600 text-steel-500 transition-colors hover:text-brand-600" @click="createPlace">
-                        <Icon name="plus" :size="12" /> Nový objekt
-                      </button>
-                    </div>
+                    <button
+                      v-if="form.areaId"
+                      type="button"
+                      class="mt-1.5 inline-flex items-center gap-1 text-[11.5px] font-600 text-brand-600 transition-colors hover:text-brand-700"
+                      @click="openPlace"
+                    >
+                      <Icon name="externalLink" :size="12" /> Otevřít objekt
+                    </button>
                   </div>
                   <div>
                     <label class="mb-1.5 block text-[13px] font-600 text-graphite-800">Typ akce</label>
@@ -367,7 +377,7 @@ function save() {
                       <span class="text-[13px] font-600 text-graphite-800">Věkové omezení</span>
                       <span class="field-tag">event-age_limit</span>
                     </label>
-                    <input v-model="form.ageLimit" type="text" placeholder="např. 15+" class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13.5px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
+                    <AppSelect v-model="ageLimitModel" :options="ageLimitOptions" placeholder="Bez omezení" />
                   </div>
                 </div>
 

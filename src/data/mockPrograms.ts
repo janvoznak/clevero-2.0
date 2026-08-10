@@ -1,4 +1,4 @@
-import type { ML, Tag } from './types'
+import type { ML, Tag, ContentBlock } from './types'
 import { TAG_PALETTE } from './mockNews'
 
 /* ============================================================
@@ -92,6 +92,8 @@ export interface Program {
   perex: ML
   /** Popis programu (richtext). */
   description: ML
+  /** Obsah programu jako bloky (ContentBuilder) — jednotná sekce „Obsah". */
+  contentBlocks?: ContentBlock[]
   image: string
   date: string | null
   /** Průřezové štítky (např. Novinka). */

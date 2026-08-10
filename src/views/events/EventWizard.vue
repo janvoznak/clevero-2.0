@@ -10,11 +10,11 @@ import TagChip from '@/components/ui/TagChip.vue'
 import TagPicker from '@/components/admin/TagPicker.vue'
 import RelationPicker from '@/components/admin/RelationPicker.vue'
 import GalleryField from '@/components/admin/GalleryField.vue'
-import RichTextEditor from '@/components/admin/RichTextEditor.vue'
-import { SOURCE_LANG } from '@/data/types'
+import ContentBuilder from '@/components/admin/ContentBuilder.vue'
+import { SOURCE_LANG, defaultContentBlocks } from '@/data/types'
 import type { ML } from '@/data/types'
 import {
-  EVENT_TYPES, PREDEFINED_EVENT_TAGS, TICKET_MODE_OPTIONS, eventStatus, EVENT_STATE_META,
+  EVENT_TYPES, PREDEFINED_EVENT_TAGS, TICKET_MODE_OPTIONS, AGE_LIMIT_OPTIONS, eventStatus, EVENT_STATE_META,
   eventTagColor, aiImportFromUrl, type DovEvent,
 } from '@/data/mockEvents'
 import { PLACE_OPTIONS, DEFAULT_PLACE_ID, areaPlace } from '@/data/mockVenues'
@@ -24,12 +24,21 @@ const router = useRouter()
 const tourItems = tourOptionsList()
 const typeOptions = EVENT_TYPES.map((t) => ({ value: t, label: t }))
 
+/* Věkové omezení = dropdown; sentinel pro „bez omezení" (Reka Select nechce ''). */
+const AGE_NONE = '__none__'
+const ageLimitOptions = [{ value: AGE_NONE, label: 'Bez omezení' }, ...AGE_LIMIT_OPTIONS]
+const ageLimitModel = computed({
+  get: () => form.ageLimit || AGE_NONE,
+  set: (v: string) => (form.ageLimit = v === AGE_NONE ? '' : v),
+})
+
 const empty = (): ML => ({ cs: '', en: '', de: '', pl: '' })
 const form = reactive<DovEvent>({
   id: 'nová', title: empty(), subtitle: empty(), type: 'Festival',
   from: '', to: '', time: '', timeTo: '', summary: empty(), description: empty(),
   image: '', price: '', ticketUrl: '', ticketMode: 'none', ageLimit: '', duration: '', performers: '',
   tags: [], areaId: DEFAULT_PLACE_ID, tourIds: [], galleryIds: [], gallery: [], published: false,
+  contentBlocks: defaultContentBlocks(),
 })
 
 /* ---------- Kroky ---------- */
@@ -121,13 +130,11 @@ function finish() {
   window.setTimeout(() => router.push({ name: 'events-list' }), 700)
 }
 
-/* Proklik / založení objektu v Areálu z výběru místa konání (nový panel). */
+/* Proklik na objekt v Areálu z výběru místa konání (nový panel).
+   Objekty se zakládají v modulu Areál, ne odsud. */
 function openPlace() {
   if (!form.areaId) return
   window.open(router.resolve({ name: 'area-edit', params: { id: form.areaId } }).href, '_blank')
-}
-function createPlace() {
-  window.open(router.resolve({ name: 'area-new' }).href, '_blank')
 }
 
 /* ---------- Odvozené pro náhled ---------- */
@@ -293,7 +300,7 @@ const canFinish = computed(() => !!form.title.cs.trim() && !!form.from && !!form
           </div>
           <div>
             <label class="mb-1.5 flex items-center justify-between"><span class="text-[13px] font-600 text-graphite-800">Popis akce</span><span class="field-tag">event-description · CS</span></label>
-            <RichTextEditor v-model="form.description.cs" />
+            <ContentBuilder v-model="form.contentBlocks" />
           </div>
         </div>
       </div>
@@ -306,14 +313,14 @@ const canFinish = computed(() => !!form.title.cs.trim() && !!form.from && !!form
           <div>
             <label class="mb-1.5 flex items-center justify-between"><span class="text-[13px] font-600 text-graphite-800">Místo konání (objekt v areálu) <span class="text-brand-500">*</span></span><span class="field-tag">event-area_id</span></label>
             <AppSelect v-model="form.areaId" :options="PLACE_OPTIONS" />
-            <div class="mt-1.5 flex items-center gap-3 text-[11.5px]">
-              <button v-if="form.areaId" type="button" class="inline-flex items-center gap-1 font-600 text-brand-600 transition-colors hover:text-brand-700" @click="openPlace">
-                <Icon name="externalLink" :size="12" /> Otevřít objekt
-              </button>
-              <button type="button" class="inline-flex items-center gap-1 font-600 text-steel-500 transition-colors hover:text-brand-600" @click="createPlace">
-                <Icon name="plus" :size="12" /> Nový objekt
-              </button>
-            </div>
+            <button
+              v-if="form.areaId"
+              type="button"
+              class="mt-1.5 inline-flex items-center gap-1 text-[11.5px] font-600 text-brand-600 transition-colors hover:text-brand-700"
+              @click="openPlace"
+            >
+              <Icon name="externalLink" :size="12" /> Otevřít objekt
+            </button>
           </div>
           <div class="grid gap-4 sm:grid-cols-2">
             <div>
@@ -357,7 +364,7 @@ const canFinish = computed(() => !!form.title.cs.trim() && !!form.from && !!form
             </div>
             <div>
               <label class="mb-1.5 block text-[13px] font-600 text-graphite-800">Věkové omezení</label>
-              <input v-model="form.ageLimit" type="text" placeholder="např. 15+" class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13.5px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
+              <AppSelect v-model="ageLimitModel" :options="ageLimitOptions" placeholder="Bez omezení" />
             </div>
             <div class="sm:col-span-2">
               <label class="mb-1.5 block text-[13px] font-600 text-graphite-800">Účinkující / lektoři</label>

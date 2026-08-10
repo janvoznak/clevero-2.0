@@ -22,6 +22,7 @@ import {
   MOCK_VENUES,
   PREDEFINED_AREA_TAGS,
   OPEN_STATE_OPTIONS,
+  OPEN_STATE_META,
   blankVenue,
   type AreaObject,
 } from '@/data/mockVenues'
@@ -54,10 +55,10 @@ const filledLangs = computed(() => LANGS.filter((l) => langFilled(l.code)).map((
 const activeSection = ref('basic')
 const sections = [
   { value: 'basic', label: 'Základní informace', icon: 'page' },
-  { value: 'content', label: 'Popis a čísla', icon: 'text' },
+  { value: 'content', label: 'Obsah', icon: 'text' },
   { value: 'tours', label: 'Prohlídky', icon: 'ticket' },
   { value: 'gallery', label: 'Galerie', icon: 'gallery' },
-  { value: 'hours', label: 'Otevírací doba', icon: 'clock' },
+  { value: 'hours', label: 'Provoz a otevírací doba', icon: 'clock' },
 ]
 
 /* ---------- Zajímavá čísla ---------- */
@@ -90,7 +91,7 @@ function goToTour(id: string) {
 
 
 /* ---------- AI překlad mutací (prototyp) — sdílené řešení ---------- */
-const mlFields: (keyof AreaObject)[] = ['title', 'summary']
+const mlFields: (keyof AreaObject)[] = ['title', 'summary', 'statusNote']
 const { translating, toast, translateLang, translateField } = useMlTranslate(form, mlFields)
 
 const saved = ref(false)
@@ -184,17 +185,9 @@ function save() {
                   />
                 </div>
 
-                <div class="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <label class="mb-1.5 block text-[13px] font-600 text-graphite-800">Provozní stav</label>
-                    <AppSelect v-model="form.openState" :options="OPEN_STATE_OPTIONS" />
-                  </div>
-                  <div class="flex items-end">
-                    <div class="flex h-11 w-full items-center justify-between rounded-md border border-steel-200 px-3">
-                      <AppSwitch v-model="form.accessible" label="Bezbariérový přístup" aria-label="Bezbariérový přístup" />
-                      <span class="field-tag">area-accessible</span>
-                    </div>
-                  </div>
+                <div class="flex items-center justify-between rounded-md border border-steel-200 px-3 py-2.5">
+                  <AppSwitch v-model="form.accessible" label="Bezbariérový přístup" aria-label="Bezbariérový přístup" />
+                  <span class="field-tag">area-accessible</span>
                 </div>
 
                 <div>
@@ -224,18 +217,8 @@ function save() {
                     </div>
                   </div>
                 </div>
-              </TabsContent>
 
-              <!-- Sekce: Popis a čísla -->
-              <TabsContent value="content" class="space-y-6 outline-none">
-                <div>
-                  <label class="mb-1.5 flex items-center justify-between">
-                    <span class="text-[13px] font-600 text-graphite-800">Popis budovy</span>
-                    <span class="field-tag">area-content</span>
-                  </label>
-                  <ContentBuilder v-model="form.contentBlocks" />
-                </div>
-
+                <!-- Zajímavá čísla (statistiky budovy) -->
                 <div>
                   <div class="mb-2 flex items-center justify-between">
                     <span class="text-[13px] font-600 text-graphite-800">Zajímavá čísla</span>
@@ -274,6 +257,11 @@ function save() {
                     <Icon name="plus" :size="15" /> Přidat číslo
                   </button>
                 </div>
+              </TabsContent>
+
+              <!-- Sekce: Obsah (jednotný ContentBuilder — nic dalšího pod ním) -->
+              <TabsContent value="content" class="outline-none">
+                <ContentBuilder v-model="form.contentBlocks" />
               </TabsContent>
 
               <!-- Sekce: Prohlídky (nabízené prohlídky — odvozené, read-only) -->
@@ -332,14 +320,57 @@ function save() {
                 />
               </TabsContent>
 
-              <!-- Sekce: Otevírací doba -->
+              <!-- Sekce: Provoz a otevírací doba (sjednoceno) -->
               <TabsContent value="hours" class="space-y-4 outline-none">
-                <div class="flex items-center justify-between rounded-md bg-steel-50 px-3 py-2.5">
-                  <AppSwitch v-model="form.showOpeningHours" label="Zobrazovat otevírací dobu" aria-label="Zobrazovat otevírací dobu" />
-                  <span class="field-tag">area-opening_hours</span>
-                </div>
-                <OpeningHoursEditor v-if="form.showOpeningHours" v-model="form.openingHours" />
-                <p v-else class="text-[12.5px] text-steel-400">Otevírací doba se na webu objektu nezobrazí.</p>
+                <!-- Provozní stav — nadřazený otevírací době -->
+                <FormSection title="Provozní stav" icon="clock" hint="Nadřazený otevírací době — řídí, co se zobrazí na webu." tag="area-open_state">
+                  <div class="flex flex-wrap items-center gap-3">
+                    <AppSelect v-model="form.openState" :options="OPEN_STATE_OPTIONS" class="w-44" />
+                    <span
+                      class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-600"
+                      :class="[OPEN_STATE_META[form.openState].bg, OPEN_STATE_META[form.openState].text]"
+                    >
+                      <span class="h-1.5 w-1.5 rounded-full" :class="OPEN_STATE_META[form.openState].dot" />
+                      {{ OPEN_STATE_META[form.openState].label }}
+                    </span>
+                  </div>
+                  <p class="mt-2 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
+                    <Icon name="integration" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
+                    <span v-if="form.openState === 'open'">Na webu se otevřeno/zavřeno řídí otevírací dobou níže.</span>
+                    <span v-else-if="form.openState === 'seasonal'">Sezónní provoz — otevírací doba platí v sezóně; mimo sezónu je objekt zavřený. Upřesněte v poznámce.</span>
+                    <span v-else>Dočasně uzavřeno — na webu se objekt zobrazí jako zavřený bez ohledu na otevírací dobu. Doplňte poznámku (např. rekonstrukce).</span>
+                  </p>
+
+                  <!-- Poznámka k provozu (na web, ML) -->
+                  <div class="mt-4">
+                    <MlFieldHeader label="Poznámka k provozu (na web)" :lang="activeLang" tag="area-status_note" @translate="translateField('statusNote')" />
+                    <textarea
+                      v-model="form.statusNote[activeLang]"
+                      rows="2"
+                      placeholder="Např. Zavřeno kvůli rekonstrukci do jara 2027."
+                      class="w-full resize-y rounded-md border border-steel-200 px-3.5 py-2.5 text-[14px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none"
+                    />
+                    <p class="mt-1 text-[11.5px] text-steel-500">Zobrazí se na webu u objektu (nepovinné). Vhodné hlavně při dočasném uzavření nebo sezónním provozu.</p>
+                  </div>
+                </FormSection>
+
+                <!-- Otevírací doba — neuplatní se, když je objekt uzavřený -->
+                <FormSection title="Otevírací doba" icon="clock" tag="area-opening_hours">
+                  <div v-if="form.openState === 'closed'" class="rounded-md border border-danger-500/25 bg-danger-500/5 px-3 py-2.5">
+                    <p class="flex items-start gap-1.5 text-[12px] leading-relaxed text-danger-600">
+                      <Icon name="clock" :size="14" class="mt-0.5 shrink-0" />
+                      Objekt je označen jako <strong>dočasně uzavřený</strong> — otevírací doba se na webu neuplatní. Provoz obnovíte přepnutím stavu výše.
+                    </p>
+                  </div>
+                  <template v-else>
+                    <div class="flex items-center justify-between rounded-md bg-steel-50 px-3 py-2.5">
+                      <AppSwitch v-model="form.showOpeningHours" label="Zobrazovat otevírací dobu na webu" aria-label="Zobrazovat otevírací dobu" />
+                      <span class="field-tag">area-show_hours</span>
+                    </div>
+                    <OpeningHoursEditor v-if="form.showOpeningHours" v-model="form.openingHours" class="mt-3" />
+                    <p v-else class="mt-3 text-[12.5px] text-steel-400">Otevírací doba se na webu objektu nezobrazí.</p>
+                  </template>
+                </FormSection>
               </TabsContent>
             </div>
           </TabsRoot>
