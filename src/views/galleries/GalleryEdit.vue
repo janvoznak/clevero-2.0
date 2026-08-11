@@ -3,8 +3,7 @@ import { computed, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { TabsRoot, TabsList, TabsTrigger, TabsContent } from 'reka-ui'
 import Icon from '@/components/ui/Icon.vue'
-import AppButton from '@/components/ui/AppButton.vue'
-import CardActionsMenu from '@/components/admin/CardActionsMenu.vue'
+import DetailActions from '@/components/admin/DetailActions.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import AppSwitch from '@/components/ui/AppSwitch.vue'
 import FormSection from '@/components/admin/FormSection.vue'
@@ -130,6 +129,13 @@ function backToSection() {
   if (form.sectionId) router.push({ name: 'gallery-section-edit', params: { id: form.sectionId } })
   else router.push({ name: 'galleries-list' })
 }
+function saveBack() {
+  save()
+  router.push({ name: 'galleries-list' })
+}
+function onDuplicate() {
+  router.push({ name: 'gallery-new' })
+}
 </script>
 
 <template>
@@ -160,17 +166,16 @@ function backToSection() {
         />
 
         <div class="h-6 w-px bg-steel-200" />
-        <CardActionsMenu
-          v-if="isEdit"
+        <DetailActions
           :name="form.name.cs"
           entity="galerii"
-          @delete="backToSection()"
+          :is-edit="isEdit"
+          :saved="saved"
+          @save="save"
+          @save-back="saveBack"
+          @duplicate="onDuplicate"
+          @delete="router.push({ name: 'galleries-list' })"
         />
-        <AppButton variant="secondary" @click="backToSection">Zrušit</AppButton>
-        <AppButton variant="primary" @click="save">
-          <Icon :name="saved ? 'check' : 'save'" :size="16" />
-          {{ saved ? 'Uloženo' : 'Uložit galerii' }}
-        </AppButton>
       </div>
     </div>
 

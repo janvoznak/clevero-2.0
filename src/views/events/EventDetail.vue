@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import { TabsRoot, TabsList, TabsTrigger, TabsContent } from 'reka-ui'
 import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
-import CardActionsMenu from '@/components/admin/CardActionsMenu.vue'
+import DetailActions from '@/components/admin/DetailActions.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import TagChip from '@/components/ui/TagChip.vue'
 import TagPicker from '@/components/admin/TagPicker.vue'
@@ -190,6 +190,13 @@ function save() {
   saved.value = true
   window.setTimeout(() => (saved.value = false), 2200)
 }
+function saveBack() {
+  save()
+  router.push({ name: 'events-list' })
+}
+function onDuplicate() {
+  router.push({ name: 'event-new' })
+}
 </script>
 
 <template>
@@ -224,17 +231,16 @@ function save() {
         />
 
         <div class="h-6 w-px bg-steel-200" />
-        <CardActionsMenu
-          v-if="isEdit"
+        <DetailActions
           :name="form.title.cs"
           entity="akci"
+          :is-edit="isEdit"
+          :saved="saved"
+          @save="save"
+          @save-back="saveBack"
+          @duplicate="onDuplicate"
           @delete="router.push({ name: 'events-list' })"
         />
-        <AppButton variant="secondary" @click="router.push({ name: 'events-list' })">Zrušit</AppButton>
-        <AppButton variant="primary" @click="save">
-          <Icon :name="saved ? 'check' : 'save'" :size="16" />
-          {{ saved ? 'Uloženo' : 'Uložit akci' }}
-        </AppButton>
       </div>
     </div>
 

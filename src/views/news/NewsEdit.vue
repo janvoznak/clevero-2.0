@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import { TabsRoot, TabsList, TabsTrigger, TabsContent } from 'reka-ui'
 import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
-import CardActionsMenu from '@/components/admin/CardActionsMenu.vue'
+import DetailActions from '@/components/admin/DetailActions.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import FormSection from '@/components/admin/FormSection.vue'
 import PublishCard from '@/components/admin/PublishCard.vue'
@@ -153,6 +153,13 @@ function save() {
   saved.value = true
   window.setTimeout(() => (saved.value = false), 2200)
 }
+function saveBack() {
+  save()
+  router.push({ name: 'news-list' })
+}
+function onDuplicate() {
+  router.push({ name: 'news-new' })
+}
 
 /* ---------- AI překlad mutací (prototyp) — sdílené řešení ---------- */
 const mlFields: (keyof NewsItem)[] = ['title', 'summary']
@@ -193,17 +200,16 @@ const { translating, toast, translateLang, translateField } = useMlTranslate(for
         />
 
         <div class="h-6 w-px bg-steel-200" />
-        <CardActionsMenu
-          v-if="isEdit"
+        <DetailActions
           :name="form.title.cs"
           entity="aktualitu"
+          :is-edit="isEdit"
+          :saved="saved"
+          @save="save"
+          @save-back="saveBack"
+          @duplicate="onDuplicate"
           @delete="router.push({ name: 'news-list' })"
         />
-        <AppButton variant="secondary" @click="router.push({ name: 'news-list' })">Zrušit</AppButton>
-        <AppButton variant="primary" @click="save">
-          <Icon :name="saved ? 'check' : 'save'" :size="16" />
-          {{ saved ? 'Uloženo' : 'Uložit aktualitu' }}
-        </AppButton>
       </div>
 
       <!-- Jazykové mutace (mobil / <lg) -->

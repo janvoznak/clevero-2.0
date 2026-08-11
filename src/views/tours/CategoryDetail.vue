@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import { TabsRoot, TabsList, TabsTrigger, TabsContent } from 'reka-ui'
 import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
-import CardActionsMenu from '@/components/admin/CardActionsMenu.vue'
+import DetailActions from '@/components/admin/DetailActions.vue'
 import AppSwitch from '@/components/ui/AppSwitch.vue'
 import FormSection from '@/components/admin/FormSection.vue'
 import PublishCard from '@/components/admin/PublishCard.vue'
@@ -82,6 +82,13 @@ function save() {
   saved.value = true
   window.setTimeout(() => (saved.value = false), 2000)
 }
+function saveBack() {
+  save()
+  router.push({ name: 'tours-list' })
+}
+function onDuplicate() {
+  router.push({ name: 'category-new' })
+}
 
 /* ---------- Prohlídky v kategorii ---------- */
 function goNewTour() {
@@ -126,17 +133,16 @@ function onTourAction(key: string, t: Tour) {
           @translate="translateLang"
         />
         <div class="h-6 w-px bg-steel-200" />
-        <CardActionsMenu
-          v-if="isEdit"
+        <DetailActions
           :name="form.name.cs"
           entity="kategorii"
+          :is-edit="isEdit"
+          :saved="saved"
+          @save="save"
+          @save-back="saveBack"
+          @duplicate="onDuplicate"
           @delete="router.push({ name: 'tours-list' })"
         />
-        <AppButton variant="secondary" @click="router.push({ name: 'tours-list' })">Zrušit</AppButton>
-        <AppButton variant="primary" @click="save">
-          <Icon :name="saved ? 'check' : 'save'" :size="16" />
-          {{ saved ? 'Uloženo' : 'Uložit kategorii' }}
-        </AppButton>
       </div>
     </div>
 

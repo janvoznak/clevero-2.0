@@ -39,6 +39,8 @@ const paths: Record<string, string> = {
   popup: 'M3 5h18v14H3zM11 11h7v5h-7z',
   layout: 'M4 4h16v16H4zM4 10h16M10 10v10',
   resize: 'M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7',
+  monitor: 'M3 4h18v12H3zM8 20h8M12 16v4',
+  smartphone: 'M7 3h10v18H7zM11 18h2',
   cursor: 'M4 4l7 16 2-7 7-2z',
   home: 'M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10',
   code: 'M8 9l-4 3 4 3M16 9l4 3-4 3M13 5l-2 14',

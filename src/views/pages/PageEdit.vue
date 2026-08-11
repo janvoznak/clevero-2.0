@@ -4,7 +4,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { TabsRoot, TabsList, TabsTrigger, TabsContent } from 'reka-ui'
 import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
-import CardActionsMenu from '@/components/admin/CardActionsMenu.vue'
+import DetailActions from '@/components/admin/DetailActions.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import AppSwitch from '@/components/ui/AppSwitch.vue'
 import FormSection from '@/components/admin/FormSection.vue'
@@ -190,6 +190,9 @@ function save() {
 function saveAndClose() {
   router.push({ name: 'pages-list' })
 }
+function onDuplicate() {
+  router.push({ name: 'page-new' })
+}
 
 /* ---------- AI překlad mutací (prototyp) — sdílené řešení ---------- */
 const mlFields: (keyof PageItem)[] = ['title', 'perex', 'text', 'contactFormText']
@@ -231,19 +234,16 @@ const { translating, toast, translateLang, translateField } = useMlTranslate(for
         />
 
         <div class="h-6 w-px bg-steel-200" />
-        <CardActionsMenu
-          v-if="isEdit"
+        <DetailActions
           :name="form.title.cs"
           entity="stránku"
+          :is-edit="isEdit"
+          :saved="saved"
+          @save="save"
+          @save-back="saveAndClose"
+          @duplicate="onDuplicate"
           @delete="router.push({ name: 'pages-list' })"
         />
-        <AppButton variant="secondary" @click="save">
-          <Icon :name="saved ? 'check' : 'save'" :size="16" />
-          {{ saved ? 'Uloženo' : 'Uložit a zůstat' }}
-        </AppButton>
-        <AppButton variant="primary" @click="saveAndClose">
-          <Icon name="check" :size="16" /> Uložit a zavřít
-        </AppButton>
       </div>
 
       <!-- Jazykové mutace (mobil) -->

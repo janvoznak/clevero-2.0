@@ -3,7 +3,7 @@ import { computed, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
-import CardActionsMenu from '@/components/admin/CardActionsMenu.vue'
+import DetailActions from '@/components/admin/DetailActions.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import AppSwitch from '@/components/ui/AppSwitch.vue'
 import FormSection from '@/components/admin/FormSection.vue'
@@ -106,6 +106,13 @@ function save() {
   saved.value = true
   window.setTimeout(() => (saved.value = false), 2200)
 }
+function saveBack() {
+  save()
+  router.push({ name: 'faq-list' })
+}
+function onDuplicate() {
+  router.push({ name: 'faq-new' })
+}
 
 /** Prostý text odpovědi pro webový náhled. */
 const answerPlain = computed(() => form.answer[activeLang.value].replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim())
@@ -139,17 +146,16 @@ const answerPlain = computed(() => form.answer[activeLang.value].replace(/<[^>]*
         />
 
         <div class="h-6 w-px bg-steel-200" />
-        <CardActionsMenu
-          v-if="isEdit"
+        <DetailActions
           :name="form.question.cs"
           entity="dotaz"
+          :is-edit="isEdit"
+          :saved="saved"
+          @save="save"
+          @save-back="saveBack"
+          @duplicate="onDuplicate"
           @delete="router.push({ name: 'faq-list' })"
         />
-        <AppButton variant="secondary" @click="router.push({ name: 'faq-list' })">Zrušit</AppButton>
-        <AppButton variant="primary" @click="save">
-          <Icon :name="saved ? 'check' : 'save'" :size="16" />
-          {{ saved ? 'Uloženo' : 'Uložit dotaz' }}
-        </AppButton>
       </div>
     </div>
 

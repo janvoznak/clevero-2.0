@@ -26,6 +26,7 @@ import {
 import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppSwitch from '@/components/ui/AppSwitch.vue'
+import AppSelect from '@/components/ui/AppSelect.vue'
 import RowActionsMenu from '@/components/admin/RowActionsMenu.vue'
 import { MOCK_POPUPS, popupState, POPUP_STATE_META } from '@/data/mockPopups'
 import { LANGS } from '@/data/types'
@@ -42,8 +43,45 @@ const view = ref<'grid' | 'table'>('grid')
 const rows = ref<PopupItem[]>([...MOCK_POPUPS])
 const deleteTarget = ref<PopupItem | null>(null)
 
-/* Bez filtru — dle specifikace seznam nemá filtrační panel. Jen řazení dle vytvoření. */
-const visible = computed(() => [...rows.value].sort((a, b) => b.createdAt.localeCompare(a.createdAt)))
+/* ---------- Filtry (jednotné s ostatními moduly) ---------- */
+const search = ref('')
+const filterStatus = ref('all')
+const filterLang = ref('all')
+const statusOptions = [
+  { value: 'all', label: 'Všechny stavy' },
+  { value: 'active', label: POPUP_STATE_META.active.label },
+  { value: 'scheduled', label: POPUP_STATE_META.scheduled.label },
+  { value: 'expired', label: POPUP_STATE_META.expired.label },
+  { value: 'disabled', label: POPUP_STATE_META.disabled.label },
+]
+const langOptions = [
+  { value: 'all', label: 'Všechny mutace' },
+  ...LANGS.map((l) => ({ value: l.code, label: `${l.flag} ${l.label}` })),
+]
+/** Diakritiku-nezávislé porovnání (např. „muzeum" najde „múzeum"). */
+function norm(s: string): string {
+  return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+}
+const hasFilters = computed(
+  () => search.value.trim() !== '' || filterStatus.value !== 'all' || filterLang.value !== 'all',
+)
+function clearFilters() {
+  search.value = ''
+  filterStatus.value = 'all'
+  filterLang.value = 'all'
+}
+
+const visible = computed(() => {
+  const q = norm(search.value.trim())
+  return rows.value
+    .filter((p) => {
+      const mStatus = filterStatus.value === 'all' || popupState(p) === filterStatus.value
+      const mLang = filterLang.value === 'all' || p.title[filterLang.value as LangCode].trim() !== ''
+      const mSearch = q === '' || LANGS.some((l) => norm(p.title[l.code]).includes(q))
+      return mStatus && mLang && mSearch
+    })
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+})
 
 /** Stav jedné jazykové mutace pro chip ve výpisu (živě / připraveno / prázdné). */
 function lps(row: PopupItem, code: LangCode) {
@@ -153,8 +191,38 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
     </div>
 
     <TabsRoot v-model="view">
-      <!-- Přepínač zobrazení: Dlaždice / Tabulka -->
-      <div class="mb-4 flex justify-end">
+      <!-- Filtry (jednotné s ostatními moduly) + přepínač zobrazení -->
+      <div class="mb-4 flex flex-wrap items-end justify-between gap-3 rounded-lg border border-steel-200 bg-white p-3">
+        <div class="flex flex-wrap items-end gap-x-3 gap-y-3">
+          <div class="min-w-[220px] flex-1 sm:max-w-xs">
+            <label class="mb-1 block field-tag">Hledat</label>
+            <div class="relative">
+              <Icon name="search" :size="15" class="absolute left-3 top-1/2 -translate-y-1/2 text-steel-400" />
+              <input
+                v-model="search"
+                type="text"
+                placeholder="Hledat podle nadpisu…"
+                class="h-9 w-full rounded-md border border-steel-200 pl-9 pr-3 text-[13px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none"
+              />
+            </div>
+          </div>
+          <div>
+            <label class="mb-1 block field-tag">Stav</label>
+            <AppSelect v-model="filterStatus" :options="statusOptions" />
+          </div>
+          <div>
+            <label class="mb-1 block field-tag">Jazyková mutace</label>
+            <AppSelect v-model="filterLang" :options="langOptions" />
+          </div>
+          <button
+            v-if="hasFilters"
+            class="inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-[12.5px] font-500 text-steel-500 transition-colors hover:bg-steel-100 hover:text-graphite-800"
+            @click="clearFilters"
+          >
+            <Icon name="x" :size="14" /> Zrušit filtry
+          </button>
+        </div>
+
         <TabsList class="inline-flex items-center gap-1 rounded-lg border border-steel-200 bg-steel-50 p-1" aria-label="Zobrazení výpisu">
           <TabsTrigger
             value="grid"
@@ -318,7 +386,7 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
       <div v-else class="rounded-xl border border-steel-200 bg-white px-4 py-16 text-center">
         <div class="mx-auto grid h-12 w-12 place-items-center rounded-xl bg-steel-100 text-steel-400"><Icon name="popup" :size="24" /></div>
         <p class="mt-3 text-[14px] font-600 text-graphite-800">Žádná pop-up okna</p>
-        <p class="mt-1 text-[13px] text-steel-500">Vytvořte první pop-up okno.</p>
+        <p class="mt-1 text-[13px] text-steel-500">{{ hasFilters ? 'Zkuste upravit filtry.' : 'Vytvořte první pop-up okno.' }}</p>
       </div>
     </TabsContent>
 
@@ -441,7 +509,7 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
                 <Icon name="popup" :size="24" />
               </div>
               <p class="mt-3 text-[14px] font-600 text-graphite-800">Žádná pop-up okna</p>
-              <p class="mt-1 text-[13px] text-steel-500">Vytvořte první pop-up okno.</p>
+              <p class="mt-1 text-[13px] text-steel-500">{{ hasFilters ? 'Zkuste upravit filtry.' : 'Vytvořte první pop-up okno.' }}</p>
             </td>
           </tr>
         </tbody>

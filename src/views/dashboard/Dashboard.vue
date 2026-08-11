@@ -108,8 +108,8 @@ function resolve(q: string): { reply: string; action: AgentAction } {
     return {
       reply: 'Rozumím. Připravil jsem koncept pop-up okna podle zadání — zkontrolujte texty a otevřete v editoru.',
       action: {
-        icon: 'popup', module: 'Pop-up', title: label, route: 'popup-new-canvas',
-        desc: 'Návrh vyskakovacího okna s nadpisem, textem a tlačítkem. V editoru Plátno doladíte vzhled i cílení.',
+        icon: 'popup', module: 'Pop-up', title: label, route: 'popup-new',
+        desc: 'Návrh vyskakovacího okna s nadpisem, textem a tlačítkem. V editoru na plátně doladíte vzhled i cílení.',
         popup: { title: label, text: 'Nenechte si ujít naši nabídku — platí po omezenou dobu.', cta: 'Zjistit víc' },
       },
     }
@@ -234,7 +234,7 @@ function openEvent(e: { id: string }) {
 /* Rychlé akce (zkratky do editorů modulů). */
 const quickActions = [
   { label: 'Nová aktualita', icon: 'news', route: 'news-new' },
-  { label: 'Nový pop-up', icon: 'popup', route: 'popup-new-canvas' },
+  { label: 'Nový pop-up', icon: 'popup', route: 'popup-new' },
   { label: 'Nový dotaz FAQ', icon: 'faq', route: 'faq-new' },
   { label: 'Nová galerie', icon: 'gallery', route: 'gallery-new' },
   { label: 'Nová prohlídka', icon: 'ticket', route: 'tour-new' },

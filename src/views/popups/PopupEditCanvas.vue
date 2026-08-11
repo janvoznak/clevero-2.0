@@ -1,17 +1,16 @@
 <script setup lang="ts">
 /**
- * Pop-up editor — VERZE 2 „Plátno" (WYSIWYG, AI-first).
+ * Pop-up editor — „Plátno" (WYSIWYG, AI-first) — jediný editor pop-up oken.
  * Místo formulářových polí se okno tvoří přímo v náhledu: uživatel píše do okna,
  * mění vzhled/fotku/pozici/velikost na místě a hned vidí výsledek. AI pomáhá
- * napříč tvorbou (návrh celého okna z promptu, nadpisy, fotka, motivy, tipy,
- * překlad). Prototyp: veškerá AI je předstíraná (ref + setTimeout), bez modelu.
+ * napříč tvorbou (návrh celého okna z promptu, nadpisy, fotka, motivy, tipy).
+ * Ovládání je sjednocené s ostatními moduly: jazykové mutace přes sdílený LangBar
+ * (3-stavová tečka + ✨ AI překlad) a zobrazování/publikace přes PublishCard
+ * (stav, okno OD–DO, matice „Zobrazit jazyk na webu"). AI je prototyp (setTimeout).
  */
 import { computed, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import {
-  TabsRoot,
-  TabsList,
-  TabsTrigger,
   PopoverRoot,
   PopoverTrigger,
   PopoverPortal,
@@ -25,18 +24,25 @@ import AppSwitch from '@/components/ui/AppSwitch.vue'
 import FormSection from '@/components/admin/FormSection.vue'
 import AiPanel from '@/components/admin/AiPanel.vue'
 import CanvasEditable from '@/components/admin/popup/CanvasEditable.vue'
-import EditorVersionSwitch from '@/components/admin/popup/EditorVersionSwitch.vue'
 import PopupPositionPicker from '@/components/admin/popup/PopupPositionPicker.vue'
+import LangBar from '@/components/admin/LangBar.vue'
+import PublishCard from '@/components/admin/PublishCard.vue'
+import DetailActions from '@/components/admin/DetailActions.vue'
 import { LANGS, SOURCE_LANG } from '@/data/types'
 import type { LangCode, ML } from '@/data/types'
 import {
   MOCK_POPUPS,
   popupState,
-  POPUP_STATE_META,
   POPUP_POSITION_LABELS,
   PREDEFINED_TEMPLATES,
 } from '@/data/mockPopups'
 import type { PopupItem, PopupPosition } from '@/data/mockPopups'
+import {
+  filledLangsOf,
+  publishedLangsOf,
+  publishLangRows,
+  toggleLangPublish,
+} from '@/utils/langPublish'
 
 const props = defineProps<{ id?: string }>()
 const router = useRouter()
@@ -55,7 +61,7 @@ function clone(): PopupItem {
     text: empty(),
     image: null,
     position: 'center',
-    widthPercent: 30,
+    widthPercent: 36,
     from: null,
     to: null,
     enabled: true,
@@ -153,13 +159,57 @@ const THEMES: CanvasTheme[] = [
     kicker: 'text-brand-600',
     kickerDot: 'bg-brand-500',
   },
+  {
+    id: 'sand',
+    name: 'Písková',
+    swatch: 'bg-amber-100 ring-1 ring-amber-200',
+    card: 'bg-amber-50 text-graphite-900 ring-1 ring-amber-200',
+    sub: 'text-amber-900/70',
+    accent: 'bg-brand-500 hover:bg-brand-600',
+    accentText: 'text-white',
+    kicker: 'text-brand-600',
+    kickerDot: 'bg-brand-500',
+  },
 ]
 const activeThemeId = ref('light')
 const theme = computed(() => THEMES.find((t) => t.id === activeThemeId.value) ?? THEMES[0])
 
+/* ============================================================
+   Rozložení OBSAHU — fotka je vždy celé pozadí; layout určuje, kde a jak je
+   nad ní poskládaný obsah (nadpis, text, tlačítko). Lokální stav plátna
+   (prototyp). Motiv = barevnost celého okna; rozložení = umístění obsahu.
+   ============================================================ */
+type LayoutId = 'bottom' | 'top' | 'center' | 'panel'
+interface CanvasLayout {
+  id: LayoutId
+  name: string
+  hint: string
+}
+const LAYOUTS: CanvasLayout[] = [
+  { id: 'bottom', name: 'Obsah dole', hint: 'Nadpis a tlačítko u spodní hrany' },
+  { id: 'top', name: 'Obsah nahoře', hint: 'Obsah u horní hrany' },
+  { id: 'center', name: 'Na střed', hint: 'Obsah vycentrovaný, text na střed' },
+  { id: 'panel', name: 'Panel dole', hint: 'Obsah v panelu pro lepší čitelnost' },
+]
+const activeLayout = ref<LayoutId>('bottom')
+const activeLayoutMeta = computed(() => LAYOUTS.find((l) => l.id === activeLayout.value) ?? LAYOUTS[0])
+
+/** Svislé zarovnání obsahu podle rozložení. */
+function layoutJustify(id: LayoutId): string {
+  return id === 'top' ? 'justify-start' : id === 'center' ? 'justify-center' : 'justify-end'
+}
+/** Vodorovné zarovnání + zarovnání textu. */
+function layoutItems(id: LayoutId): string {
+  return id === 'center' ? 'items-center text-center' : 'items-start text-left'
+}
+const isPanel = (id: LayoutId): boolean => id === 'panel'
+
+/** Text leží přes fotku (bílý) vždy, když je fotka; bez fotky se řídí motivem. */
+const overText = computed(() => !!form.image)
+
 /** Barvy textu okna: na fotce světlé (přes tmavý přechod), jinak dle motivu. */
 const overlay = computed(() =>
-  form.image
+  overText.value
     ? { eyebrow: 'text-white/85', dot: 'bg-white', title: 'text-white', body: 'text-white/90', secondary: 'text-white/75' }
     : { eyebrow: theme.value.kicker, dot: theme.value.kickerDot, title: '', body: theme.value.sub, secondary: theme.value.sub },
 )
@@ -186,6 +236,14 @@ const POS_ALIGN: Record<PopupPosition, string> = {
 }
 
 const sizeLabel = computed(() => `${form.widthPercent} % šířky`)
+
+/* Náhled: desktop vs. mobil — plátno se zúží na šířku telefonu, ať je vidět,
+   jak okno vypadá na malém displeji (šířka okna je % viewportu). */
+const previewMode = ref<'desktop' | 'mobile'>('desktop')
+const PREVIEW_MODES = [
+  { v: 'desktop', label: 'Desktop', icon: 'monitor' },
+  { v: 'mobile', label: 'Mobil', icon: 'smartphone' },
+] as const
 
 /* Resize tažením za pravý okraj okna — mění jen šířku (v %). Výška je dle obsahu. */
 const pageRef = ref<HTMLElement>()
@@ -256,7 +314,7 @@ function aiCompose() {
     // Heuristika: podle obsahu zvol polohu, velikost a motiv.
     if (/oznám|změn|uzáv|otevírac|doba|provoz/i.test(p)) {
       form.position = 'top-center'
-      form.widthPercent = 100
+      form.widthPercent = 46
       form.popupFrame = false
       activeThemeId.value = 'soft'
     } else if (/sleva|prodej|balíč|vstupenk|nabídk|akce|kupón/i.test(p)) {
@@ -323,23 +381,42 @@ function aiText(kind: 'draft' | 'shorten' | 'tone') {
 }
 
 /* ============================================================
-   AI překlad (stejný vzor jako klasický editor).
+   Jazykové mutace + publikování per jazyk — sjednoceno s ostatními moduly
+   (LangBar nahoře + matice „Zobrazit jazyk na webu" v PublishCard).
    ============================================================ */
-const targetLangs = LANGS.filter((l) => l.code !== SOURCE_LANG)
-const translating = ref(false)
-const sourceReady = computed(() => form.title[SOURCE_LANG].trim().length > 0)
-function translateAll() {
-  if (translating.value || !sourceReady.value) return
-  translating.value = true
+const filledLangs = computed(() => LANGS.filter((l) => langFilled(l.code)).map((l) => l.code))
+const liveLangs = computed(() => publishedLangsOf(filledLangsOf(form.title), form.publishedLangs))
+const publishRows = computed(() => publishLangRows(form.title, form.publishedLangs))
+function onToggleLang(code: LangCode) {
+  form.publishedLangs = toggleLangPublish(form.publishedLangs, filledLangsOf(form.title), code)
+}
+
+/* Zobrazování (publikace) — stav + okno OD–DO přes sdílený PublishCard. */
+const cardStatus = computed<'draft' | 'published' | 'scheduled'>(() =>
+  state.value === 'scheduled' ? 'scheduled' : state.value === 'active' ? 'published' : 'draft',
+)
+const publishFromModel = computed({
+  get: () => form.from ?? '',
+  set: (v: string) => (form.from = v || null),
+})
+const publishToModel = computed({
+  get: () => form.to ?? '',
+  set: (v: string) => (form.to = v || null),
+})
+
+/* AI překlad jedné mutace z češtiny (LangBar ✨ — prototyp, jen kopie zdroje). */
+const translatingLang = ref<LangCode | null>(null)
+function translateLang(code: LangCode) {
+  if (code === SOURCE_LANG || translatingLang.value) return
+  translatingLang.value = code
   window.setTimeout(() => {
     for (const field of ['title', 'text'] as const) {
       const val = form[field] as ML
-      const src = val[SOURCE_LANG]
-      for (const t of targetLangs) if (src) val[t.code] = src
+      if (val[SOURCE_LANG]) val[code] = val[SOURCE_LANG]
     }
-    translating.value = false
-    fireToast(`Přeloženo z CZ do ${targetLangs.map((l) => l.code.toUpperCase()).join(', ')}`)
-  }, 1500)
+    translatingLang.value = null
+    fireToast(`Mutace ${code.toUpperCase()} přeložena z češtiny`)
+  }, 1200)
 }
 
 /* ============================================================
@@ -354,7 +431,7 @@ const aiTips = computed(() => {
   if (!plainText(form.text[activeLang.value])) t.push('Přidejte 1–2 věty a jasnou výzvu k akci.')
   if (form.position !== 'center' && boxWpct.value > 62)
     t.push('Velké okno v rohu působí těžkopádně — zmenšete ho, nebo zvolte střed.')
-  if (!t.length) t.push('Vypadá skvěle. Doplňte jazykové mutace přes AI překlad v pravém panelu.')
+  if (!t.length) t.push('Vypadá skvěle. Doplňte jazykové mutace přes ✨ v horní liště.')
   return t.slice(0, 3)
 })
 
@@ -366,6 +443,9 @@ function save() {
 }
 function saveAndBack() {
   router.push({ name: 'popups-list' })
+}
+function onDuplicate() {
+  router.push({ name: 'popup-new' })
 }
 
 /* ---------- Toast ---------- */
@@ -394,7 +474,7 @@ function fireToast(msg: string) {
           <div class="flex items-center gap-2">
             <span class="field-tag rounded bg-steel-100 px-1.5 py-0.5">popup</span>
             <span class="font-mono text-[11px] text-steel-400">
-              {{ isEdit ? `/admin/popups/${form.id}/canvas` : '/admin/popups/new · plátno' }}
+              {{ isEdit ? `/admin/popups/${form.id}/edit` : '/admin/popups/new' }}
             </span>
           </div>
           <h1 class="truncate font-display text-[19px] font-700 leading-tight tracking-tight text-graphite-900">
@@ -402,43 +482,38 @@ function fireToast(msg: string) {
           </h1>
         </div>
 
-        <EditorVersionSwitch :id="props.id" class="hidden md:inline-flex" />
-
-        <!-- Jazykový přepínač -->
-        <TabsRoot
-          :model-value="activeLang"
+        <!-- Jazykové mutace — sdílená lišta (3-stavová tečka + ✨ AI překlad) -->
+        <LangBar
+          v-model="activeLang"
+          :filled="filledLangs"
+          :published="liveLangs"
+          :translating="translatingLang"
           class="hidden lg:block"
-          @update:model-value="(v) => (activeLang = v as LangCode)"
-        >
-          <TabsList
-            class="inline-flex items-center gap-1 rounded-lg border border-steel-200 bg-steel-50 p-1"
-            aria-label="Jazyková mutace"
-          >
-            <TabsTrigger
-              v-for="l in LANGS"
-              :key="l.code"
-              :value="l.code"
-              class="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12.5px] font-600 text-steel-500 outline-none transition-colors hover:text-graphite-800 data-[state=active]:bg-white data-[state=active]:text-graphite-900 data-[state=active]:shadow-sm"
-            >
-              <span>{{ l.flag }}</span>
-              {{ l.code.toUpperCase() }}
-              <span
-                class="h-1.5 w-1.5 rounded-full"
-                :class="langFilled(l.code) ? 'bg-forge-500' : 'bg-steel-300'"
-              />
-            </TabsTrigger>
-          </TabsList>
-        </TabsRoot>
+          @translate="translateLang"
+        />
 
         <div class="h-6 w-px bg-steel-200" />
-        <AppButton variant="secondary" @click="save">
-          <Icon :name="saved ? 'check' : 'save'" :size="16" />
-          {{ saved ? 'Uloženo' : 'Uložit a zůstat' }}
-        </AppButton>
-        <AppButton variant="primary" @click="saveAndBack">
-          <Icon name="check" :size="16" />
-          Uložit a zpět
-        </AppButton>
+        <DetailActions
+          :name="form.title.cs"
+          entity="pop-up okno"
+          :is-edit="isEdit"
+          :saved="saved"
+          @save="save"
+          @save-back="saveAndBack"
+          @duplicate="onDuplicate"
+          @delete="router.push({ name: 'popups-list' })"
+        />
+      </div>
+
+      <!-- Jazykové mutace (mobil / <lg) -->
+      <div class="px-8 pb-3 lg:hidden">
+        <LangBar
+          v-model="activeLang"
+          :filled="filledLangs"
+          :published="liveLangs"
+          :translating="translatingLang"
+          @translate="translateLang"
+        />
       </div>
     </div>
 
@@ -490,28 +565,87 @@ function fireToast(msg: string) {
 
         <!-- Toolbar plátna: motivy + rámeček + poloha + velikost -->
         <div class="flex flex-wrap items-center gap-x-5 gap-y-3 rounded-lg border border-steel-200 bg-white px-4 py-3">
-          <!-- Motivy (AI vzhledy) -->
-          <div class="flex items-center gap-2">
-            <span class="text-[11px] font-600 uppercase tracking-wide text-steel-500">Vzhled</span>
-            <div class="flex items-center gap-1.5">
-              <button
-                v-for="t in THEMES"
-                :key="t.id"
-                :title="t.name + (t.recommended ? ' · doporučeno AI' : '')"
-                :aria-label="t.name"
-                class="relative h-7 w-7 rounded-md outline-none transition-transform hover:scale-105 focus-visible:ring-2 focus-visible:ring-brand-500/40"
-                :class="[t.swatch, activeThemeId === t.id ? 'ring-2 ring-brand-500 ring-offset-1' : '']"
-                @click="activeThemeId = t.id"
-              >
-                <span
-                  v-if="t.recommended"
-                  class="absolute -right-1 -top-1 grid h-3.5 w-3.5 place-items-center rounded-full bg-brand-500 text-white"
-                >
-                  <Icon name="sparkles" :size="9" />
-                </span>
-              </button>
-            </div>
-          </div>
+          <!-- Rozložení okna (šablony kompozice) -->
+          <PopoverRoot>
+            <PopoverTrigger
+              class="inline-flex items-center gap-1.5 rounded-md border border-steel-200 px-2.5 py-1.5 text-[12.5px] font-600 text-graphite-700 outline-none transition-colors hover:bg-steel-50"
+            >
+              <Icon name="layout" :size="15" class="text-steel-500" />
+              {{ activeLayoutMeta.name }}
+              <Icon name="chevronDown" :size="14" class="text-steel-400" />
+            </PopoverTrigger>
+            <PopoverPortal>
+              <PopoverContent :side-offset="6" class="z-50 w-[300px] rounded-lg border border-steel-200 bg-white p-2 shadow-xl outline-none">
+                <p class="px-1.5 pb-1.5 field-tag">Rozložení obsahu (fotka je vždy na pozadí)</p>
+                <div class="grid grid-cols-2 gap-1.5">
+                  <PopoverClose v-for="l in LAYOUTS" :key="l.id" as-child>
+                    <button
+                      type="button"
+                      class="rounded-md border p-1.5 text-left outline-none transition-colors"
+                      :class="activeLayout === l.id ? 'border-brand-400 bg-brand-50' : 'border-steel-200 hover:bg-steel-50'"
+                      @click="activeLayout = l.id"
+                    >
+                      <!-- Mini náhled rozvržení nad fotkou (schematicky) -->
+                      <span class="relative mb-1.5 block h-16 w-full overflow-hidden rounded bg-gradient-to-t from-graphite-900 via-graphite-700 to-steel-400">
+                        <span class="absolute inset-0 flex flex-col p-2" :class="[layoutJustify(l.id), layoutItems(l.id)]">
+                          <span class="flex flex-col gap-1" :class="[layoutItems(l.id), isPanel(l.id) ? 'rounded bg-black/40 p-1.5 backdrop-blur-sm' : '']">
+                            <span class="h-1 w-9 rounded-full bg-white/90" />
+                            <span class="h-1 w-11 rounded-full bg-white/45" />
+                            <span class="mt-0.5 h-2.5 w-6 rounded-[3px] bg-brand-500" />
+                          </span>
+                        </span>
+                      </span>
+                      <span class="block text-[12.5px] font-600 text-graphite-800">{{ l.name }}</span>
+                      <span class="block text-[11px] leading-snug text-steel-500">{{ l.hint }}</span>
+                    </button>
+                  </PopoverClose>
+                </div>
+                <p class="mt-2 px-1.5 text-[11px] leading-snug text-steel-500">
+                  Přepnutím změníš jen umístění obsahu — fotka i texty zůstanou.
+                </p>
+                <PopoverArrow class="fill-white" />
+              </PopoverContent>
+            </PopoverPortal>
+          </PopoverRoot>
+
+          <div class="h-6 w-px bg-steel-200" />
+
+          <!-- Motiv (barví celé okno včetně tlačítka) -->
+          <PopoverRoot>
+            <PopoverTrigger
+              class="inline-flex items-center gap-1.5 rounded-md border border-steel-200 px-2.5 py-1.5 text-[12.5px] font-600 text-graphite-700 outline-none transition-colors hover:bg-steel-50"
+            >
+              <span class="h-3.5 w-3.5 rounded-full" :class="theme.swatch" />
+              Motiv: {{ theme.name }}
+              <Icon name="chevronDown" :size="14" class="text-steel-400" />
+            </PopoverTrigger>
+            <PopoverPortal>
+              <PopoverContent :side-offset="6" class="z-50 w-64 rounded-lg border border-steel-200 bg-white p-2 shadow-xl outline-none">
+                <p class="px-1.5 pb-1.5 field-tag">Barevný motiv okna</p>
+                <div class="space-y-0.5">
+                  <PopoverClose v-for="t in THEMES" :key="t.id" as-child>
+                    <button
+                      type="button"
+                      class="flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left outline-none transition-colors"
+                      :class="activeThemeId === t.id ? 'bg-brand-50' : 'hover:bg-steel-50'"
+                      @click="activeThemeId = t.id"
+                    >
+                      <span class="h-6 w-6 shrink-0 rounded-md" :class="t.swatch" />
+                      <span class="flex-1 text-[12.5px] font-600 text-graphite-800">{{ t.name }}</span>
+                      <span v-if="t.recommended" class="inline-flex items-center gap-1 rounded-full bg-brand-50 px-1.5 py-0.5 text-[10px] font-700 text-brand-600">
+                        <Icon name="sparkles" :size="10" /> AI
+                      </span>
+                      <Icon v-if="activeThemeId === t.id" name="check" :size="15" class="text-brand-600" />
+                    </button>
+                  </PopoverClose>
+                </div>
+                <p class="mt-2 px-1.5 text-[11px] leading-snug text-steel-500">
+                  Motiv barví celé okno — pozadí, text i tlačítko.
+                </p>
+                <PopoverArrow class="fill-white" />
+              </PopoverContent>
+            </PopoverPortal>
+          </PopoverRoot>
 
           <div class="h-6 w-px bg-steel-200" />
 
@@ -540,14 +674,33 @@ function fireToast(msg: string) {
             </PopoverPortal>
           </PopoverRoot>
 
-          <div class="ml-auto flex items-center gap-2">
-            <Icon name="resize" :size="14" class="text-steel-400" />
-            <span class="rounded bg-graphite-900 px-2 py-1 font-mono text-[11px] tabular-nums text-white">{{ sizeLabel }}</span>
+          <div class="ml-auto flex items-center gap-3">
+            <!-- Náhled: Desktop / Mobil -->
+            <div class="flex gap-0.5 rounded-lg border border-steel-200 bg-steel-50 p-0.5" role="group" aria-label="Náhled zařízení">
+              <button
+                v-for="m in PREVIEW_MODES"
+                :key="m.v"
+                type="button"
+                class="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[12px] font-600 outline-none transition-colors"
+                :class="previewMode === m.v ? 'bg-white text-graphite-900 shadow-sm' : 'text-steel-500 hover:text-graphite-800'"
+                :aria-pressed="previewMode === m.v"
+                @click="previewMode = m.v"
+              >
+                <Icon :name="m.icon" :size="14" /> {{ m.label }}
+              </button>
+            </div>
+            <div class="flex items-center gap-2">
+              <Icon name="resize" :size="14" class="text-steel-400" />
+              <span class="rounded bg-graphite-900 px-2 py-1 font-mono text-[11px] tabular-nums text-white">{{ sizeLabel }}</span>
+            </div>
           </div>
         </div>
 
-        <!-- ŽIVÉ PLÁTNO -->
-        <div class="overflow-hidden rounded-xl border border-steel-300 bg-steel-200/50 shadow-inner">
+        <!-- ŽIVÉ PLÁTNO (v mobilním náhledu zúžené na šířku telefonu) -->
+        <div
+          class="overflow-hidden rounded-xl border border-steel-300 bg-steel-200/50 shadow-inner transition-[max-width] duration-300"
+          :style="previewMode === 'mobile' ? { maxWidth: '400px', margin: '0 auto' } : {}"
+        >
           <!-- Faux prohlížeč -->
           <div class="flex items-center gap-2 border-b border-steel-300 bg-steel-100 px-4 py-2">
             <span class="h-2.5 w-2.5 rounded-full bg-danger-500/60" />
@@ -556,7 +709,10 @@ function fireToast(msg: string) {
             <span class="ml-3 flex-1 truncate rounded-md bg-white px-3 py-1 text-center font-mono text-[11px] text-steel-500">
               dolnivitkovice.cz
             </span>
-            <span class="text-[10.5px] font-600 uppercase tracking-wide text-steel-400">Živý náhled</span>
+            <span class="inline-flex items-center gap-1 text-[10.5px] font-600 uppercase tracking-wide text-steel-400">
+              <Icon :name="previewMode === 'mobile' ? 'smartphone' : 'monitor'" :size="12" />
+              {{ previewMode === 'mobile' ? 'Mobil' : 'Desktop' }}
+            </span>
           </div>
 
           <!-- Plocha stránky s dim overlayem a oknem -->
@@ -599,9 +755,9 @@ function fireToast(msg: string) {
             <div class="absolute inset-0 bg-graphite-950/55 backdrop-blur-[1px]" />
 
             <div :class="['absolute inset-0 flex p-5 sm:p-8', POS_ALIGN[form.position]]">
-              <!-- Samotné pop-up okno -->
+              <!-- Samotné pop-up okno (kompozice dle rozložení) -->
               <div
-                class="group/popup relative flex min-h-0 flex-col overflow-hidden rounded-2xl transition-shadow"
+                class="group/popup relative flex min-h-[300px] flex-col overflow-hidden rounded-2xl transition-shadow"
                 :class="[
                   theme.card,
                   form.popupFrame ? 'shadow-2xl ring-1 ring-black/5' : 'shadow-lg',
@@ -609,7 +765,7 @@ function fireToast(msg: string) {
                 ]"
                 :style="{ width: boxWpct + '%', maxHeight: '92%' }"
               >
-                <!-- Celoplošný obrázek jako pozadí okna + tmavý přechod pro čitelnost textu -->
+                <!-- FOTKA je vždy celé pozadí (+ tmavý přechod pro čitelnost textu) -->
                 <template v-if="form.image">
                   <img :src="form.image" alt="" class="absolute inset-0 h-full w-full object-cover" />
                   <div class="absolute inset-0 bg-gradient-to-t from-black/85 via-black/50 to-black/15" />
@@ -618,17 +774,22 @@ function fireToast(msg: string) {
                 <!-- Reálné zavírací tlačítko okna -->
                 <span
                   class="absolute right-3 top-3 z-20 grid h-7 w-7 place-items-center rounded-full backdrop-blur-sm"
-                  :class="form.image ? 'bg-white/15 text-white hover:bg-white/25' : 'bg-black/5 text-current/50 hover:bg-black/10'"
+                  :class="overText ? 'bg-white/15 text-white hover:bg-white/25' : 'bg-black/5 text-current/50 hover:bg-black/10'"
                   aria-hidden="true"
                 >
                   <Icon name="x" :size="14" />
                 </span>
 
-                <!-- Obsah okna přes obrázek (dole zarovnaný) -->
+                <!-- Obsah okna — umístění/zarovnání dle zvoleného rozložení -->
                 <div
                   class="scroll-thin relative z-10 flex min-h-0 flex-1 flex-col overflow-auto p-6 sm:p-7"
-                  :class="form.image ? 'justify-end' : 'justify-start'"
+                  :class="[layoutJustify(activeLayout), layoutItems(activeLayout)]"
                 >
+                  <!-- Skupina obsahu (u „Panel dole" v poloprůhledné kartě) -->
+                  <div
+                    class="flex flex-col"
+                    :class="[layoutItems(activeLayout), isPanel(activeLayout) ? 'max-w-full rounded-xl bg-black/35 p-5 backdrop-blur-sm' : '']"
+                  >
                   <!-- Eyebrow (kontext / značka) -->
                   <div :class="['mb-2.5 flex items-center gap-2 text-[11px] font-700 uppercase tracking-[0.14em]', overlay.eyebrow]">
                     <span :class="['h-1.5 w-1.5 rounded-full', overlay.dot]" />
@@ -654,7 +815,7 @@ function fireToast(msg: string) {
                   />
 
                   <!-- CTA + sekundární „Teď ne" (reálné akce pop-upu) -->
-                  <div class="mt-5 flex items-center gap-4">
+                  <div class="mt-5 flex items-center gap-4" :class="layoutItems(activeLayout)">
                     <PopoverRoot>
                       <PopoverTrigger
                         :class="['inline-flex items-center gap-2 rounded-xl px-5 py-3 text-[14px] font-700 shadow-lg outline-none transition-all hover:-translate-y-px hover:shadow-xl', theme.accent, theme.accentText]"
@@ -686,6 +847,7 @@ function fireToast(msg: string) {
                       </PopoverPortal>
                     </PopoverRoot>
                     <span :class="['text-[13px] font-500 opacity-80', overlay.secondary]">Teď ne, děkuji</span>
+                  </div>
                   </div>
                 </div>
 
@@ -830,50 +992,20 @@ function fireToast(msg: string) {
 
       <!-- PRAVÝ rail (zachován z klasického editoru) -->
       <aside class="space-y-5 xl:sticky xl:top-[84px] xl:self-start">
-        <!-- Přepínač verzí pro <md, kde se do headeru nevešel -->
-        <div class="md:hidden"><EditorVersionSwitch :id="props.id" /></div>
+        <!-- Zobrazování (publikace) — sjednoceno s ostatními moduly:
+             stav + okno OD–DO + matice „Zobrazit jazyk na webu". -->
+        <PublishCard
+          :initial-status="cardStatus"
+          v-model:publish-from="publishFromModel"
+          v-model:publish-to="publishToModel"
+          :langs="publishRows"
+          updated-by="Jan Voznak"
+          @toggle-lang="onToggleLang"
+        />
 
-        <!-- Zobrazování -->
-        <FormSection title="Zobrazování" icon="calendar" tag="popup-from / popup-to">
+        <!-- Chování a náhled -->
+        <FormSection title="Chování a náhled" icon="settings" tag="popup-cookie_expiration">
           <div class="space-y-4">
-            <div class="flex items-center justify-between rounded-md bg-steel-50 px-3 py-2.5">
-              <span class="text-[12.5px] font-500 text-steel-600">Aktuální stav</span>
-              <span
-                class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-600"
-                :class="[POPUP_STATE_META[state].bg, POPUP_STATE_META[state].text]"
-              >
-                <span class="h-1.5 w-1.5 rounded-full" :class="POPUP_STATE_META[state].dot" />
-                {{ POPUP_STATE_META[state].label }}
-              </span>
-            </div>
-
-            <div class="flex items-center justify-between rounded-md border border-steel-200 px-3 py-2.5">
-              <AppSwitch v-model="form.enabled" label="Zobrazovat" hint="Okno je aktivní" aria-label="Zobrazovat" />
-              <span class="field-tag">popup-enabled</span>
-            </div>
-
-            <div>
-              <label class="mb-1.5 flex items-center justify-between">
-                <span class="text-[13px] font-600 text-graphite-800">Od</span>
-                <span class="field-tag">popup-from</span>
-              </label>
-              <input
-                v-model="form.from"
-                type="datetime-local"
-                class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13px] text-graphite-800 focus:border-brand-500 focus:outline-none"
-              />
-            </div>
-            <div>
-              <label class="mb-1.5 flex items-center justify-between">
-                <span class="text-[13px] font-600 text-graphite-800">Do</span>
-                <span class="field-tag">popup-to</span>
-              </label>
-              <input
-                v-model="form.to"
-                type="datetime-local"
-                class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13px] text-graphite-800 focus:border-brand-500 focus:outline-none"
-              />
-            </div>
             <div>
               <label class="mb-1.5 flex items-center justify-between">
                 <span class="text-[13px] font-600 text-graphite-800">Platnost blokace (dny)</span>
@@ -889,63 +1021,14 @@ function fireToast(msg: string) {
                 Po zavření se okno návštěvníkovi znovu nezobrazí po tento počet dní.
               </p>
             </div>
-          </div>
-        </FormSection>
-
-        <!-- Náhled na webu (prototyp — mrtvý odkaz) -->
-        <FormSection title="Náhled" icon="eye">
-          <a
-            href="#"
-            target="_blank"
-            class="flex w-full items-center justify-center gap-2 rounded-md border border-steel-200 bg-white px-4 py-2.5 text-[13px] font-600 text-graphite-700 outline-none transition-colors hover:bg-steel-50 hover:text-graphite-900 focus-visible:ring-4 focus-visible:ring-brand-500/15"
-            @click.prevent="fireToast('Náhled na webu je v prototypu jen ilustrační')"
-          >
-            <Icon name="eye" :size="16" /> Náhled na webu
-          </a>
-          <p class="mt-2 text-[11.5px] leading-relaxed text-steel-500">
-            Otevře náhled pop-up okna na webu v novém okně.
-          </p>
-        </FormSection>
-
-        <!-- Jazykové mutace + AI překlad -->
-        <FormSection title="Jazykové mutace" icon="globe" tag="ML">
-          <ul class="space-y-1.5">
-            <li
-              v-for="l in LANGS"
-              :key="l.code"
-              class="flex items-center justify-between rounded-md px-2.5 py-2 transition-colors"
-              :class="activeLang === l.code ? 'bg-brand-50' : 'hover:bg-steel-50'"
+            <a
+              href="#"
+              target="_blank"
+              class="flex w-full items-center justify-center gap-2 rounded-md border border-steel-200 bg-white px-4 py-2.5 text-[13px] font-600 text-graphite-700 outline-none transition-colors hover:bg-steel-50 hover:text-graphite-900 focus-visible:ring-4 focus-visible:ring-brand-500/15"
+              @click.prevent="fireToast('Náhled na webu je v prototypu jen ilustrační')"
             >
-              <button class="flex items-center gap-2.5 text-left" @click="activeLang = l.code">
-                <span>{{ l.flag }}</span>
-                <span class="text-[13px] font-500 text-graphite-800">{{ l.label }}</span>
-              </button>
-              <span
-                class="inline-flex items-center gap-1.5 font-mono text-[10.5px]"
-                :class="langFilled(l.code) ? 'text-forge-600' : 'text-steel-400'"
-              >
-                <span class="h-1.5 w-1.5 rounded-full" :class="langFilled(l.code) ? 'bg-forge-500' : 'bg-steel-300'" />
-                {{ langFilled(l.code) ? 'vyplněno' : 'prázdné' }}
-              </span>
-            </li>
-          </ul>
-
-          <div class="mt-4 border-t border-steel-100 pt-4">
-            <AppButton
-              variant="primary"
-              size="sm"
-              class="w-full"
-              :disabled="translating || !sourceReady"
-              @click="translateAll"
-            >
-              <Icon name="sparkles" :size="15" :class="translating && 'animate-pulse'" />
-              {{ translating ? 'Překládám…' : 'Přeložit z CZ přes AI' }}
-            </AppButton>
-            <p class="mt-2 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
-              <Icon name="sparkles" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
-              <span v-if="sourceReady">Vyplní mutace EN, DE, PL (nadpis a text) ze zdrojové české verze.</span>
-              <span v-else>Nejdřív vyplňte český nadpis — z něj se překládá.</span>
-            </p>
+              <Icon name="eye" :size="16" /> Náhled na webu
+            </a>
           </div>
         </FormSection>
       </aside>
