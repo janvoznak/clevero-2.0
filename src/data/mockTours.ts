@@ -1,6 +1,6 @@
 import { imageFor } from './mockNews'
 import { LANGS } from './types'
-import type { ML, ContentBlock, LangCode } from './types'
+import type { ML, ContentBlock, LangCode, GalleryImage } from './types'
 
 /* ============================================================
    Modul „Prohlídky" (dříve Vstupenky).
@@ -21,6 +21,11 @@ export interface TourCategory {
   name: ML
   /** Popis kategorie (richtext). */
   description: ML
+  /** Fotogalerie kategorie (jediný zdroj fotek); hlavní fotka = cover. */
+  photos?: GalleryImage[]
+  /** Připojené galerie z modulu Galerie. */
+  galleryIds?: string[]
+  /** Hlavní obrázek — denormalizovaný odkaz z galerie pro výpisy/karty. */
   image: string
   published: boolean
   /** Které jazykové mutace jdou na web (viz `@/utils/langPublish`).
@@ -29,14 +34,6 @@ export interface TourCategory {
 }
 
 /* ---------- Prohlídka ---------- */
-/** Cenová hladina (řádek ceníku). */
-export interface PriceTier {
-  id: string
-  label: string
-  price: string
-  /** Volitelná poznámka / vysvětlivka. */
-  note: string
-}
 /** Odrážka „Co vás při prohlídce čeká". */
 export interface TourHighlight {
   id: string
@@ -63,6 +60,11 @@ export interface Tour {
   description: ML
   /** Obsah prohlídky jako bloky (ContentBuilder) — jednotná sekce „Obsah". */
   contentBlocks?: ContentBlock[]
+  /** Fotogalerie prohlídky (jediný zdroj fotek). Hlavní fotka = cover. */
+  photos: GalleryImage[]
+  /** Připojené galerie z modulu Galerie. */
+  galleryIds?: string[]
+  /** Hlavní obrázek — denormalizovaný odkaz z galerie pro výpisy/karty. */
   image: string
   /** Délka prohlídky (např. „100 minut"). */
   duration: string
@@ -70,8 +72,6 @@ export interface Tour {
   highlights: TourHighlight[]
   /** „Kdy prohlídky začínají" — volný text. */
   scheduleNote: ML
-  /** Ceník. */
-  priceTiers: PriceTier[]
   /** Kontaktní e-mail (alternativa k nákupu). */
   contactEmail: string
   /** Poznámka k platbě (např. platba kartou). */
@@ -131,9 +131,6 @@ export const MOCK_CATEGORIES: TourCategory[] = [
   },
 ]
 
-function tier(label: string, price: string, note = ''): PriceTier {
-  return { id: `${label}-${price}`, label, price, note }
-}
 function hl(text: string): TourHighlight {
   return { id: text.slice(0, 16), text: ml(text) }
 }
@@ -141,7 +138,10 @@ function slot(datetime: string, capacity: number, booked: number): TourSlot {
   return { id: datetime, datetime, capacity, booked }
 }
 
-type RawTour = Omit<Tour, 'title' | 'perex' | 'description' | 'scheduleNote' | 'paymentNote' | 'highlights'> & {
+type RawTour = Omit<
+  Tour,
+  'title' | 'perex' | 'description' | 'scheduleNote' | 'paymentNote' | 'highlights' | 'photos' | 'galleryIds'
+> & {
   title: string
   perex: string
   description: string
@@ -174,13 +174,6 @@ const RAW_TOURS: RawTour[] = [
     ],
     scheduleNote:
       'Denně v 10:00, 12:00, 14:00 a 16:00 (pro předem objednané organizované skupiny dle dohody). Max. kapacita jedné skupiny je 17 osob. V jeden čas mohou vyjít 2 skupiny. Pro větší skupiny jsou možné individuální prohlídky dle dohody.',
-    priceTiers: [
-      tier('Dospělí', '295 Kč'),
-      tier('Zvýhodněné vstupné', '220 Kč', '(1) senioři 65+, studenti, děti 6–15 let'),
-      tier('Rodinné vstupné', '800 Kč', '(2) 2 dospělí + 2 děti'),
-      tier('ZTP/P', '220 Kč', '(3) včetně doprovodu'),
-      tier('Školní skupiny', '170 Kč', '(4) za žáka, pedag. doprovod zdarma'),
-    ],
     contactEmail: 'nkp@dolnivitkovice.cz',
     paymentNote: 'Vstupenky lze platit platební kartou.',
     colosseumId: 'COL-TOUR-4401',
@@ -207,7 +200,6 @@ const RAW_TOURS: RawTour[] = [
     duration: '60 minut',
     highlights: ['Historie plynojemu.', 'Vstup do hlavního sálu Gong.'],
     scheduleNote: 'Denně v 11:00 a 15:00. Kapacita skupiny 25 osob.',
-    priceTiers: [tier('Dospělí', '180 Kč'), tier('Snížené', '120 Kč')],
     contactEmail: 'nkp@dolnivitkovice.cz',
     paymentNote: 'Vstupenky lze platit platební kartou.',
     colosseumId: 'COL-TOUR-4402',
@@ -225,7 +217,6 @@ const RAW_TOURS: RawTour[] = [
     duration: '90 minut',
     highlights: ['Těžní věž a strojovna.', 'Autentické prostory dolu.', 'Výklad o práci horníků.'],
     scheduleNote: 'Út–Ne v 10:00, 13:00 a 15:00. Kapacita skupiny 20 osob.',
-    priceTiers: [tier('Dospělí', '220 Kč'), tier('Snížené', '150 Kč'), tier('Rodinné', '600 Kč')],
     contactEmail: 'muzeum@dolnivitkovice.cz',
     paymentNote: 'Vstupenky lze platit platební kartou.',
     colosseumId: 'COL-TOUR-4410',
@@ -243,7 +234,6 @@ const RAW_TOURS: RawTour[] = [
     duration: '90 minut',
     highlights: ['Prohlídka při svitu lamp.', 'Omezená kapacita.'],
     scheduleNote: 'Vybrané pátky ve 21:00. Nutná rezervace předem.',
-    priceTiers: [tier('Jednotné vstupné', '260 Kč')],
     contactEmail: 'muzeum@dolnivitkovice.cz',
     paymentNote: 'Vstupenky lze platit platební kartou.',
     colosseumId: '',
@@ -252,7 +242,7 @@ const RAW_TOURS: RawTour[] = [
   },
 ]
 
-export const MOCK_TOURS: Tour[] = RAW_TOURS.map((r) => ({
+export const MOCK_TOURS: Tour[] = RAW_TOURS.map((r, idx) => ({
   ...r,
   title: { ...ml(r.title), ...r.titleTr },
   perex: ml(r.perex),
@@ -260,6 +250,15 @@ export const MOCK_TOURS: Tour[] = RAW_TOURS.map((r) => ({
   scheduleNote: ml(r.scheduleNote),
   paymentNote: ml(r.paymentNote),
   highlights: r.highlights.map(hl),
+  // Galerie = jediný zdroj fotek; hlavní (isMain) = cover do výpisů (r.image).
+  galleryIds: [],
+  photos: r.image
+    ? [
+        { id: `${r.id}-ph0`, src: r.image, alt: r.title, isMain: true },
+        { id: `${r.id}-ph1`, src: imageFor(idx * 3 + 4), alt: '', isMain: false },
+        { id: `${r.id}-ph2`, src: imageFor(idx * 3 + 9), alt: '', isMain: false },
+      ]
+    : [],
 }))
 
 export const MOCK_TICKETS: Ticket[] = [
@@ -280,6 +279,29 @@ export function category(id: string): TourCategory | undefined {
 }
 export function tour(id: string): Tour | undefined {
   return MOCK_TOURS.find((t) => t.id === id)
+}
+
+/* ---------- Načtené akce/okruhy z Colossea (read-only katalog pro našeptávač) ----------
+   To, co API aktuálně vrací jako dostupné okruhy. Napojení prohlídky se z tohoto
+   seznamu vybírá našeptávačem; lze ale zadat i ID zatím nenačtené (naplánované)
+   akce — dokud se v Colosseu nezveřejní, nepůjdou koupit vstupenky. */
+export interface ColosseumTour {
+  id: string
+  name: string
+  /** Časovaný okruh (má termíny) vs. nečasovaný. */
+  timed: boolean
+}
+export const COLOSSEUM_TOURS: ColosseumTour[] = [
+  { id: 'COL-TOUR-4401', name: 'Vysokopecní okruh + Bolt Tower', timed: true },
+  { id: 'COL-TOUR-4402', name: 'Plynojem a aula Gong', timed: true },
+  { id: 'COL-TOUR-4410', name: 'Důl Hlubina — denní prohlídka', timed: true },
+  { id: 'COL-TOUR-4415', name: 'Bolt Tower — vyhlídková plošina', timed: false },
+  { id: 'COL-TOUR-4420', name: 'Noční prohlídka dolu Hlubina', timed: true },
+  { id: 'COL-TOUR-4433', name: 'Malý svět techniky U6', timed: false },
+]
+/** Načtený okruh z Colossea podle ID (jinak undefined = zatím nenačteno). */
+export function colosseumTourById(id: string): ColosseumTour | undefined {
+  return COLOSSEUM_TOURS.find((t) => t.id === id.trim())
 }
 export function toursForCategory(categoryId: string): Tour[] {
   return MOCK_TOURS.filter((t) => t.categoryId === categoryId)
@@ -329,7 +351,7 @@ export function ticketsForTour(tourId: string): Ticket[] {
 /** Prázdné entity pro zakládání. */
 export function blankCategory(): TourCategory {
   // Nová kategorie: každá mutace půjde živě, jakmile dostane obsah.
-  return { id: 'nová', name: ml(''), description: ml(''), image: '', published: false, publishedLangs: LANGS.map((l) => l.code) }
+  return { id: 'nová', name: ml(''), description: ml(''), photos: [], galleryIds: [], image: '', published: false, publishedLangs: LANGS.map((l) => l.code) }
 }
 export function blankTour(categoryId = 'cat-dov'): Tour {
   return {
@@ -339,11 +361,12 @@ export function blankTour(categoryId = 'cat-dov'): Tour {
     title: ml(''),
     perex: ml(''),
     description: ml(''),
+    photos: [],
+    galleryIds: [],
     image: '',
     duration: '',
     highlights: [],
     scheduleNote: ml(''),
-    priceTiers: [],
     contactEmail: '',
     paymentNote: ml('Vstupenky lze platit platební kartou.'),
     colosseumId: '',

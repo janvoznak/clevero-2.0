@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { TabsRoot, TabsList, TabsTrigger, TabsContent } from 'reka-ui'
 import Icon from '@/components/ui/Icon.vue'
@@ -9,6 +9,7 @@ import AppSwitch from '@/components/ui/AppSwitch.vue'
 import FormSection from '@/components/admin/FormSection.vue'
 import PublishCard from '@/components/admin/PublishCard.vue'
 import RichTextEditor from '@/components/admin/RichTextEditor.vue'
+import GalleryField from '@/components/admin/GalleryField.vue'
 import RowActionsMenu from '@/components/admin/RowActionsMenu.vue'
 import LangBar from '@/components/admin/LangBar.vue'
 import MlFieldHeader from '@/components/admin/MlFieldHeader.vue'
@@ -42,6 +43,14 @@ function clone(): TourCategory {
   const s = source.value
   if (s) {
     const c = JSON.parse(JSON.stringify(s)) as TourCategory
+    // Fotku přesunul do galerie: pokud galerie prázdná, zhmotni ji ze stávajícího coveru.
+    c.galleryIds = c.galleryIds ?? []
+    c.photos =
+      c.photos && c.photos.length
+        ? c.photos
+        : c.image
+          ? [{ id: `${c.id}-ph0`, src: c.image, alt: c.name.cs, isMain: true }]
+          : []
     // Zhmotnit fallback do explicitního seznamu, aby šlo přepínat.
     c.publishedLangs = publishedLangsOf(filledLangsOf(c.name), c.publishedLangs)
     return c
@@ -51,10 +60,15 @@ function clone(): TourCategory {
 const form = reactive<TourCategory>(clone())
 const activeLang = ref<LangCode>('cs')
 
+/* Galerie (form.photos) je jediný zdroj fotek; hlavní fotka = cover do výpisů. */
+const coverImage = computed(() => (form.photos ?? []).find((p) => p.isMain) ?? (form.photos ?? [])[0] ?? null)
+watch(coverImage, (c) => { form.image = c?.src ?? '' }, { immediate: true })
+
 /** Sekce detailu kategorie (podtržené záložky). */
 const activeSection = ref('info')
 const sections = [
   { value: 'info', label: 'Základní informace', icon: 'page' },
+  { value: 'gallery', label: 'Fotogalerie', icon: 'gallery' },
   { value: 'tours', label: 'Prohlídky v kategorii', icon: 'ticket' },
 ]
 function langFilled(code: LangCode): boolean {
@@ -175,19 +189,20 @@ function onTourAction(key: string, t: Tour) {
                   <MlFieldHeader label="Popis kategorie" :lang="activeLang" tag="category-description" @translate="translateField('description')" />
                   <RichTextEditor v-model="form.description[activeLang]" />
                 </div>
-                <div>
-                  <label class="mb-1.5 flex items-center justify-between">
-                    <span class="text-[13px] font-600 text-graphite-800">Obrázek kategorie</span>
-                    <span class="field-tag">category-image</span>
-                  </label>
-                  <div class="flex items-center gap-4">
-                    <span class="h-20 w-28 shrink-0 overflow-hidden rounded-lg bg-steel-100">
-                      <img v-if="form.image" :src="form.image" alt="" class="h-full w-full object-cover" />
-                      <span v-else class="grid h-full w-full place-items-center text-steel-400"><Icon name="image" :size="20" /></span>
-                    </span>
-                    <button class="inline-flex items-center gap-2 rounded-md border border-dashed border-steel-300 px-3 py-2 text-[12.5px] font-500 text-graphite-700 transition-colors hover:border-brand-400 hover:bg-brand-50/40 hover:text-brand-600"><Icon name="upload" :size="15" /> Nahrát</button>
-                  </div>
-                </div>
+              </TabsContent>
+
+              <!-- Sekce: Fotogalerie (jednotné napříč moduly — hlavní fotka = cover) -->
+              <TabsContent value="gallery" class="outline-none">
+                <p class="mb-3 flex items-center gap-2 text-[12.5px] text-steel-500">
+                  Hlavní fotka (★) je zároveň náhledovka kategorie ve výpisu.
+                  <span class="field-tag rounded bg-steel-100 px-1.5 py-0.5">category-gallery</span>
+                </p>
+                <GalleryField
+                  v-model:galleries="form.galleryIds"
+                  v-model:photos="form.photos"
+                  link-tag="category-gallery_ids"
+                  photos-tag="category-photos"
+                />
               </TabsContent>
 
               <!-- Sekce: Prohlídky v kategorii -->

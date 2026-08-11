@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { TabsRoot, TabsList, TabsTrigger, TabsContent } from 'reka-ui'
 import Icon from '@/components/ui/Icon.vue'
@@ -13,6 +13,7 @@ import BackRefsCard from '@/components/admin/BackRefsCard.vue'
 import { backRefsForTour } from '@/data/backrefs'
 import AiPanel from '@/components/admin/AiPanel.vue'
 import ContentBuilder from '@/components/admin/ContentBuilder.vue'
+import GalleryField from '@/components/admin/GalleryField.vue'
 import LangBar from '@/components/admin/LangBar.vue'
 import MlFieldHeader from '@/components/admin/MlFieldHeader.vue'
 import { useMlTranslate } from '@/utils/useMlTranslate'
@@ -34,8 +35,9 @@ import {
   availability,
   AVAILABILITY_META,
   fmtSlot,
+  COLOSSEUM_TOURS,
+  colosseumTourById,
   type Tour,
-  type PriceTier,
   type TourHighlight,
 } from '@/data/mockTours'
 import { PLACE_OPTIONS } from '@/data/mockVenues'
@@ -55,6 +57,8 @@ function clone(): Tour {
   if (s) {
     const c = JSON.parse(JSON.stringify(s)) as Tour
     c.contentBlocks = c.contentBlocks ?? defaultContentBlocks()
+    c.photos = c.photos ?? []
+    c.galleryIds = c.galleryIds ?? []
     // Zhmotnit fallback do explicitního seznamu, aby šlo přepínat.
     c.publishedLangs = publishedLangsOf(filledLangsOf(c.title), c.publishedLangs)
     return c
@@ -64,6 +68,11 @@ function clone(): Tour {
   return c
 }
 const form = reactive<Tour>(clone())
+
+/* Galerie (form.photos) je jediný zdroj fotek; hlavní fotka = cover. `form.image`
+   drží denormalizovaný odkaz pro výpisy/karty mimo formulář (jako v Areálu). */
+const coverImage = computed(() => form.photos.find((p) => p.isMain) ?? form.photos[0] ?? null)
+watch(coverImage, (c) => { form.image = c?.src ?? '' }, { immediate: true })
 const activeLang = ref<LangCode>('cs')
 function langFilled(code: LangCode): boolean {
   return form.title[code].trim().length > 0
@@ -84,9 +93,9 @@ const activeSection = ref('basic')
 const sections = [
   { value: 'basic', label: 'Základní informace', icon: 'page' },
   { value: 'content', label: 'Obsah', icon: 'text' },
-  { value: 'pricing', label: 'Ceník a kontakt', icon: 'ticket' },
+  { value: 'pricing', label: 'Kontakt a platba', icon: 'mail' },
   { value: 'colosseum', label: 'Dostupnost a Colosseum', icon: 'integration' },
-  { value: 'media', label: 'Obrázek', icon: 'image' },
+  { value: 'gallery', label: 'Fotogalerie', icon: 'gallery' },
 ]
 
 /* ---------- „Co vás čeká" (highlights) ---------- */
@@ -99,15 +108,6 @@ function removeHighlight(i: number) {
   form.highlights.splice(i, 1)
 }
 
-/* ---------- Ceník (price tiers) ---------- */
-let ptSeq = 0
-function addTier() {
-  ptSeq += 1
-  form.priceTiers.push({ id: `pt-new-${ptSeq}`, label: '', price: '', note: '' })
-}
-function removeTier(i: number) {
-  form.priceTiers.splice(i, 1)
-}
 
 /* ---------- Místo konání (objekt v Areálu) ---------- */
 const areaModel = computed<string>({
@@ -119,6 +119,30 @@ const areaModel = computed<string>({
 
 /* ---------- Colosseum (read-only) ---------- */
 const slots = computed(() => upcomingSlots(form))
+
+/* ---------- Napojení na Colosseum — našeptávač z načtených okruhů ----------
+   Vybírá se z akcí, které Colosseum aktuálně vrací (COLOSSEUM_TOURS). Lze zadat
+   i ID zatím nenačtené (naplánované) akce — pak varujeme, že do zveřejnění
+   v Colosseu nepůjde koupit vstupenky. */
+const colOpen = ref(false)
+function norm(s: string): string {
+  return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+}
+const colSuggestions = computed(() => {
+  const q = norm(form.colosseumId.trim())
+  if (!q) return COLOSSEUM_TOURS
+  return COLOSSEUM_TOURS.filter((t) => norm(t.id).includes(q) || norm(t.name).includes(q))
+})
+/** Napojený načtený okruh (undefined = ID prázdné nebo zatím nenačtené). */
+const colTour = computed(() => (form.colosseumId.trim() ? colosseumTourById(form.colosseumId) : undefined))
+/** Stav napojení: prázdné / načteno / nenačtené ID (naplánováno). */
+const colState = computed<'empty' | 'loaded' | 'planned'>(() =>
+  !form.colosseumId.trim() ? 'empty' : colTour.value ? 'loaded' : 'planned',
+)
+function pickColTour(t: { id: string }) {
+  form.colosseumId = t.id
+  colOpen.value = false
+}
 
 /* ---------- AI popis (prototyp) ---------- */
 const aiPrompt = ref('')
@@ -281,23 +305,16 @@ function onDuplicate() {
                 <ContentBuilder v-model="form.contentBlocks" />
               </TabsContent>
 
-              <!-- Ceník a kontakt -->
+              <!-- Kontakt a platba -->
               <TabsContent value="pricing" class="space-y-5 outline-none">
-                <div>
-                  <div class="mb-2 flex items-center justify-between">
-                    <span class="text-[13px] font-600 text-graphite-800">Ceník</span>
-                    <span class="field-tag">tour-price_tiers</span>
-                  </div>
-                  <div v-if="form.priceTiers.length" class="space-y-2">
-                    <div v-for="(p, i) in form.priceTiers" :key="p.id" class="flex items-center gap-2">
-                      <input v-model="p.label" type="text" placeholder="Dospělí" class="h-10 w-40 shrink-0 rounded-md border border-steel-200 px-3 text-[13.5px] font-600 text-graphite-900 placeholder:font-400 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
-                      <input v-model="p.price" type="text" placeholder="295 Kč" class="h-10 w-24 shrink-0 rounded-md border border-steel-200 px-3 text-[13.5px] font-700 text-graphite-900 placeholder:font-400 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
-                      <input v-model="p.note" type="text" placeholder="poznámka (nepovinné)" class="h-10 flex-1 rounded-md border border-steel-200 px-3 text-[12.5px] text-steel-600 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
-                      <button type="button" class="grid h-9 w-9 shrink-0 place-items-center rounded-md text-steel-400 transition-colors hover:bg-danger-500/10 hover:text-danger-600" aria-label="Odebrat" @click="removeTier(i)"><Icon name="trash" :size="15" /></button>
-                    </div>
-                  </div>
-                  <p v-else class="text-[12px] text-steel-400">Zatím žádné ceny. Přidejte hladiny (Dospělí, Snížené, Rodinné…).</p>
-                  <button type="button" class="mt-2.5 inline-flex items-center gap-1.5 rounded-md border border-dashed border-steel-300 px-3 py-1.5 text-[12.5px] font-500 text-graphite-700 transition-colors hover:border-brand-400 hover:bg-brand-50/40 hover:text-brand-600" @click="addTier"><Icon name="plus" :size="15" /> Přidat cenu</button>
+                <!-- Ceny řeší Colosseum — v CMS se needitují (žádná ruční duplikace). -->
+                <div class="flex items-start gap-2.5 rounded-md border border-steel-200 bg-steel-50 px-3.5 py-3">
+                  <Icon name="integration" :size="16" class="mt-0.5 shrink-0 text-brand-500" />
+                  <p class="text-[12.5px] leading-relaxed text-steel-600">
+                    <span class="font-600 text-graphite-800">Ceny vstupenek se v CMS nezadávají.</span>
+                    Aktuální cena i nákup probíhají v <span class="font-600">Colosseu</span> (napojení nastavíte v záložce
+                    <span class="font-600">Dostupnost a Colosseum</span>). Tím nemůže vzniknout rozpor mezi cenou na webu a u pokladny.
+                  </p>
                 </div>
 
                 <div class="grid gap-4 sm:grid-cols-2">
@@ -348,17 +365,57 @@ function onDuplicate() {
 
                 <div>
                   <label class="mb-1.5 flex items-center justify-between">
-                    <span class="text-[13px] font-600 text-graphite-800">Propojení Colosseum (ID)</span>
+                    <span class="text-[13px] font-600 text-graphite-800">Napojení na Colosseum</span>
                     <span class="field-tag">tour-colosseum_id</span>
                   </label>
+                  <!-- Našeptávač z načtených okruhů (+ volné zadání nenačteného ID) -->
                   <div class="relative">
                     <Icon name="ticket" :size="15" class="absolute left-3 top-1/2 -translate-y-1/2 text-steel-400" />
-                    <input v-model="form.colosseumId" type="text" placeholder="Unikátní ID prohlídky" class="h-10 w-full rounded-md border border-steel-200 pl-9 pr-3 font-mono text-[13px] text-graphite-800 placeholder:font-sans placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
+                    <input
+                      v-model="form.colosseumId"
+                      type="text"
+                      placeholder="Hledat načtenou akci nebo zadat ID…"
+                      class="h-10 w-full rounded-md border border-steel-200 pl-9 pr-3 font-mono text-[13px] text-graphite-800 placeholder:font-sans placeholder:text-steel-400 focus:border-brand-500 focus:outline-none"
+                      @focus="colOpen = true"
+                      @input="colOpen = true"
+                      @blur="colOpen = false"
+                    />
+                    <!-- Návrhy (načtené okruhy z Colossea) -->
+                    <div
+                      v-if="colOpen && colSuggestions.length"
+                      class="absolute left-0 right-0 top-full z-20 mt-1 max-h-60 overflow-auto rounded-md border border-steel-200 bg-white p-1 shadow-xl"
+                    >
+                      <button
+                        v-for="t in colSuggestions"
+                        :key="t.id"
+                        type="button"
+                        class="flex w-full items-center justify-between gap-3 rounded-md px-2.5 py-2 text-left outline-none transition-colors hover:bg-steel-100"
+                        :class="form.colosseumId.trim() === t.id && 'bg-brand-50'"
+                        @mousedown.prevent="pickColTour(t)"
+                      >
+                        <span class="min-w-0">
+                          <span class="block truncate text-[13px] font-500 text-graphite-800">{{ t.name }}</span>
+                          <span class="block font-mono text-[11px] text-steel-400">{{ t.id }}</span>
+                        </span>
+                        <span class="shrink-0 rounded-full px-2 py-0.5 text-[10.5px] font-600" :class="t.timed ? 'bg-forge-500/10 text-forge-600' : 'bg-steel-100 text-steel-500'">
+                          {{ t.timed ? 'časovaný' : 'nečasovaný' }}
+                        </span>
+                      </button>
+                    </div>
                   </div>
-                  <p class="mt-1.5 flex items-start gap-1.5 text-[11.5px] leading-relaxed" :class="form.colosseumId ? 'text-forge-600' : 'text-steel-500'">
-                    <Icon :name="form.colosseumId ? 'check' : 'integration'" :size="13" class="mt-0.5 shrink-0" />
-                    <span v-if="form.colosseumId">Napojeno — termíny a vstupenky se tahají z Colossea.</span>
-                    <span v-else>Bez ID se termíny ani vstupenky z Colossea nenačtou.</span>
+
+                  <!-- Stav napojení -->
+                  <p v-if="colState === 'loaded'" class="mt-1.5 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-forge-600">
+                    <Icon name="check" :size="13" class="mt-0.5 shrink-0" />
+                    <span>Napojeno na načtenou akci <span class="font-600">„{{ colTour!.name }}"</span> — termíny a vstupenky se tahají z Colossea.</span>
+                  </p>
+                  <p v-else-if="colState === 'planned'" class="mt-1.5 flex items-start gap-1.5 rounded-md bg-amber-500/10 px-2.5 py-2 text-[11.5px] leading-relaxed text-amber-700">
+                    <Icon name="help" :size="13" class="mt-0.5 shrink-0" />
+                    <span>Toto ID zatím není mezi načtenými akcemi (naplánovaná akce). Až se akce v Colosseu zveřejní, doplní se termíny i vstupenky. <span class="font-600">Dokud tam nebude, na webu nepůjde koupit vstupenky.</span></span>
+                  </p>
+                  <p v-else class="mt-1.5 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
+                    <Icon name="integration" :size="13" class="mt-0.5 shrink-0" />
+                    <span>Vyberte načtenou akci z Colossea — bez napojení se termíny ani vstupenky nenačtou.</span>
                   </p>
                 </div>
 
@@ -389,19 +446,18 @@ function onDuplicate() {
                 </div>
               </TabsContent>
 
-              <!-- Obrázek -->
-              <TabsContent value="media" class="outline-none">
-                <p class="mb-3 text-[12.5px] text-steel-500">Hlavní vizuál prohlídky (výpis i detail).</p>
-                <div class="flex items-center gap-4">
-                  <span class="h-28 w-44 shrink-0 overflow-hidden rounded-lg bg-steel-100">
-                    <img v-if="form.image" :src="form.image" alt="" class="h-full w-full object-cover" />
-                    <span v-else class="grid h-full w-full place-items-center text-steel-400"><Icon name="image" :size="24" /></span>
-                  </span>
-                  <div class="space-y-2">
-                    <button class="inline-flex items-center gap-2 rounded-md border border-dashed border-steel-300 px-3.5 py-2.5 text-[13px] font-500 text-graphite-700 transition-colors hover:border-brand-400 hover:bg-brand-50/40 hover:text-brand-600"><Icon name="upload" :size="16" /> Nahrát obrázek</button>
-                    <button v-if="form.image" class="block text-[12px] font-500 text-danger-500 hover:text-danger-600" @click="form.image = ''">Odebrat obrázek</button>
-                  </div>
-                </div>
+              <!-- Fotogalerie (jednotné napříč moduly — hlavní fotka = cover) -->
+              <TabsContent value="gallery" class="outline-none">
+                <p class="mb-3 flex items-center gap-2 text-[12.5px] text-steel-500">
+                  Hlavní fotka (★) je zároveň náhledovka prohlídky ve výpisu i na kartě.
+                  <span class="field-tag rounded bg-steel-100 px-1.5 py-0.5">tour-gallery</span>
+                </p>
+                <GalleryField
+                  v-model:galleries="form.galleryIds"
+                  v-model:photos="form.photos"
+                  link-tag="tour-gallery_ids"
+                  photos-tag="tour-photos"
+                />
               </TabsContent>
             </div>
           </TabsRoot>
