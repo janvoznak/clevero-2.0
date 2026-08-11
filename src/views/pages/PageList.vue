@@ -19,6 +19,7 @@ import {
 import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
+import ClearFiltersButton from '@/components/ui/ClearFiltersButton.vue'
 import AppSwitch from '@/components/ui/AppSwitch.vue'
 import RowActionsMenu from '@/components/admin/RowActionsMenu.vue'
 import { LANGS } from '@/data/types'
@@ -334,13 +335,7 @@ function onRowAction(key: string, p: PageItem) {
             />
           </div>
         </div>
-        <button
-          v-if="hasFilters"
-          class="inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-[12.5px] font-500 text-steel-500 transition-colors hover:bg-steel-100 hover:text-graphite-800"
-          @click="clearFilters"
-        >
-          <Icon name="x" :size="14" /> Zrušit filtry
-        </button>
+        <ClearFiltersButton :visible="hasFilters" @clear="clearFilters" />
         <p v-if="hasFilters" class="ml-auto self-center text-[12px] text-steel-400">
           Filtrovaný výpis (plochý). Zrušením filtrů se vrátíte do sekcí.
         </p>

@@ -27,6 +27,7 @@ import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppSwitch from '@/components/ui/AppSwitch.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
+import ClearFiltersButton from '@/components/ui/ClearFiltersButton.vue'
 import RowActionsMenu from '@/components/admin/RowActionsMenu.vue'
 import { MOCK_POPUPS, popupState, POPUP_STATE_META } from '@/data/mockPopups'
 import { LANGS } from '@/data/types'
@@ -214,13 +215,7 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
             <label class="mb-1 block field-tag">Jazyková mutace</label>
             <AppSelect v-model="filterLang" :options="langOptions" />
           </div>
-          <button
-            v-if="hasFilters"
-            class="inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-[12.5px] font-500 text-steel-500 transition-colors hover:bg-steel-100 hover:text-graphite-800"
-            @click="clearFilters"
-          >
-            <Icon name="x" :size="14" /> Zrušit filtry
-          </button>
+          <ClearFiltersButton :visible="hasFilters" @clear="clearFilters" />
         </div>
 
         <TabsList class="inline-flex items-center gap-1 rounded-lg border border-steel-200 bg-steel-50 p-1" aria-label="Zobrazení výpisu">

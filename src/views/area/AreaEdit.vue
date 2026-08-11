@@ -94,10 +94,6 @@ function removeStat(i: number) {
    form.image drží denormalizovaný odkaz pro výpisy/karty mimo tento formulář. */
 const coverImage = computed(() => form.photos.find((p) => p.isMain) ?? form.photos[0] ?? null)
 watch(coverImage, (c) => { form.image = c?.src ?? '' }, { immediate: true })
-function goToGallery() {
-  activeSection.value = 'gallery'
-}
-
 
 
 /* ---------- AI překlad mutací (prototyp) — sdílené řešení ---------- */
@@ -207,34 +203,6 @@ function onDuplicate() {
                   <span class="field-tag">area-accessible</span>
                 </div>
 
-                <div>
-                  <label class="mb-1.5 flex items-center justify-between">
-                    <span class="text-[13px] font-600 text-graphite-800">Hlavní obrázek (náhledovka)</span>
-                    <span class="field-tag">area-image</span>
-                  </label>
-                  <div class="flex items-center gap-4">
-                    <span class="relative h-24 w-36 shrink-0 overflow-hidden rounded-lg bg-steel-100">
-                      <img v-if="coverImage" :src="coverImage.src" :alt="coverImage.alt" class="h-full w-full object-cover" />
-                      <span v-else class="grid h-full w-full place-items-center text-steel-400"><Icon name="image" :size="22" /></span>
-                      <span v-if="coverImage" class="absolute left-1.5 top-1.5 inline-flex items-center gap-1 rounded bg-graphite-900/80 px-1.5 py-0.5 text-[10px] font-700 text-white">
-                        <Icon name="star" :size="11" class="text-brand-400" /> Hlavní
-                      </span>
-                    </span>
-                    <div class="min-w-0">
-                      <button
-                        type="button"
-                        class="inline-flex items-center gap-2 rounded-md border border-steel-300 px-3.5 py-2.5 text-[13px] font-500 text-graphite-700 transition-colors hover:border-brand-400 hover:bg-brand-50/40 hover:text-brand-600"
-                        @click="goToGallery"
-                      >
-                        <Icon name="gallery" :size="16" /> {{ coverImage ? 'Změnit v galerii' : 'Přidat fotky do galerie' }}
-                      </button>
-                      <p class="mt-1.5 text-[11.5px] leading-relaxed text-steel-500">
-                        Náhledovka se bere z <button type="button" class="font-600 text-brand-600 hover:underline" @click="goToGallery">galerie</button> — hlavní je fotka označená ★ (1. pozice). Nenahrává se zvlášť.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
                 <!-- Zajímavá čísla (statistiky budovy) -->
                 <div>
                   <div class="mb-2 flex items-center justify-between">
@@ -287,7 +255,27 @@ function onDuplicate() {
               </TabsContent>
 
               <!-- Sekce: Galerie -->
-              <TabsContent value="gallery" class="outline-none">
+              <TabsContent value="gallery" class="space-y-5 outline-none">
+                <!-- Hlavní obrázek (náhledovka) = cover odvozený z galerie níže -->
+                <div class="flex items-center gap-4 rounded-lg border border-steel-200 bg-steel-50/50 p-4">
+                  <span class="relative h-24 w-36 shrink-0 overflow-hidden rounded-lg bg-steel-100">
+                    <img v-if="coverImage" :src="coverImage.src" :alt="coverImage.alt" class="h-full w-full object-cover" />
+                    <span v-else class="grid h-full w-full place-items-center text-steel-400"><Icon name="image" :size="22" /></span>
+                    <span v-if="coverImage" class="absolute left-1.5 top-1.5 inline-flex items-center gap-1 rounded bg-graphite-900/80 px-1.5 py-0.5 text-[10px] font-700 text-white">
+                      <Icon name="star" :size="11" class="text-brand-400" /> Hlavní
+                    </span>
+                  </span>
+                  <div class="min-w-0">
+                    <div class="flex items-center gap-2">
+                      <span class="text-[13px] font-600 text-graphite-800">Hlavní obrázek (náhledovka)</span>
+                      <span class="field-tag">area-image</span>
+                    </div>
+                    <p class="mt-1.5 text-[11.5px] leading-relaxed text-steel-500">
+                      Náhledovka se bere z galerie níže — hlavní je fotka označená ★ (1. pozice). Pořadí a hlavní fotku nastavíš přetažením nebo tlačítkem „topovat nahoru". Nenahrává se zvlášť.
+                    </p>
+                  </div>
+                </div>
+
                 <GalleryField
                   v-model:galleries="form.galleryIds"
                   v-model:photos="form.photos"

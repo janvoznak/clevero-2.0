@@ -393,6 +393,9 @@ Co se z Colossea importuje a kam patří:
 - **Termíny prohlídek (`TourSlot`) a vstupenky (`Ticket`) se needitují** — jen zobrazují. Sloty žijí ve své prohlídce (sekce „Nejbližší termíny") a na webu v Colosseum widgetu; **do Kalendáře akcí se nepromítají** (Kalendář = kurátorský program). Výjimka: **tábory** jsou samostatná entita Colossea a do Kalendáře akcí se importují.
 - U e-shopu má administrace mít **nástěnku** upozorňující na čerstvě importovaný **produkt bez popisu**.
 - Balíčky: prezentovat spíš přes dominantní aktualitu na úvodu než samostatnou zastrčenou sekcí (dle domluvy s klientem).
+- **Prodej vstupenek u akce (`ticketMode`)** má čtyři **oddělené** stavy — `colosseum` (online přes navázanou prohlídku), `external` (odkaz na web pořadatele), `onsite` (placená akce **bez online prodeje** — vstupenky jen na místě, na pokladně přes Colosseum) a `free` (vstup zdarma). **„Zdarma" a „prodej na místě" neslévat** — je to placeno × neplaceno, dva různé případy. Odvození z mock dat: má cenu (ne „zdarma") a nemá online prodej → `onsite`.
+- **Vazba na vstupenky je jednojazyčná (single), ne per-mutace.** Colosseum ID drží **prohlídka** (`Tour.colosseumId: string`, jedno ID) — akce se na ni jen odkazuje přes `tourIds`, takže jazyk žije v prohlídce, ne na akci. Externí odkaz (`ticketUrl`) je také jeden pro všechny mutace. Per-jazyk override (lokalizované Colosseum ID / landing page) **zatím nezavádíme** — přidal by se až na reálnou potřebu klienta, a to jako volitelný override **na prohlídce**, ne na akci.
+- **AI nikdy nedoplňuje Colosseum ID sám.** Chybějící `colosseumId` je vědomý *incomplete* stav (nástěnka/health): AI ho jen označí a předá provozu („ID pro Colosseum vyžádám u provozu"), nevymýšlí ho. Případný budoucí per-jazyk override musí missing stav (např. „chybí ID pro DE") zobrazit stejně a fallbackovat na CS.
 
 ### 14d. Taxonomie — čtyři různé věci, neslévat
 

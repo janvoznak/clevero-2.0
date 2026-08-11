@@ -36,7 +36,7 @@ const empty = (): ML => ({ cs: '', en: '', de: '', pl: '' })
 const form = reactive<DovEvent>({
   id: 'nová', title: empty(), subtitle: empty(), type: 'Festival',
   from: '', to: '', time: '', timeTo: '', summary: empty(), description: empty(),
-  image: '', price: '', ticketUrl: '', ticketMode: 'none', ageLimit: '', duration: '', performers: '',
+  image: '', price: '', ticketUrl: '', ticketMode: 'free', ageLimit: '', duration: '', performers: '',
   tags: [], areaId: DEFAULT_PLACE_ID, tourIds: [], galleryIds: [], gallery: [], published: false,
   contentBlocks: defaultContentBlocks(),
 })
