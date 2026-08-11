@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { computed, reactive, ref, nextTick, watch } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { DialogRoot, DialogPortal, DialogOverlay, DialogContent, DialogTitle, DialogDescription, DialogClose } from 'reka-ui'
 import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import {
@@ -48,122 +47,6 @@ const sparkGeom = computed(() => {
   const area = `0,32 ${line} 100,32`
   return { line, area, last: pts.at(-1)! }
 })
-
-/* ============================================================
-   AI agent — otevírá se tlačítkem jako fokusovaný dialog.
-   Prototyp: žádná reálná AI. Podle klíčových slov „rozpozná záměr"
-   a připraví koncept (např. pop-up okno) + odkaz do editoru.
-   ============================================================ */
-interface AgentAction {
-  icon: string
-  module: string
-  title: string
-  desc: string
-  route: string
-  params?: Record<string, string>
-  popup?: { title: string; text: string; cta: string }
-}
-interface AgentMessage {
-  id: number
-  role: 'user' | 'agent'
-  text: string
-  action?: AgentAction
-}
-
-const agentOpen = ref(false)
-const messages = reactive<AgentMessage[]>([])
-const input = ref('')
-const thinking = ref(false)
-let seq = 0
-
-const suggestions = [
-  { label: 'Pop-up okno', icon: 'popup', prompt: 'Vytvoř pop-up okno k letní slevě 20 % na Bolt Tower' },
-  { label: 'Aktualitu', icon: 'news', prompt: 'Napiš aktualitu o zahájení letní sezóny' },
-  { label: 'Dotaz do FAQ', icon: 'faq', prompt: 'Přidej do FAQ dotaz o parkování v areálu' },
-  { label: 'Prohlídku', icon: 'ticket', prompt: 'Založ novou prohlídku dolu Hlubina' },
-]
-
-const STOPWORDS = new Set([
-  'vytvoř', 'vytvor', 'založ', 'zaloz', 'připrav', 'priprav', 'udělej', 'udelej', 'vygeneruj',
-  'napiš', 'napis', 'přidej', 'pridej', 'nový', 'nova', 'nové', 'novou', 'mi', 'nám', 'nam',
-  'prosím', 'prosim', 'popup', 'pop-up', 'okno', 'vyskakovací', 'vyskakovaci',
-  'aktualitu', 'aktualita', 'aktualitě', 'dotaz', 'faq', 'prohlídku', 'prohlidku', 'prohlídka',
-  'galerii', 'galerie', 'událost', 'udalost', 'akci', 'akce',
-  'o', 'k', 'ke', 'na', 'pro', 'do', 'se', 's', 'v', 've', 'a',
-])
-function topicOf(q: string): string {
-  return q
-    .split(/\s+/)
-    .filter((w) => w && !STOPWORDS.has(w.toLowerCase().replace(/[.,!?]$/, '')))
-    .join(' ')
-    .trim()
-}
-function cap(s: string): string {
-  return s ? s.charAt(0).toUpperCase() + s.slice(1) : s
-}
-
-function resolve(q: string): { reply: string; action: AgentAction } {
-  const label = cap(topicOf(q)) || 'Novinka v Dolních Vítkovicích'
-  if (/pop.?up|vyskakov|okno|banner/i.test(q)) {
-    return {
-      reply: 'Rozumím. Připravil jsem koncept pop-up okna podle zadání — zkontrolujte texty a otevřete v editoru.',
-      action: {
-        icon: 'popup', module: 'Pop-up', title: label, route: 'popup-new',
-        desc: 'Návrh vyskakovacího okna s nadpisem, textem a tlačítkem. V editoru na plátně doladíte vzhled i cílení.',
-        popup: { title: label, text: 'Nenechte si ujít naši nabídku — platí po omezenou dobu.', cta: 'Zjistit víc' },
-      },
-    }
-  }
-  if (/aktualit|novink|článek|clanek|příspěv|prispev/i.test(q)) {
-    return { reply: 'Připravil jsem koncept aktuality — nadpis a perex jsou předvyplněné, text i překlady doladíte v editoru.', action: { icon: 'news', module: 'Aktuality', title: label, route: 'news-new', desc: 'Koncept aktuality s nadpisem a perexem. V editoru přidáte text, fotogalerii a nastavíte publikaci.' } }
-  }
-  if (/faq|dotaz|otázk|otazk|nejčast|nejcast/i.test(q)) {
-    return { reply: 'Připravil jsem nový dotaz do FAQ. Koncept odpovědi můžete nechat dogenerovat přímo v editoru dotazu.', action: { icon: 'faq', module: 'FAQ', title: label, route: 'faq-new', desc: 'Nový dotaz do znalostní báze. V editoru navrhne AI i koncept odpovědi z otázky.' } }
-  }
-  if (/prohlídk|prohlidk|vstupenk|okruh|tour/i.test(q)) {
-    return { reply: 'Založil jsem koncept prohlídky. Doplňte popis, ceník a napojení na Colosseum v editoru.', action: { icon: 'ticket', module: 'Prohlídky', title: label, route: 'tour-new', desc: 'Koncept prohlídky s názvem a zařazením. Termíny a vstupenky se tahají z Colossea.' } }
-  }
-  if (/galeri|fotk|fotogaleri|album|snímk|snimk/i.test(q)) {
-    return { reply: 'Připravil jsem novou galerii. Fotky nahrajete a seřadíte přímo v editoru.', action: { icon: 'gallery', module: 'Galerie', title: label, route: 'gallery-new', desc: 'Nové album fotografií. V editoru nahrajete fotky, vyberete hlavní a zařadíte do sekce.' } }
-  }
-  if (/událost|udalost|akce|koncert|festival|program/i.test(q)) {
-    return { reply: 'Přidal jsem koncept akce do kalendáře. Termín, místo a program doplníte v editoru.', action: { icon: 'calendar', module: 'Kalendář akcí', title: label, route: 'event-new', desc: 'Koncept akce v kalendáři. V editoru nastavíte termín, místo konání a související prohlídky.' } }
-  }
-  return { reply: 'Nejsem si jistý, který obsah chcete vytvořit — připravil jsem koncept aktuality. Nebo zkuste některý z návrhů.', action: { icon: 'news', module: 'Aktuality', title: label, route: 'news-new', desc: 'Obecný koncept obsahu. V editoru upřesníte typ a doplníte detaily.' } }
-}
-
-const scroller = ref<HTMLElement | null>(null)
-const inputEl = ref<HTMLInputElement | null>(null)
-
-function submit() {
-  const q = input.value.trim()
-  if (!q || thinking.value) return
-  messages.push({ id: ++seq, role: 'user', text: q })
-  input.value = ''
-  thinking.value = true
-  nextTick(() => scroller.value?.scrollTo({ top: scroller.value.scrollHeight }))
-  window.setTimeout(() => {
-    const { reply, action } = resolve(q)
-    messages.push({ id: ++seq, role: 'agent', text: reply, action })
-    thinking.value = false
-    nextTick(() => scroller.value?.scrollTo({ top: scroller.value!.scrollHeight, behavior: 'smooth' }))
-  }, 1300)
-}
-function openAgent(prompt?: string) {
-  agentOpen.value = true
-  if (prompt) nextTick(() => { input.value = prompt; submit() })
-}
-watch(agentOpen, (v) => { if (v) nextTick(() => inputEl.value?.focus()) })
-function openAction(a: AgentAction) {
-  agentOpen.value = false
-  router.push({ name: a.route, params: a.params })
-}
-function dismiss(m: AgentMessage) {
-  m.action = undefined
-}
-function resetChat() {
-  messages.splice(0, messages.length)
-}
 
 /* ============================================================
    „Vyžaduje pozornost" — akcentovaná sekce s podněty od AI.
@@ -245,7 +128,7 @@ const quickActions = [
    Widgety dashboardu — pořadí + drag&drop řazení (prototyp).
    Sekce s čísly je jeden widget. Přesun tažením za úchyt.
    ============================================================ */
-const widgets = ref<string[]>(['attention', 'stats', 'calendar', 'recent', 'quick'])
+const widgets = ref<string[]>(['attention', 'stats', 'calendar', 'recent'])
 const dragKey = ref<string | null>(null)
 const overKey = ref<string | null>(null)
 function onWidgetDragStart(key: string) {
@@ -274,46 +157,39 @@ function onWidgetDragEnd() {
       <span class="font-mono text-[11px] text-steel-400">/admin/dashboard</span>
     </div>
 
-    <!-- ============ HERO + spouštěč AI agenta (signature) ============ -->
+    <!-- ============ Rychlé akce (hero — zkratky do editorů modulů) ============ -->
     <section
-      class="relative overflow-hidden rounded-2xl px-7 py-8 text-white shadow-lg sm:px-9 sm:py-10"
+      class="relative overflow-hidden rounded-2xl px-7 py-8 text-white shadow-lg sm:px-9 sm:py-9"
       style="background: linear-gradient(120deg, #7a331c 0%, #a34a29 44%, #d95e2e 100%)"
     >
       <!-- Dekorativní vrstvy (vodoznak + prstenec) -->
-      <Icon name="sparkles" :size="260" class="pointer-events-none absolute -right-10 -top-16 text-white/10" />
+      <Icon name="plus" :size="240" class="pointer-events-none absolute -right-8 -top-14 text-white/10" />
       <span class="pointer-events-none absolute -bottom-24 -right-10 h-64 w-64 rounded-full border border-white/10" />
       <span class="pointer-events-none absolute -bottom-32 right-6 h-64 w-64 rounded-full border border-white/10" />
 
-      <div class="relative max-w-2xl">
+      <div class="relative">
         <p class="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em] text-white/70">
           <span class="inline-block h-1.5 w-1.5 rounded-full bg-white/80" /> Vítejte zpět, Jane · Dolní Vítkovice
         </p>
-        <h1 class="mt-3 font-display text-[32px] font-800 leading-[1.05] tracking-tight sm:text-[38px]">
-          Co dnes vytvoříme?
+        <h1 class="mt-3 flex items-center gap-2.5 font-display text-[30px] font-800 leading-[1.05] tracking-tight sm:text-[34px]">
+          Rychlé akce
         </h1>
-        <p class="mt-2.5 max-w-xl text-[14.5px] leading-relaxed text-white/85">
-          Řekněte asistentovi, co potřebujete — připraví pop-up okno, aktualitu, dotaz i prohlídku.
-          Vy už jen zkontrolujete a zveřejníte.
+        <p class="mt-2 max-w-xl text-[14px] leading-relaxed text-white/85">
+          Založte nový obsah jedním kliknutím — rovnou v editoru příslušného modulu.
         </p>
 
-        <div class="mt-6 flex flex-wrap items-center gap-3">
+        <div class="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           <button
-            class="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-[14px] font-700 text-brand-700 shadow-md transition-transform hover:-translate-y-0.5 hover:shadow-lg focus-visible:ring-4 focus-visible:ring-white/40"
-            @click="openAgent()"
+            v-for="q in quickActions"
+            :key="q.route"
+            class="group flex items-center gap-2.5 rounded-xl bg-white/10 px-3.5 py-3 text-left text-white ring-1 ring-white/15 backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:bg-white hover:text-brand-700 hover:shadow-lg focus-visible:ring-4 focus-visible:ring-white/40"
+            @click="router.push({ name: q.route })"
           >
-            <Icon name="sparkles" :size="18" /> Spustit asistenta
+            <span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-white/15 text-white transition-colors group-hover:bg-brand-50 group-hover:text-brand-600">
+              <Icon :name="q.icon" :size="18" />
+            </span>
+            <span class="min-w-0 text-[12.5px] font-700 leading-tight">{{ q.label }}</span>
           </button>
-          <div class="flex flex-wrap items-center gap-2">
-            <span class="text-[12.5px] text-white/60">nebo rovnou:</span>
-            <button
-              v-for="s in suggestions"
-              :key="s.label"
-              class="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/10 px-3 py-1.5 text-[12.5px] font-600 text-white backdrop-blur-sm transition-colors hover:bg-white/20"
-              @click="openAgent(s.prompt)"
-            >
-              <Icon :name="s.icon" :size="14" /> {{ s.label }}
-            </button>
-          </div>
         </div>
       </div>
     </section>
@@ -524,149 +400,7 @@ function onWidgetDragEnd() {
       </ul>
     </section>
 
-    <!-- Widget: Rychlé akce (úzký pás, dlaždice v řadě) -->
-    <section
-      class="rounded-2xl border border-steel-200 bg-white px-4 py-3 shadow-sm transition-[box-shadow,opacity]"
-      :style="{ order: widgets.indexOf('quick') }"
-      :class="[overKey === 'quick' && dragKey && dragKey !== 'quick' ? 'ring-2 ring-brand-400' : '', dragKey === 'quick' ? 'opacity-40' : '']"
-      @dragenter.prevent="dragKey && (overKey = 'quick')"
-      @dragover.prevent
-      @drop="onWidgetDrop('quick')"
-      @dragend="onWidgetDragEnd"
-    >
-      <div class="flex flex-wrap items-center gap-2">
-        <button draggable="true" class="grid h-6 w-6 shrink-0 cursor-grab place-items-center rounded text-steel-400 transition-colors hover:bg-steel-100 hover:text-graphite-700 active:cursor-grabbing" aria-label="Přesunout widget" @dragstart="onWidgetDragStart('quick')" @click.stop><Icon name="grip" :size="15" /></button>
-        <span class="mr-1 flex items-center gap-1.5 text-[13px] font-700 text-graphite-900"><Icon name="plus" :size="15" class="text-steel-400" /> Rychlé akce</span>
-        <button
-          v-for="q in quickActions"
-          :key="q.route"
-          class="inline-flex items-center gap-2 rounded-lg border border-steel-200 px-3 py-2 text-[12.5px] font-600 text-graphite-700 transition-colors hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700"
-          @click="router.push({ name: q.route })"
-        >
-          <Icon :name="q.icon" :size="16" class="shrink-0 text-brand-500" /> {{ q.label }}
-        </button>
-      </div>
-    </section>
-
     </div>
     <!-- /widgety -->
-
-    <!-- ============ AI agent — dialog (defaultně zavřený) ============ -->
-    <DialogRoot v-model:open="agentOpen">
-      <DialogPortal>
-        <DialogOverlay class="fixed inset-0 z-50 bg-graphite-950/50 backdrop-blur-[2px]" />
-        <DialogContent
-          class="fixed left-1/2 top-1/2 z-50 flex max-h-[86vh] w-[660px] max-w-[94vw] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border border-steel-200 bg-white shadow-2xl"
-        >
-          <!-- Hlavička -->
-          <div class="flex items-center gap-3 border-b border-steel-200 px-5 py-4">
-            <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-500 text-white shadow-sm"><Icon name="sparkles" :size="20" /></span>
-            <div class="min-w-0 flex-1">
-              <DialogTitle class="flex items-center gap-2 font-display text-[16px] font-700 text-graphite-900">
-                AI asistent <span class="rounded bg-brand-50 px-1.5 py-0.5 font-mono text-[10px] text-brand-600">AGENT</span>
-              </DialogTitle>
-              <DialogDescription class="text-[12px] text-steel-500">Zadejte požadavek — připravím koncept obsahu k úpravě.</DialogDescription>
-            </div>
-            <button v-if="messages.length" class="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-500 text-steel-500 transition-colors hover:bg-steel-100 hover:text-graphite-800" @click="resetChat">
-              <Icon name="x" :size="14" /> Nová
-            </button>
-            <DialogClose class="grid h-8 w-8 place-items-center rounded-md text-steel-400 transition-colors hover:bg-steel-100 hover:text-graphite-800"><Icon name="x" :size="18" /></DialogClose>
-          </div>
-
-          <!-- Tělo: prázdný stav nebo konverzace -->
-          <div ref="scroller" class="flex-1 overflow-y-auto px-5 py-4">
-            <!-- Prázdný stav -->
-            <div v-if="!messages.length && !thinking" class="py-6 text-center">
-              <span class="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-brand-50 text-brand-500"><Icon name="sparkles" :size="28" /></span>
-              <p class="mt-3 font-display text-[16px] font-700 text-graphite-900">Co mám připravit?</p>
-              <p class="mx-auto mt-1 max-w-sm text-[13px] text-steel-500">Napište požadavek vlastními slovy, nebo si vyberte:</p>
-              <div class="mt-4 flex flex-wrap justify-center gap-2">
-                <button
-                  v-for="s in suggestions"
-                  :key="s.label"
-                  class="inline-flex items-center gap-1.5 rounded-full border border-brand-200 bg-white px-3 py-1.5 text-[12.5px] font-600 text-graphite-700 transition-colors hover:border-brand-400 hover:bg-brand-50 hover:text-brand-700"
-                  @click="openAgent(s.prompt)"
-                >
-                  <Icon :name="s.icon" :size="14" class="text-brand-500" /> {{ s.label }}
-                </button>
-              </div>
-            </div>
-
-            <!-- Konverzace -->
-            <div v-else class="space-y-4">
-              <template v-for="m in messages" :key="m.id">
-                <div v-if="m.role === 'user'" class="flex justify-end">
-                  <div class="max-w-[80%] rounded-2xl rounded-br-sm bg-graphite-900 px-3.5 py-2 text-[13px] text-white">{{ m.text }}</div>
-                </div>
-                <div v-else class="flex gap-2.5">
-                  <span class="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-brand-500 text-white"><Icon name="sparkles" :size="14" /></span>
-                  <div class="min-w-0 flex-1">
-                    <div class="inline-block rounded-2xl rounded-tl-sm bg-steel-50 px-3.5 py-2 text-[13px] text-graphite-800">{{ m.text }}</div>
-                    <div v-if="m.action" class="mt-2.5 rounded-xl border border-steel-200 bg-white p-3.5 shadow-sm">
-                      <div class="flex items-center gap-2.5">
-                        <span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-brand-50 text-brand-600"><Icon :name="m.action.icon" :size="18" /></span>
-                        <div class="min-w-0">
-                          <div class="flex items-center gap-2">
-                            <span class="rounded bg-steel-100 px-1.5 py-0.5 font-mono text-[10px] text-steel-500">{{ m.action.module }}</span>
-                            <span class="inline-flex items-center gap-1 text-[11px] font-600 text-forge-600"><Icon name="check" :size="12" /> koncept připraven</span>
-                          </div>
-                          <p class="mt-0.5 truncate text-[14px] font-700 text-graphite-900">{{ m.action.title }}</p>
-                        </div>
-                      </div>
-                      <p class="mt-2 text-[12.5px] leading-relaxed text-steel-500">{{ m.action.desc }}</p>
-
-                      <div v-if="m.action.popup" class="mt-3 rounded-lg border border-steel-200 bg-steel-50 p-4">
-                        <p class="mb-2 flex items-center gap-1.5 field-tag"><Icon name="eye" :size="13" /> Náhled pop-up okna</p>
-                        <div class="relative mx-auto max-w-[260px] rounded-xl border border-steel-200 bg-white p-4 text-center shadow-lg">
-                          <span class="absolute right-2 top-2 grid h-5 w-5 place-items-center rounded-full bg-steel-100 text-steel-400"><Icon name="x" :size="12" /></span>
-                          <p class="font-display text-[15px] font-700 text-graphite-900">{{ m.action.popup.title }}</p>
-                          <p class="mt-1 text-[12px] leading-relaxed text-steel-600">{{ m.action.popup.text }}</p>
-                          <span class="mt-3 inline-flex items-center rounded-md bg-brand-500 px-3.5 py-1.5 text-[12px] font-600 text-white">{{ m.action.popup.cta }}</span>
-                        </div>
-                      </div>
-
-                      <div class="mt-3 flex items-center gap-2">
-                        <AppButton variant="primary" size="sm" @click="openAction(m.action)"><Icon name="edit" :size="15" /> Otevřít v editoru</AppButton>
-                        <AppButton variant="ghost" size="sm" @click="dismiss(m)">Zahodit</AppButton>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </template>
-
-              <!-- Přemýšlí -->
-              <div v-if="thinking" class="flex gap-2.5">
-                <span class="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-brand-500 text-white"><Icon name="sparkles" :size="14" class="animate-pulse" /></span>
-                <div class="inline-flex items-center gap-1.5 rounded-2xl rounded-tl-sm bg-steel-50 px-3.5 py-2.5 text-[13px] text-steel-500">
-                  <span class="h-1.5 w-1.5 animate-bounce rounded-full bg-brand-400" style="animation-delay:0ms" />
-                  <span class="h-1.5 w-1.5 animate-bounce rounded-full bg-brand-400" style="animation-delay:150ms" />
-                  <span class="h-1.5 w-1.5 animate-bounce rounded-full bg-brand-400" style="animation-delay:300ms" />
-                  <span class="ml-1">Připravuji…</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Vstup -->
-          <div class="border-t border-steel-200 bg-steel-50/60 px-5 py-4">
-            <div class="flex items-center gap-2 rounded-xl border border-steel-200 bg-white px-3 py-2 shadow-sm focus-within:border-brand-400 focus-within:ring-4 focus-within:ring-brand-500/10">
-              <Icon name="sparkles" :size="17" class="shrink-0 text-brand-500" />
-              <input
-                ref="inputEl"
-                v-model="input"
-                type="text"
-                placeholder="Např. „Vytvoř pop-up okno k letní slevě 20 % na Bolt Tower""
-                class="h-8 min-w-0 flex-1 bg-transparent text-[14px] text-graphite-900 placeholder:text-steel-400 focus:outline-none"
-                @keydown.enter.prevent="submit"
-              />
-              <AppButton variant="primary" size="sm" :disabled="!input.trim() || thinking" @click="submit">
-                <Icon name="sparkles" :size="15" :class="thinking && 'animate-pulse'" />
-                {{ thinking ? 'Pracuji…' : 'Odeslat' }}
-              </AppButton>
-            </div>
-          </div>
-        </DialogContent>
-      </DialogPortal>
-    </DialogRoot>
   </div>
 </template>

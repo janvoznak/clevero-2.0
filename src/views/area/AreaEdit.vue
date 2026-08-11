@@ -84,16 +84,19 @@ const sections = [
 /* ---------- Přidružené stránky (skupina záložek — hlavní stránka + podstránky) ----------
    Detail budovy odkazuje na hlavní stránku (kořen skupiny). Lišta pak zobrazí
    hlavní stránku + její podstránky + externí odkazy (sdílený PageGroupBar). */
+/* reka-ui Select nepovoluje položku s prázdnou hodnotou (`value=""`) — pro
+   „žádná stránka" proto používáme sentinel `__none__`, který mapujeme na undefined. */
+const NO_PAGE = '__none__'
 const rootPageOptions = computed(() => [
-  { value: '', label: '— žádná —' },
+  { value: NO_PAGE, label: '— žádná —' },
   ...MOCK_PAGES.filter((p) => p.parentId === null).map((p) => ({
     value: p.id,
     label: p.title.cs || 'Bez názvu',
   })),
 ])
 const mainPageValue = computed({
-  get: () => form.mainPageId ?? '',
-  set: (v: string) => (form.mainPageId = v || undefined),
+  get: () => form.mainPageId ?? NO_PAGE,
+  set: (v: string) => (form.mainPageId = v === NO_PAGE ? undefined : v),
 })
 /** Klik na přidruženou stránku otevře její editaci v modulu Stránky. */
 function goAssociatedPage(id: string) {
