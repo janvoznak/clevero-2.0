@@ -14,6 +14,9 @@ const props = defineProps<{
   filled: LangCode[]
   /** Mutace, která se právě překládá (pulzující ✨), nebo null. */
   translating?: LangCode | null
+  /** Volitelné: kódy zveřejněných mutací. Když je předáno, tečka rozlišuje
+      3 stavy — živě / připraveno (skryté) / prázdné. Bez něj jen vyplněno/prázdné. */
+  published?: LangCode[]
 }>()
 
 const model = defineModel<LangCode>({ required: true })
@@ -21,6 +24,18 @@ defineEmits<{ translate: [LangCode] }>()
 
 function isFilled(code: LangCode): boolean {
   return props.filled.includes(code)
+}
+
+/** Stav tečky: 'live' | 'ready' | 'empty' (nebo 2-stavově bez `published`). */
+function dotState(code: LangCode): 'live' | 'ready' | 'empty' {
+  if (!isFilled(code)) return 'empty'
+  if (!props.published) return 'live' // 2-stavový režim: vyplněno = zelená
+  return props.published.includes(code) ? 'live' : 'ready'
+}
+const DOT: Record<'live' | 'ready' | 'empty', { cls: string; title: string }> = {
+  live: { cls: 'bg-forge-500', title: 'Zveřejněno na webu' },
+  ready: { cls: 'bg-amber-500', title: 'Vyplněno, ale skryté na webu' },
+  empty: { cls: 'bg-steel-300', title: 'Prázdné' },
 }
 </script>
 
@@ -46,8 +61,8 @@ function isFilled(code: LangCode): boolean {
           {{ l.code.toUpperCase() }}
           <span
             class="h-1.5 w-1.5 rounded-full"
-            :class="isFilled(l.code) ? 'bg-forge-500' : 'bg-steel-300'"
-            :title="isFilled(l.code) ? 'Vyplněno' : 'Prázdné'"
+            :class="DOT[dotState(l.code)].cls"
+            :title="DOT[dotState(l.code)].title"
           />
         </TabsTrigger>
         <!-- ✨ AI překlad celé mutace z češtiny — uvnitř téže pilulky, za oddělovačem -->

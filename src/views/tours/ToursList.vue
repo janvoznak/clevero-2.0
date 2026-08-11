@@ -7,6 +7,8 @@ import AppButton from '@/components/ui/AppButton.vue'
 import RowActionsMenu from '@/components/admin/RowActionsMenu.vue'
 import { MOCK_CATEGORIES, toursForCategory, type TourCategory } from '@/data/mockTours'
 import { LANGS } from '@/data/types'
+import type { ML, LangCode } from '@/data/types'
+import { langPublishState, LANG_PUBLISH_META, filledLangsOf } from '@/utils/langPublish'
 
 const router = useRouter()
 const rows = ref<TourCategory[]>([...MOCK_CATEGORIES])
@@ -23,6 +25,12 @@ function toggle(id: string) {
 
 function plain(html: string): string {
   return html.replace(/<[^>]*>/g, '').trim()
+}
+
+/** Stav publikace jedné jazykové mutace — sdílené 3-stavové čipy (jako Aktuality).
+    Generické: bere ML pole (název kategorie / titulek prohlídky) + explicitní seznam. */
+function lps(field: ML, publishedLangs: LangCode[] | undefined, code: LangCode) {
+  return langPublishState(code, filledLangsOf(field), publishedLangs)
 }
 function goNew() {
   router.push({ name: 'category-new' })
@@ -114,10 +122,11 @@ function confirmDelete() {
                   <span
                     v-for="l in LANGS"
                     :key="l.code"
-                    :title="c.name[l.code].trim() ? `${l.label} — vyplněno` : `${l.label} — chybí překlad`"
-                    class="rounded px-1.5 py-0.5 text-[10.5px] font-700 uppercase tabular-nums"
-                    :class="c.name[l.code].trim() ? 'bg-forge-500/10 text-forge-600' : 'bg-steel-100 text-steel-400'"
+                    class="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10.5px] font-700 uppercase tabular-nums"
+                    :class="LANG_PUBLISH_META[lps(c.name, c.publishedLangs, l.code)].chip"
+                    :title="`${l.label} — ${LANG_PUBLISH_META[lps(c.name, c.publishedLangs, l.code)].label}`"
                   >
+                    <span class="h-1.5 w-1.5 rounded-full" :class="LANG_PUBLISH_META[lps(c.name, c.publishedLangs, l.code)].dot" />
                     {{ l.code }}
                   </span>
                 </div>
@@ -154,10 +163,11 @@ function confirmDelete() {
                     <span
                       v-for="l in LANGS"
                       :key="l.code"
-                      :title="t.title[l.code].trim() ? `${l.label} — vyplněno` : `${l.label} — chybí překlad`"
-                      class="rounded px-1.5 py-0.5 text-[10.5px] font-700 uppercase tabular-nums"
-                      :class="t.title[l.code].trim() ? 'bg-forge-500/10 text-forge-600' : 'bg-steel-100 text-steel-400'"
+                      class="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10.5px] font-700 uppercase tabular-nums"
+                      :class="LANG_PUBLISH_META[lps(t.title, t.publishedLangs, l.code)].chip"
+                      :title="`${l.label} — ${LANG_PUBLISH_META[lps(t.title, t.publishedLangs, l.code)].label}`"
                     >
+                      <span class="h-1.5 w-1.5 rounded-full" :class="LANG_PUBLISH_META[lps(t.title, t.publishedLangs, l.code)].dot" />
                       {{ l.code }}
                     </span>
                   </div>

@@ -26,8 +26,15 @@ import {
   blankVenue,
   type AreaObject,
 } from '@/data/mockVenues'
+import {
+  filledLangsOf,
+  publishedLangsOf,
+  publishLangRows,
+  toggleLangPublish,
+} from '@/utils/langPublish'
 import { galleriesForVenue } from '@/data/mockGalleries'
-import { toursForVenue, availability, AVAILABILITY_META, category } from '@/data/mockTours'
+import BackRefsCard from '@/components/admin/BackRefsCard.vue'
+import { backRefsForArea } from '@/data/backrefs'
 
 const props = defineProps<{ id?: string }>()
 const router = useRouter()
@@ -40,6 +47,8 @@ function clone(): AreaObject {
     const c = JSON.parse(JSON.stringify(s)) as AreaObject
     // Předvyplnění z existující vazby (Gallery.areaId) — nově editovatelné přímo tady.
     c.galleryIds = c.galleryIds ?? galleriesForVenue(c.id).map((g) => g.id)
+    // Zhmotnit fallback do explicitního seznamu, aby šlo přepínat.
+    c.publishedLangs = publishedLangsOf(filledLangsOf(c.title), c.publishedLangs)
     return c
   }
   return blankVenue()
@@ -51,12 +60,21 @@ function langFilled(code: LangCode): boolean {
 }
 const filledLangs = computed(() => LANGS.filter((l) => langFilled(l.code)).map((l) => l.code))
 
+/* ---------- Publikování per jazyk ----------
+   Stav publikace (PublishCard) řídí, KDY je objekt živý; tyto přepínače
+   řídí, KTERÉ mutace se na webu zobrazí. Prázdnou mutaci nelze zveřejnit. */
+const liveLangs = computed(() => publishedLangsOf(filledLangsOf(form.title), form.publishedLangs))
+const publishRows = computed(() => publishLangRows(form.title, form.publishedLangs))
+function onToggleLang(code: LangCode) {
+  form.publishedLangs = toggleLangPublish(form.publishedLangs, filledLangsOf(form.title), code)
+}
+
 /* ---------- Sekce (podtržené záložky) ---------- */
 const activeSection = ref('basic')
 const sections = [
   { value: 'basic', label: 'Základní informace', icon: 'page' },
   { value: 'content', label: 'Obsah', icon: 'text' },
-  { value: 'tours', label: 'Prohlídky', icon: 'ticket' },
+  { value: 'backrefs', label: 'Zpětné vazby', icon: 'link' },
   { value: 'gallery', label: 'Galerie', icon: 'gallery' },
   { value: 'hours', label: 'Provoz a otevírací doba', icon: 'clock' },
 ]
@@ -81,13 +99,6 @@ function goToGallery() {
   activeSection.value = 'gallery'
 }
 
-/* ---------- Nabízené prohlídky = odvozené z místa konání (read-only) ----------
-   Jediný zdroj pravdy je `tour.areaId` (nastavuje se v modulu Prohlídky).
-   Areál nabízené prohlídky needituje, jen zrcadlí — žádná dvojí správa. */
-const venueTours = computed(() => toursForVenue(form.id))
-function goToTour(id: string) {
-  router.push({ name: 'tour-edit', params: { id } })
-}
 
 
 /* ---------- AI překlad mutací (prototyp) — sdílené řešení ---------- */
@@ -125,6 +136,7 @@ function save() {
         <LangBar
           v-model="activeLang"
           :filled="filledLangs"
+          :published="liveLangs"
           :translating="translating"
           class="hidden lg:block"
           @translate="translateLang"
@@ -264,50 +276,9 @@ function save() {
                 <ContentBuilder v-model="form.contentBlocks" />
               </TabsContent>
 
-              <!-- Sekce: Prohlídky (nabízené prohlídky — odvozené, read-only) -->
-              <TabsContent value="tours" class="outline-none">
-                <div class="mb-1.5 flex items-center justify-between">
-                  <span class="text-[13px] font-600 text-graphite-800">Nabízené prohlídky</span>
-                  <span class="field-tag">tour-area_id</span>
-                </div>
-                <p class="mb-3 flex items-start gap-1.5 text-[12px] leading-relaxed text-steel-500">
-                  <Icon name="ticket" :size="13" class="mt-0.5 shrink-0 text-steel-400" />
-                  Odvozeno automaticky — jsou to prohlídky, které mají tento objekt jako
-                  <span class="font-600 text-graphite-700">místo konání</span>. Nastavuje se v modulu
-                  <span class="font-600 text-graphite-700">Prohlídky</span> (detail prohlídky → „Místo konání"), tady se jen zrcadlí.
-                </p>
-                <ul v-if="venueTours.length" class="grid gap-2 sm:grid-cols-2">
-                  <li
-                    v-for="t in venueTours"
-                    :key="t.id"
-                    class="group flex cursor-pointer items-center gap-2.5 rounded-lg border border-steel-200 bg-white px-2.5 py-2 transition-colors hover:border-brand-300 hover:bg-brand-50/40"
-                    @click="goToTour(t.id)"
-                  >
-                    <span class="grid h-9 w-12 shrink-0 place-items-center overflow-hidden rounded bg-steel-100 text-steel-400">
-                      <img v-if="t.image" :src="t.image" alt="" class="h-full w-full object-cover" />
-                      <Icon v-else name="ticket" :size="14" />
-                    </span>
-                    <span class="min-w-0 flex-1">
-                      <span class="block truncate text-[13px] font-600 text-graphite-800">{{ t.title.cs }}</span>
-                      <span class="block truncate text-[11px] text-steel-400">{{ category(t.categoryId)?.name.cs }}</span>
-                    </span>
-                    <span
-                      class="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-600"
-                      :class="[AVAILABILITY_META[availability(t)].bg, AVAILABILITY_META[availability(t)].text]"
-                    >
-                      <span class="h-1.5 w-1.5 rounded-full" :class="AVAILABILITY_META[availability(t)].dot" />
-                      {{ AVAILABILITY_META[availability(t)].label }}
-                    </span>
-                    <Icon name="chevronRight" :size="15" class="shrink-0 text-steel-300 transition-colors group-hover:text-brand-500" />
-                  </li>
-                </ul>
-                <p v-else class="rounded-md bg-steel-50 px-3 py-4 text-center text-[12.5px] text-steel-500">
-                  U tohoto objektu zatím není žádná prohlídka. Přidáš ji v modulu Prohlídky nastavením „Místo konání" na tento objekt.
-                </p>
-                <p class="mt-3 flex items-start gap-1.5 rounded-md bg-steel-50 px-3 py-2 text-[11.5px] leading-relaxed text-steel-500">
-                  <Icon name="ticket" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
-                  <span><strong class="font-600 text-graphite-700">Prodej vstupenek</strong> se řídí přes napojení jednotlivých prohlídek na Colosseum (ID se zadává u prohlídky, ne zde).</span>
-                </p>
+              <!-- Sekce: Zpětné vazby (kdo na objekt odkazuje — odvozené, read-only) -->
+              <TabsContent value="backrefs" class="outline-none">
+                <BackRefsCard :groups="backRefsForArea(form.id)" entity-label="tento objekt" />
               </TabsContent>
 
               <!-- Sekce: Galerie -->
@@ -379,7 +350,12 @@ function save() {
 
       <!-- PRAVÝ rail -->
       <aside class="space-y-5 xl:sticky xl:top-[76px] xl:self-start">
-        <PublishCard :published="form.published" updated-by="Jan Voznak" />
+        <PublishCard
+          :published="form.published"
+          :langs="publishRows"
+          updated-by="Jan Voznak"
+          @toggle-lang="onToggleLang"
+        />
 
         <!-- Štítky (sdílený TagPicker jako Aktuality) -->
         <FormSection title="Štítky" icon="filter" tag="area-tags">

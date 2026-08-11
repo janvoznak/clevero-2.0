@@ -31,6 +31,7 @@ import ProductsList from './views/products/ProductsList.vue'
 import ProductEdit from './views/products/ProductEdit.vue'
 import ProductCategoriesList from './views/products/ProductCategoriesList.vue'
 import ProductCategoryDetail from './views/products/ProductCategoryDetail.vue'
+import TaxonomyManager from './views/settings/TaxonomyManager.vue'
 import Placeholder from './views/Placeholder.vue'
 
 const router = createRouter({
@@ -82,6 +83,7 @@ const router = createRouter({
         { path: 'admin/product-categories', name: 'product-categories-list', component: ProductCategoriesList },
         { path: 'admin/product-categories/new', name: 'product-category-new', component: ProductCategoryDetail },
         { path: 'admin/product-categories/:id', name: 'product-category-edit', component: ProductCategoryDetail, props: true },
+        { path: 'admin/taxonomy', name: 'taxonomy', component: TaxonomyManager },
         { path: 'admin/:section+', name: 'placeholder', component: Placeholder },
       ],
     },

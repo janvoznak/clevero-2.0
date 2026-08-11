@@ -9,6 +9,8 @@ import AppSelect from '@/components/ui/AppSelect.vue'
 import AppSwitch from '@/components/ui/AppSwitch.vue'
 import FormSection from '@/components/admin/FormSection.vue'
 import PublishCard from '@/components/admin/PublishCard.vue'
+import BackRefsCard from '@/components/admin/BackRefsCard.vue'
+import { backRefsForGallery } from '@/data/backrefs'
 import ContentBuilder from '@/components/admin/ContentBuilder.vue'
 import GalleryManager from '@/components/admin/GalleryManager.vue'
 import SlugField from '@/components/admin/SlugField.vue'
@@ -28,6 +30,12 @@ import {
   blankGallery,
   type Gallery,
 } from '@/data/mockGalleries'
+import {
+  filledLangsOf,
+  publishedLangsOf,
+  publishLangRows,
+  toggleLangPublish,
+} from '@/utils/langPublish'
 import { PREDEFINED_TAGS } from '@/data/mockNews'
 import { PLACE_OPTIONS } from '@/data/mockVenues'
 
@@ -43,10 +51,14 @@ function clone(): Gallery {
     const c = JSON.parse(JSON.stringify(s)) as Gallery
     c.slug = c.slug ?? { cs: '', en: '', de: '', pl: '' }
     c.contentBlocks = c.contentBlocks ?? defaultContentBlocks()
+    // Zhmotnit fallback do explicitního seznamu, aby šlo přepínat.
+    c.publishedLangs = publishedLangsOf(filledLangsOf(c.name), c.publishedLangs)
     return c
   }
   const c = blankGallery(typeof route.query.section === 'string' ? route.query.section : '')
   c.contentBlocks = c.contentBlocks ?? defaultContentBlocks()
+  // Nová galerie: každá mutace půjde živě, jakmile dostane obsah.
+  c.publishedLangs = LANGS.map((l) => l.code)
   return c
 }
 const form = reactive<Gallery>(clone())
@@ -77,6 +89,15 @@ function langFilled(code: LangCode): boolean {
   return form.name[code].trim().length > 0
 }
 const filledLangs = computed(() => LANGS.filter((l) => langFilled(l.code)).map((l) => l.code))
+
+/* ---------- Publikování per jazyk ----------
+   Přepínač `published` řídí, ZDA je galerie živá; tyto přepínače řídí, KTERÉ
+   mutace se na webu zobrazí. Prázdnou mutaci nelze zveřejnit. */
+const liveLangs = computed(() => publishedLangsOf(filledLangsOf(form.name), form.publishedLangs))
+const publishRows = computed(() => publishLangRows(form.name, form.publishedLangs))
+function onToggleLang(code: LangCode) {
+  form.publishedLangs = toggleLangPublish(form.publishedLangs, filledLangsOf(form.name), code)
+}
 
 /** Živý stav zveřejnění (odznak). */
 const state = computed(() => galleryState(form))
@@ -132,6 +153,7 @@ function backToSection() {
         <LangBar
           v-model="activeLang"
           :filled="filledLangs"
+          :published="liveLangs"
           :translating="translating"
           class="hidden lg:block"
           @translate="translateLang"
@@ -230,7 +252,10 @@ function backToSection() {
       <!-- PRAVÝ rail -->
       <aside class="space-y-5 xl:sticky xl:top-[92px] xl:self-start">
         <!-- Zveřejnění -->
-        <PublishCard :published="form.published" updated-by="Petr Dvořák" />
+        <PublishCard :published="form.published" :langs="publishRows" updated-by="Petr Dvořák" @toggle-lang="onToggleLang" />
+
+        <!-- Zpětné vazby (kdo galerii používá) -->
+        <BackRefsCard :groups="backRefsForGallery(form.id)" entity-label="tuto galerii" />
 
         <!-- Štítky -->
         <FormSection title="Štítky" icon="filter" tag="gallery-tags">

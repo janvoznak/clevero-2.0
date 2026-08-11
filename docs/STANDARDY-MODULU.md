@@ -357,9 +357,9 @@ Každá vazba má **jednoho vlastníka** (modul, v jehož detailu se nastavuje).
 | Akce → galerie | Kalendář akcí (detail akce, záložka Galerie) | Galerie | `event.galleryIds` (více) |
 | Galerie → objekt | Galerie (detail galerie) | Areál („fotogalerie objektu") | `gallery.areaId` (jeden) |
 
-> **Nabízené prohlídky u objektu se needitují — jsou odvozené.** Dřívější `venue.tourIds` byl zrušen: „nabízené prohlídky" = všechny prohlídky, které mají daný objekt jako **místo konání** (`tour.areaId`). Jediný zdroj pravdy je tedy `tour.areaId` (nastavuje se v Prohlídkách); Areál je jen zrcadlí (read-only, `toursForVenue(areaId)`). Tím zmizela dvojí správa i riziko rozporu.
+> **Nabízené prohlídky u objektu se needitují — jsou odvozené.** Dřívější `venue.tourIds` byl zrušen: „nabízené prohlídky" = všechny prohlídky, které mají daný objekt jako **místo konání** (`tour.areaId`). Jediný zdroj pravdy je tedy `tour.areaId` (nastavuje se v Prohlídkách); Areál je jen zrcadlí (read-only). Tím zmizela dvojí správa i riziko rozporu.
 
-**Důsledek pro Areál:** detail objektu needituje **žádnou** vazbu — akce, novinky, galerie i nabízené prohlídky se k objektu hlásí ze svých modulů (`areaId` / `tour.areaId`) a v Areálu se jen zrcadlí (read-only).
+**Důsledek pro Areál:** detail objektu needituje **žádnou** vazbu — akce, novinky, galerie i nabízené prohlídky se k objektu hlásí ze svých modulů (`areaId` / `tour.areaId`) a v Areálu se jen zrcadlí (read-only, viz §14e).
 
 ### 14b. Akce vs. Prohlídka — neplest
 
@@ -406,3 +406,23 @@ Napříč moduly existují čtyři nezávislé „štítkové" mechanismy s odli
 | Typ akce (`EVENT_TYPES`) | Kalendář akcí | Druh programu (koncert, festival…) — bez „Prohlídka". |
 
 Nová „kategorizace" → nejdřív ověř, že nespadá pod jeden z těchto čtyř; needitovat objekt přes kategorie novinky apod.
+
+> **Překlad taxonomie je centrální, ne v panelu záznamu.** Štítky/kategorie jsou vícejazyčné (`TaxonomyTerm.label: ML`) a překládají se **jednou** ve správě „Štítky a kategorie" (Nastavení → `/admin/taxonomy`, `src/data/mockTaxonomy.ts`). V pravém panelu detailu se štítky jen **vybírají** (jazykově nezávisle — stejný záznam má stejná témata ve všech mutacích); nikdy se nepřekládají per záznam. `PREDEFINED_TAGS`/`PREDEFINED_CATEGORIES` se z centrální taxonomie jen odvozují (CS názvy).
+
+### 14e. Zpětné vazby — read-only, dopočítané
+
+Vazba se ukládá **jednosměrně** u odkazujícího (§14a). Cílový záznam proto vazby **neukládá** — zpětné vazby („kde se na tento záznam odkazuje") se **dopočítávají read-only** z existujících dat. Zdroj pravdy zůstává u odkazujícího; cíl je jen zrcadlí a proklikává.
+
+- **Jedno řešení pro všechny cíle:** helper `src/data/backrefs.ts` (`backRefsForTour` / `backRefsForArea` / `backRefsForGallery`) + sdílená karta `admin/BackRefsCard.vue`.
+- **Kam patří:** do editoru cíle odkazů — Prohlídka (← aktuality, události), Areál (← aktuality, události, prohlídky, galerie), Galerie (← aktuality, události, stránky, produkty, areál).
+- **Needitovat na cílové straně** — karta jen zobrazuje a proklikává; přidání/odebrání vazby se dělá v odkazujícím záznamu.
+- Kategorie (prohlídek, galerií, produktů) svoje „děti" ukazují jako parent→child (`toursForCategory` apod.) — to je jiný vztah než zpětná vazba.
+
+### 14f. Publikování per jazyk — jednotné napříč moduly
+
+Publikování je **per jazyková mutace**, sjednocené přes `src/utils/langPublish.ts` (`filledLangsOf`, `publishedLangsOf`, `langPublishState`, `toggleLangPublish`, `publishLangRows`, `LANG_PUBLISH_META`).
+
+- **Dvě roviny:** stav/časové okno záznamu řídí, **KDY** je záznam živý; pole `publishedLangs?: LangCode[]` řídí, **KTERÉ** mutace se na webu zobrazí. Prázdnou mutaci nelze zveřejnit; `undefined` = fallback „všechny vyplněné jsou živé".
+- **UI:** 3-stavová tečka v `LangBar` (`:published`), matice „Zobrazit jazyk na webu" v `PublishCard` (`:langs` + `@toggle-lang`), 3-stavové chipy ve výpisech (`LANG_PUBLISH_META`).
+- **Kde platí:** Aktuality, Události, Areál, Prohlídky (+ kategorie), Galerie (+ sekce), Programy, Stránky, Pop-up, FAQ.
+- **Výjimka — Produkty:** per-jazyk publikování nemají. Produkty se importují z Colossea (§14c), nemají `PublishCard` a publikace je řízená importem, ne ručním přepínačem mutací.

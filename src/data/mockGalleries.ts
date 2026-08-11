@@ -1,5 +1,5 @@
 import { imageFor } from './mockNews'
-import type { ML, GalleryImage, ContentBlock } from './types'
+import type { ML, GalleryImage, ContentBlock, LangCode } from './types'
 
 /* ============================================================
    Modul Galerie.
@@ -41,6 +41,8 @@ export interface GallerySection {
   /** Náhledový obrázek sekce. */
   cover: string
   published: boolean
+  /** Které jazykové mutace jdou živě na web (undefined = všechny vyplněné). */
+  publishedLangs?: LangCode[]
   /** Pořadí ve výpisu na webu (nižší = dřív). */
   order: number
 }
@@ -65,6 +67,8 @@ export interface Gallery {
   date: string | null
   photos: GalleryImage[]
   published: boolean
+  /** Které jazykové mutace jdou živě na web (undefined = všechny vyplněné). */
+  publishedLangs?: LangCode[]
   /** Průřezové štítky (sdílí paletu s Aktualitami). */
   tags: string[]
   /* SEO (ML) */
@@ -83,10 +87,12 @@ type RawSection = Omit<GallerySection, 'name' | 'description'> & {
 const RAW_SECTIONS: RawSection[] = [
   {
     id: 'sec-atraktivity',
-    name: ml('Fotografie atraktivit'),
+    // EN mutace je vyplněná, ale záměrně skrytá z webu → amber „připraveno".
+    name: { cs: 'Fotografie atraktivit', en: 'Photos of attractions', de: '', pl: '' },
     description: ml('<p>Prohlídkové okruhy, expozice a dominanty areálu Dolní Vítkovice na fotografiích.</p>'),
     cover: imageFor(4),
     published: true,
+    publishedLangs: ['cs'],
     order: 1,
   },
   {
@@ -125,15 +131,20 @@ type RawGallery = {
   /** Objekt v Areálu, pro který je galerie určená (viz Gallery.areaId). */
   areaId?: string
   name: string
+  /** Vyplněná anglická mutace názvu (pro demo jazykových mutací). */
+  nameEn?: string
   count: number
   seed: number
   published?: boolean
   date?: string | null
   tags?: string[]
+  /** Explicitně zveřejněné mutace (undefined = všechny vyplněné jdou živě). */
+  publishedLangs?: LangCode[]
 }
 
 const RAW_GALLERIES: RawGallery[] = [
-  { id: 'g-u6', sectionId: 'sec-atraktivity', areaId: 'v-u6', name: 'Malý svět techniky U6', count: 24, seed: 4, date: '2026-05-18', tags: ['Pro rodiny'] },
+  // EN mutace názvu je vyplněná, ale skrytá z webu (publishedLangs bez 'en') → amber „připraveno".
+  { id: 'g-u6', sectionId: 'sec-atraktivity', areaId: 'v-u6', name: 'Malý svět techniky U6', nameEn: 'Small World of Technology U6', count: 24, seed: 4, date: '2026-05-18', tags: ['Pro rodiny'], publishedLangs: ['cs'] },
   { id: 'g-bolt', sectionId: 'sec-atraktivity', areaId: 'v-bolt', name: 'Bolt Tower', count: 18, seed: 0, date: '2026-06-02', tags: ['Sezónní'] },
   { id: 'g-hlubina', sectionId: 'sec-atraktivity', areaId: 'v-hlubina', name: 'Důl Hlubina', count: 31, seed: 5, date: '2026-04-11', tags: ['Prohlídky'] },
   { id: 'g-gong', sectionId: 'sec-atraktivity', areaId: 'v-gong', name: 'Gong — multifunkční aula', count: 15, seed: 8, date: '2026-03-22' },
@@ -149,11 +160,12 @@ export const MOCK_GALLERIES: Gallery[] = RAW_GALLERIES.map((r) => ({
   id: r.id,
   sectionId: r.sectionId,
   areaId: r.areaId ?? '',
-  name: ml(r.name),
+  name: { cs: r.name, en: r.nameEn ?? '', de: '', pl: '' },
   description: emptyML(),
   date: r.date === undefined ? null : r.date,
   photos: makePhotos(r.count, r.seed),
   published: r.published ?? true,
+  publishedLangs: r.publishedLangs,
   tags: r.tags ?? [],
   metaTitle: emptyML(),
   metaDescription: emptyML(),

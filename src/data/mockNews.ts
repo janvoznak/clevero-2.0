@@ -1,4 +1,5 @@
 import type { NewsItem, GalleryImage, PublishState, LangCode, ML, Tag } from './types'
+import { NEWS_TAGS, NEWS_CATEGORIES } from './mockTaxonomy'
 
 /** Základní paleta barev štítků — uživatel z ní vybírá při vytvoření nového. */
 export const TAG_PALETTE = [
@@ -14,16 +15,10 @@ export const TAG_PALETTE = [
   '#64748b', // šedá
 ] as const
 
-/** Předdefinovaný seznam štítků (uživatel může přidat i vlastní). */
-export const PREDEFINED_TAGS: Tag[] = [
-  { label: 'Akce', color: '#ee703d' },
-  { label: 'Prohlídky', color: '#15916a' },
-  { label: 'Festival', color: '#d98a15' },
-  { label: 'Výstava', color: '#7b5ea7' },
-  { label: 'Pro rodiny', color: '#3b6fb0' },
-  { label: 'Sezónní', color: '#0e8a8a' },
-  { label: 'Tisková zpráva', color: '#64748b' },
-]
+/** Předdefinované štítky pro TagPicker — odvozené z centrální taxonomie
+    (jediný zdroj pravdy). V záznamu se ukládá český název; překlady spravuje
+    obrazovka „Štítky a kategorie" (Nastavení). */
+export const PREDEFINED_TAGS: Tag[] = NEWS_TAGS.map((t) => ({ label: t.label.cs, color: t.color }))
 
 /** Barva štítku — z předdefinovaných, jinak fallback z palety (dle názvu). */
 export function tagColor(label: string): string {
@@ -34,16 +29,9 @@ export function tagColor(label: string): string {
   return TAG_PALETTE[h % TAG_PALETTE.length]
 }
 
-/** Předdefinovaný seznam kategorií (uživatel může přidat i vlastní).
-    Kategorie se chová stejně jako štítky — stejné UI (TagPicker/TagChip) i barevná paleta. */
-export const PREDEFINED_CATEGORIES: Tag[] = [
-  { label: 'DOV', color: '#ee703d' },
-  { label: 'Ateliéry Hlubina', color: '#5b5bd6' },
-  { label: 'Bolt Café', color: '#d98a15' },
-  { label: 'Brickhouse', color: '#d64545' },
-  { label: 'Bufet U Karla', color: '#15916a' },
-  { label: 'Cineport', color: '#3b6fb0' },
-]
+/** Předdefinované kategorie — rovněž odvozené z centrální taxonomie.
+    Kategorie se chová stejně jako štítky — stejné UI (TagPicker/TagChip). */
+export const PREDEFINED_CATEGORIES: Tag[] = NEWS_CATEGORIES.map((c) => ({ label: c.label.cs, color: c.color }))
 
 /** Barva kategorie — z předdefinovaných, jinak fallback z palety (dle názvu). */
 export function categoryColor(label: string): string {
@@ -113,6 +101,8 @@ const RAW: RawNews[] = [
       en: '',
       de: '',
     },
+    // CS + EN živě; DE má vyplněný jen nadpis → připraveno, ale skryté.
+    publishedLangs: ['cs', 'en'],
     videoLink: 'https://www.youtube.com/watch?v=dov-bolt-tower',
     dateFrom: '2026-07-01T08:00',
     dateTo: '2026-09-30T20:00',
@@ -139,6 +129,8 @@ const RAW: RawNews[] = [
     },
     summary: { cs: 'Doprovodný program festivalu se letos přesouvá do multifunkční auly Gong.', en: '', de: '' },
     text: { cs: '<p>Multifunkční aula <strong>Gong</strong> hostí přednášky a diskuze.</p>', en: '', de: '' },
+    // Jen CS živě; EN má nadpis, ale drží se skryté, dokud není překlad hotový.
+    publishedLangs: ['cs'],
     videoLink: '',
     dateFrom: '2026-07-15T00:00',
     dateTo: '2026-07-20T23:59',
@@ -257,3 +249,5 @@ export const STATE_META: Record<PublishState, { label: string; dot: string; text
   expired: { label: 'Ukončeno', dot: 'bg-steel-400', text: 'text-steel-600', bg: 'bg-steel-200' },
   draft: { label: 'Koncept', dot: 'bg-steel-300', text: 'text-steel-500', bg: 'bg-steel-100' },
 }
+
+/* Publikování per jazyk je sdílené v `@/utils/langPublish` (jednotné napříč moduly). */

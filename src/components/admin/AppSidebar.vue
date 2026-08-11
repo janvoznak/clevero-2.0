@@ -152,7 +152,10 @@ const nav: NavEntry[] = [
     key: 'nastaveni',
     label: 'Nastavení',
     icon: 'settings',
-    children: [{ label: 'Uživatelé', to: '/admin/users' }],
+    children: [
+      { label: 'Štítky a kategorie', to: '/admin/taxonomy', match: '/admin/taxonomy' },
+      { label: 'Uživatelé', to: '/admin/users' },
+    ],
   },
   { kind: 'link', label: 'Nápověda', icon: 'help', to: '/admin/help' },
 ]

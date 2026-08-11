@@ -1,3 +1,4 @@
+import { LANGS } from './types'
 import type { ML, LangCode, Tag } from './types'
 
 /* ============================================================
@@ -46,6 +47,8 @@ export interface FaqItem {
   /** Kategorie (jedna z FAQ_CATEGORIES). */
   category: string
   published: boolean
+  /** Které jazykové mutace jsou na webu viditelné. undefined = všechny vyplněné. */
+  publishedLangs?: LangCode[]
   /** Pořadí ve výpisu na webu (nižší = dřív). */
   order: number
 }
@@ -57,6 +60,7 @@ type RawFaq = {
   answer: ML
   category: string
   published?: boolean
+  publishedLangs?: LangCode[]
   order: number
 }
 
@@ -71,6 +75,8 @@ const RAW: RawFaq[] = [
       { en: '<p>You can buy tickets on site at the box office. For popular time slots we recommend booking online in advance.</p>' },
     ),
     category: 'Vstupenky a rezervace',
+    // Anglická mutace je vyplněná, ale zatím skrytá na webu (ukázka stavu „připraveno").
+    publishedLangs: ['cs'],
     order: 1,
   },
   {
@@ -110,6 +116,8 @@ const RAW: RawFaq[] = [
       '<p>K dispozici je velké návštěvnické parkoviště přímo u areálu. Parkování je pro návštěvníky <strong>zdarma</strong>. Autobusy a zájezdy prosíme o využití vyhrazených stání.</p>',
     ),
     category: 'Doprava a parkování',
+    // Anglická mutace je vyplněná, ale skrytá na webu (ukázka stavu „připraveno").
+    publishedLangs: ['cs'],
     order: 1,
   },
   {
@@ -156,6 +164,7 @@ export const MOCK_FAQ: FaqItem[] = RAW.map((r) => ({
   answer: r.answer,
   category: r.category,
   published: r.published ?? true,
+  publishedLangs: r.publishedLangs,
   order: r.order,
 }))
 
@@ -177,6 +186,8 @@ export function blankFaqItem(): FaqItem {
     answer: emptyML(),
     category: FAQ_CATEGORIES[0].label,
     published: false,
+    // Nový dotaz: každá mutace půjde živě, jakmile dostane obsah.
+    publishedLangs: LANGS.map((l) => l.code),
     order: MOCK_FAQ.length + 1,
   }
 }

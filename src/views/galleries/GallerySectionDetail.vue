@@ -16,6 +16,12 @@ import { useMlTranslate } from '@/utils/useMlTranslate'
 import { LANGS } from '@/data/types'
 import type { LangCode } from '@/data/types'
 import {
+  filledLangsOf,
+  publishedLangsOf,
+  publishLangRows,
+  toggleLangPublish,
+} from '@/utils/langPublish'
+import {
   MOCK_SECTIONS,
   galleriesInSection,
   galleryCover,
@@ -34,7 +40,16 @@ const isEdit = computed(() => !!props.id)
 const source = computed(() => MOCK_SECTIONS.find((s) => s.id === props.id))
 function clone(): GallerySection {
   const s = source.value
-  return s ? JSON.parse(JSON.stringify(s)) : blankSection()
+  if (s) {
+    const c = JSON.parse(JSON.stringify(s)) as GallerySection
+    // Zhmotnit fallback do explicitního seznamu, aby šlo přepínat.
+    c.publishedLangs = publishedLangsOf(filledLangsOf(c.name), c.publishedLangs)
+    return c
+  }
+  const c = blankSection()
+  // Nová sekce: každá mutace půjde živě, jakmile dostane obsah.
+  c.publishedLangs = LANGS.map((l) => l.code)
+  return c
 }
 const form = reactive<GallerySection>(clone())
 const activeLang = ref<LangCode>('cs')
@@ -49,6 +64,15 @@ function langFilled(code: LangCode): boolean {
   return form.name[code].trim().length > 0
 }
 const filledLangs = computed(() => LANGS.filter((l) => langFilled(l.code)).map((l) => l.code))
+
+/* ---------- Publikování per jazyk ----------
+   Přepínač `published` řídí, ZDA je sekce živá; tyto přepínače řídí, KTERÉ
+   mutace se na webu zobrazí. Prázdnou mutaci nelze zveřejnit. */
+const liveLangs = computed(() => publishedLangsOf(filledLangsOf(form.name), form.publishedLangs))
+const publishRows = computed(() => publishLangRows(form.name, form.publishedLangs))
+function onToggleLang(code: LangCode) {
+  form.publishedLangs = toggleLangPublish(form.publishedLangs, filledLangsOf(form.name), code)
+}
 
 const galleries = computed(() => (isEdit.value ? galleriesInSection(props.id!) : []))
 
@@ -103,6 +127,7 @@ function fmtDate(d: string | null): string {
         <LangBar
           v-model="activeLang"
           :filled="filledLangs"
+          :published="liveLangs"
           :translating="translating"
           class="hidden lg:block"
           @translate="translateLang"
@@ -224,7 +249,7 @@ function fmtDate(d: string | null): string {
 
       <!-- PRAVÝ rail -->
       <aside class="space-y-5 xl:sticky xl:top-[76px] xl:self-start">
-        <PublishCard :published="form.published" updated-by="Petr Dvořák" />
+        <PublishCard :published="form.published" :langs="publishRows" updated-by="Petr Dvořák" @toggle-lang="onToggleLang" />
       </aside>
     </div>
 

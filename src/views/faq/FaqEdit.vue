@@ -23,6 +23,12 @@ import {
   blankFaqItem,
   type FaqItem,
 } from '@/data/mockFaq'
+import {
+  filledLangsOf,
+  publishedLangsOf,
+  publishLangRows,
+  toggleLangPublish,
+} from '@/utils/langPublish'
 
 const props = defineProps<{ id?: string }>()
 const router = useRouter()
@@ -31,7 +37,13 @@ const isEdit = computed(() => !!props.id)
 const source = computed(() => MOCK_FAQ.find((f) => f.id === props.id))
 function clone(): FaqItem {
   const s = source.value
-  return s ? JSON.parse(JSON.stringify(s)) : blankFaqItem()
+  if (s) {
+    const c = JSON.parse(JSON.stringify(s)) as FaqItem
+    // Zhmotnit fallback do explicitního seznamu, aby šlo přepínat.
+    c.publishedLangs = publishedLangsOf(filledLangsOf(c.question), c.publishedLangs)
+    return c
+  }
+  return blankFaqItem()
 }
 const form = reactive<FaqItem>(clone())
 const activeLang = ref<LangCode>('cs')
@@ -42,33 +54,49 @@ function langFilled(code: LangCode): boolean {
 const filledLangs = computed(() => LANGS.filter((l) => langFilled(l.code)).map((l) => l.code))
 const state = computed(() => faqState(form))
 
+/* ---------- Publikování per jazyk ----------
+   Stav dotazu (PublishCard) řídí, ZDA je dotaz živý; tyto přepínače řídí,
+   KTERÉ jazykové mutace se na webu zobrazí. Prázdnou mutaci nelze zveřejnit. */
+const liveLangs = computed(() => publishedLangsOf(filledLangsOf(form.question), form.publishedLangs))
+const publishRows = computed(() => publishLangRows(form.question, form.publishedLangs))
+function onToggleLang(code: LangCode) {
+  form.publishedLangs = toggleLangPublish(form.publishedLangs, filledLangsOf(form.question), code)
+}
+
 /* ---------- AI překlad mutací (prototyp) — sdílené řešení ---------- */
 const mlFields: (keyof FaqItem)[] = ['question', 'answer']
 const { translating, toast, translateLang, translateField } = useMlTranslate(form, mlFields)
 
-/* ---------- AI: příprava odpovědi z otázky (prototyp — žádná reálná AI) ----------
-   Z otázky v aktivní mutaci připraví koncept odpovědi. V ostrém CMS by tu
-   volal jazykový model; tady je jen simulovaný stav + zástupný text. */
-const answering = ref(false)
-const questionReady = computed(() => form.question[activeLang.value].trim().length > 0)
+/* ---------- AI: stylizace ručně připravené odpovědi (prototyp — žádná reálná AI) ----------
+   AI tu obsah NEvymýšlí. Vezme odpověď, kterou redaktor ručně připravil
+   (klidně jen v bodech/poznámkách), a přeformuluje ji do souvislých, čtivých
+   vět. V ostrém CMS by tu volal jazykový model; tady je jen simulovaný stav. */
+const polishing = ref(false)
+const answerReady = computed(
+  () => form.answer[activeLang.value].replace(/<[^>]*>/g, '').trim().length > 0,
+)
 
-function draftAnswer(question: string): string {
-  const q = question.trim().replace(/\s+/g, ' ')
-  return (
-    `<p>Děkujeme za dotaz. <em>(Návrh připravený AI — zkontrolujte a upravte podle skutečnosti.)</em></p>` +
-    `<p>Stručná odpověď na „${q}": ano, rádi poradíme. Doporučujeme sledovat aktuální informace u konkrétní ` +
-    `atraktivity nebo prohlídky, protože se mohou lišit podle sezóny.</p>` +
-    `<p>Pokud budete potřebovat víc detailů, ozvěte se nám — rádi pomůžeme.</p>`
-  )
+function polishDraft(raw: string): string {
+  const text = raw.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+  // Rozdělíme ruční body/věty a poskládáme do odstavců (prototyp — jen stylizace,
+  // žádný nový obsah nevzniká).
+  const parts = text
+    .split(/(?:[.;\n]|\s[•·–-]\s)+/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+  const body = parts.length
+    ? parts.map((s) => `<p>${s.charAt(0).toUpperCase()}${s.slice(1)}.</p>`).join('')
+    : `<p>${text}</p>`
+  return body
 }
-function generateAnswer() {
-  if (answering.value || !questionReady.value) return
-  answering.value = true
+function polishAnswer() {
+  if (polishing.value || !answerReady.value) return
+  polishing.value = true
   const l = activeLang.value
   window.setTimeout(() => {
-    form.answer[l] = draftAnswer(form.question[l])
-    answering.value = false
-    toast.value = `Návrh odpovědi připraven (${l.toUpperCase()}) — zkontrolujte a upravte`
+    form.answer[l] = polishDraft(form.answer[l])
+    polishing.value = false
+    toast.value = `Odpověď upravena do souvislých vět (${l.toUpperCase()}) — zkontrolujte`
     window.setTimeout(() => (toast.value = ''), 3200)
   }, 1200)
 }
@@ -104,6 +132,7 @@ const answerPlain = computed(() => form.answer[activeLang.value].replace(/<[^>]*
         <LangBar
           v-model="activeLang"
           :filled="filledLangs"
+          :published="liveLangs"
           :translating="translating"
           class="hidden lg:block"
           @translate="translateLang"
@@ -145,33 +174,34 @@ const answerPlain = computed(() => form.answer[activeLang.value].replace(/<[^>]*
             />
           </div>
 
-          <!-- AI: příprava odpovědi z otázky (sjednocený AI blok) -->
-          <AiPanel
-            title="Připravit odpověď s AI"
-            hint="Z otázky navrhne koncept odpovědi, který upravíte."
-            :default-open="true"
-            class="mb-5"
-          >
-            <div class="rounded-md border border-steel-200 bg-white px-3 py-2.5">
-              <p class="field-tag mb-1">Otázka ({{ activeLang.toUpperCase() }})</p>
-              <p class="text-[13px] text-graphite-800" :class="!questionReady && 'italic text-steel-400'">
-                {{ form.question[activeLang] || 'Nejdřív napište otázku výše…' }}
-              </p>
-            </div>
-            <div class="mt-3 flex flex-wrap items-center gap-3">
-              <AppButton variant="primary" size="sm" :disabled="answering || !questionReady" @click="generateAnswer">
-                <Icon name="sparkles" :size="15" :class="answering && 'animate-pulse'" />
-                {{ answering ? 'Připravuji odpověď…' : form.answer[activeLang] ? 'Přegenerovat odpověď' : 'Navrhnout odpověď' }}
-              </AppButton>
-              <span class="text-[11.5px] text-steel-500">Vloží se do pole „Odpověď" — pak upravte podle skutečnosti.</span>
-            </div>
-          </AiPanel>
-
           <!-- Odpověď -->
           <div>
             <MlFieldHeader label="Odpověď" :lang="activeLang" tag="faq-answer" @translate="translateField('answer')" />
+            <p class="mb-2 text-[11.5px] text-steel-500">
+              Napište odpověď vlastními slovy — klidně jen v bodech. AI ji níže umí přepsat do souvislých vět.
+            </p>
             <RichTextEditor v-model="form.answer[activeLang]" />
           </div>
+
+          <!-- AI: stylizace ručně připravené odpovědi (sjednocený AI blok) -->
+          <AiPanel
+            title="Upravit odpověď do souvislých vět (AI)"
+            hint="Přeformuluje vaši odpověď — AI nový obsah nevymýšlí, jen stylizuje to, co jste napsali."
+            class="mt-4"
+          >
+            <div class="flex flex-wrap items-center gap-3">
+              <AppButton variant="primary" size="sm" :disabled="polishing || !answerReady" @click="polishAnswer">
+                <Icon name="sparkles" :size="15" :class="polishing && 'animate-pulse'" />
+                {{ polishing ? 'Upravuji…' : 'Upravit do souvislých vět' }}
+              </AppButton>
+              <span v-if="!answerReady" class="text-[11.5px] text-steel-500">
+                Nejdřív napište odpověď (klidně jen body) do pole výše.
+              </span>
+              <span v-else class="text-[11.5px] text-steel-500">
+                Přepíše obsah pole „Odpověď" ({{ activeLang.toUpperCase() }}) — pak zkontrolujte.
+              </span>
+            </div>
+          </AiPanel>
 
           <!-- Zařazení (dříve v pravém railu) -->
           <div class="mt-5 grid gap-4 sm:grid-cols-2">
@@ -216,7 +246,12 @@ const answerPlain = computed(() => form.answer[activeLang.value].replace(/<[^>]*
       <!-- PRAVÝ rail -->
       <aside class="space-y-5 xl:sticky xl:top-[92px] xl:self-start">
         <!-- Zveřejnění -->
-        <PublishCard :published="form.published" updated-by="Martin Kučera" />
+        <PublishCard
+          :published="form.published"
+          :langs="publishRows"
+          updated-by="Martin Kučera"
+          @toggle-lang="onToggleLang"
+        />
       </aside>
     </div>
 

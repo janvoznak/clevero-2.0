@@ -21,6 +21,12 @@ import { useMlTranslate } from '@/utils/useMlTranslate'
 import { LANGS, defaultContentBlocks } from '@/data/types'
 import type { LangCode, NewsItem, ML } from '@/data/types'
 import { MOCK_NEWS, publishState, PREDEFINED_TAGS, PREDEFINED_CATEGORIES } from '@/data/mockNews'
+import {
+  filledLangsOf,
+  publishedLangsOf,
+  publishLangRows,
+  toggleLangPublish,
+} from '@/utils/langPublish'
 import { tourOptionsList } from '@/data/mockTours'
 import { PLACE_OPTIONS } from '@/data/mockVenues'
 
@@ -52,6 +58,8 @@ function clone(): NewsItem {
     c.galleryIds = c.galleryIds ?? []
     c.slug = c.slug ?? empty()
     c.contentBlocks = c.contentBlocks ?? defaultContentBlocks()
+    // Zhmotnit fallback do explicitního seznamu, aby šlo přepínat.
+    c.publishedLangs = publishedLangsOf(filledLangsOf(c.title), c.publishedLangs)
     return c
   }
   return {
@@ -59,6 +67,8 @@ function clone(): NewsItem {
     author: 'Jan Voznak',
     title: empty(),
     slug: empty(),
+    // Nová aktualita: každá mutace půjde živě, jakmile dostane obsah.
+    publishedLangs: LANGS.map((l) => l.code),
     contentBlocks: defaultContentBlocks(),
     summary: empty(),
     text: empty(),
@@ -101,6 +111,15 @@ function langFilled(code: LangCode): boolean {
   return form.title[code].trim().length > 0
 }
 const filledLangs = computed(() => LANGS.filter((l) => langFilled(l.code)).map((l) => l.code))
+
+/* ---------- Publikování per jazyk ----------
+   Časové okno (PublishCard níže) řídí, KDY je aktualita živá; tyto přepínače
+   řídí, KTERÉ mutace se na webu zobrazí. Prázdnou mutaci nelze zveřejnit. */
+const liveLangs = computed(() => publishedLangsOf(filledLangsOf(form.title), form.publishedLangs))
+const publishRows = computed(() => publishLangRows(form.title, form.publishedLangs))
+function onToggleLang(code: LangCode) {
+  form.publishedLangs = toggleLangPublish(form.publishedLangs, filledLangsOf(form.title), code)
+}
 
 /** Živý náhled stavu publikace z časového okna. */
 const state = computed(() => publishState(form))
@@ -167,6 +186,7 @@ const { translating, toast, translateLang, translateField } = useMlTranslate(for
         <LangBar
           v-model="activeLang"
           :filled="filledLangs"
+          :published="liveLangs"
           :translating="translating"
           class="hidden lg:block"
           @translate="translateLang"
@@ -188,7 +208,7 @@ const { translating, toast, translateLang, translateField } = useMlTranslate(for
 
       <!-- Jazykové mutace (mobil / <lg) -->
       <div class="px-8 pb-3 lg:hidden">
-        <LangBar v-model="activeLang" :filled="filledLangs" :translating="translating" @translate="translateLang" />
+        <LangBar v-model="activeLang" :filled="filledLangs" :published="liveLangs" :translating="translating" @translate="translateLang" />
       </div>
     </div>
 
@@ -324,7 +344,9 @@ const { translating, toast, translateLang, translateField } = useMlTranslate(for
           :initial-status="cardStatus"
           v-model:publish-from="publishFromModel"
           v-model:publish-to="publishToModel"
+          :langs="publishRows"
           updated-by="Jana Svobodová"
+          @toggle-lang="onToggleLang"
         />
 
         <!-- Štítky -->

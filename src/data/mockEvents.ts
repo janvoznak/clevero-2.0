@@ -1,5 +1,5 @@
 import { imageFor, TAG_PALETTE } from './mockNews'
-import type { ML, Tag, GalleryImage, ContentBlock } from './types'
+import type { ML, Tag, GalleryImage, ContentBlock, LangCode } from './types'
 
 /** „Dnešek" prototypu — kvůli stavům a zvýraznění v kalendáři. */
 export const EVENTS_NOW = new Date('2026-07-28T12:00:00')
@@ -99,6 +99,11 @@ export interface DovEvent {
   /** Fotky nahrané přímo k akci (mimo připojené galerie). */
   gallery?: GalleryImage[]
   published: boolean
+  /** Které jazykové mutace jsou zveřejněné (živě na webu). Publikování je per
+      jazyk — stav záznamu (published) + termín řídí, KDY je akce živá,
+      tento seznam řídí, KTERÉ mutace se zobrazí. Prázdná mutace nemůže být živá.
+      Nevyplněno (undefined) = zpětně kompatibilní fallback: všechny vyplněné. */
+  publishedLangs?: LangCode[]
 }
 
 /** Raw varianta — v mock datech píšeme jen CZ, ML doplní normalizace. */
@@ -126,6 +131,10 @@ type RawEvent = {
   areaId?: string
   tourIds?: string[]
   galleryIds?: string[]
+  /** Volitelné jazykové mutace názvu (mimo CZ) — pro demonstraci stavů publikace. */
+  titleLangs?: Partial<Record<LangCode, string>>
+  /** Které mutace jsou zveřejněné (živě). Nevyplněno = fallback na všechny vyplněné. */
+  publishedLangs?: LangCode[]
 }
 function ml(cs: string): ML {
   return { cs, en: '', de: '', pl: '' }
@@ -141,11 +150,13 @@ const RAW_EVENTS: RawEvent[] = [
   { id: 'e-tabor', areaId: 'v-u6', title: 'Letní příměstský tábor U6', type: 'Vzdělávací program', from: '2026-07-27', to: '2026-07-31', summary: 'Týdenní tábor plný experimentů ve Světě techniky.', image: imageFor(4), published: true, price: '2 900 Kč', ageLimit: 'Od 6 let', tags: ['Pro školy', 'Rodinné'] },
   { id: 'e-scienceshow', areaId: 'v-u6', title: 'Science Show: Živly', type: 'Vzdělávací program', from: '2026-07-29', to: '2026-07-29', time: '15:00', timeTo: '16:00', summary: 'Interaktivní představení o přírodních živlech.', image: imageFor(13), published: true, price: 'Vstup zdarma', duration: '60 min', tags: ['Rodinné', 'Zdarma'] },
   // — Srpen: festivaly a akce (více budov v jeden den) —
-  { id: 'e-plameny', title: 'Ostrava v plamenech 2026', areaId: 'v-areal', type: 'Festival', from: '2026-08-01', to: '2026-08-01', time: '18:00', summary: 'Ohnivá show a doprovodný program v celém areálu.', image: imageFor(1), published: true, price: 'od 290 Kč', tags: ['Venku', 'Hudba'], galleryIds: ['g-akce'] },
+  // CZ živě, EN má vyplněný název, ale drží se skryté (připraveno) → amber stav.
+  { id: 'e-plameny', title: 'Ostrava v plamenech 2026', titleLangs: { en: 'Ostrava Ablaze 2026' }, publishedLangs: ['cs'], areaId: 'v-areal', type: 'Festival', from: '2026-08-01', to: '2026-08-01', time: '18:00', summary: 'Ohnivá show a doprovodný program v celém areálu.', image: imageFor(1), published: true, price: 'od 290 Kč', tags: ['Venku', 'Hudba'], galleryIds: ['g-akce'] },
   { id: 'e-race', title: 'Race the Streets', areaId: 'v-areal', type: 'Sportovní akce', from: '2026-08-07', to: '2026-08-08', summary: 'Městské závody napříč industriálním areálem.', image: imageFor(2), published: true, tags: ['Sport', 'Venku'] },
   { id: 'e-gongkoncert', areaId: 'v-gong', title: 'Letní koncert v Gongu', type: 'Koncert', from: '2026-08-07', to: '2026-08-07', time: '19:30', summary: 'Večerní koncert v multifunkční aule.', image: imageFor(8), published: true, price: 'od 490 Kč', tags: ['Hudba'] },
   { id: 'e-hopjump', title: 'HopJump večerní jam', areaId: 'v-hopjump', type: 'Sportovní akce', from: '2026-08-08', to: '2026-08-08', time: '20:00', summary: 'Trampolínový večer pro všechny věkové kategorie.', image: imageFor(9), published: true, tags: ['Sport', 'Rodinné'] },
-  { id: 'e-afrostrava', title: 'Festival AFROSTRAVA', areaId: 'v-areal', type: 'Festival', from: '2026-08-14', to: '2026-08-15', summary: 'Přehlídka africké hudby, tance a gastronomie.', image: imageFor(7), published: true, tags: ['Hudba', 'Venku', 'Občerstvení'] },
+  // CZ + EN živě, DE má vyplněný název, ale zatím skryté (připraveno) → amber stav.
+  { id: 'e-afrostrava', title: 'Festival AFROSTRAVA', titleLangs: { en: 'AFROSTRAVA Festival', de: 'AFROSTRAVA Festival' }, publishedLangs: ['cs', 'en'], areaId: 'v-areal', type: 'Festival', from: '2026-08-14', to: '2026-08-15', summary: 'Přehlídka africké hudby, tance a gastronomie.', image: imageFor(7), published: true, tags: ['Hudba', 'Venku', 'Občerstvení'] },
   { id: 'e-lezecka', title: 'Závody na lezecké stěně', areaId: 'v-lezecka', type: 'Sportovní akce', from: '2026-08-15', to: '2026-08-15', time: '10:00', summary: 'Regionální kolo v lezení na obtížnost.', image: imageFor(10), published: true, tags: ['Sport'] },
   { id: 'e-hiphop', areaId: 'v-gong', title: 'HIP HOP ŽIJE OSTRAVA', type: 'Koncert', from: '2026-08-28', to: '2026-08-29', summary: 'Dvoudenní hip-hopový festival v Gongu.', image: imageFor(12), published: true, tags: ['Hudba'] },
   { id: 'e-konference', title: 'Konference Industry 5.0', areaId: 'v-u6', type: 'Konference', from: '2026-08-20', to: '2026-08-21', summary: 'Odborná konference o budoucnosti průmyslu.', image: imageFor(14), published: false, tags: ['Pro školy'] },
@@ -154,7 +165,7 @@ const RAW_EVENTS: RawEvent[] = [
 /** Normalizace na plný model (ML — vyplněná zatím jen čeština). */
 export const MOCK_EVENTS: DovEvent[] = RAW_EVENTS.map((r) => ({
   id: r.id,
-  title: ml(r.title),
+  title: { ...ml(r.title), ...(r.titleLangs ?? {}) },
   subtitle: ml(r.subtitle ?? ''),
   type: r.type,
   from: r.from,
@@ -175,6 +186,7 @@ export const MOCK_EVENTS: DovEvent[] = RAW_EVENTS.map((r) => ({
   tourIds: r.tourIds ?? [],
   galleryIds: r.galleryIds ?? [],
   published: r.published,
+  publishedLangs: r.publishedLangs,
 }))
 
 /** Barva štítku akce — z předdefinovaných, jinak stabilní z palety (stejná

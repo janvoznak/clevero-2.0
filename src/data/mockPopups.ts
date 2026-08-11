@@ -30,9 +30,6 @@ export const POPUP_POSITION_LABELS: Record<PopupPosition, string> = {
   'bottom-right': 'Dole vpravo',
 }
 
-/** Jednotka šířky okna — přepínač `tmp_value_or_percent`. */
-export type WidthUnit = 'px' | 'percent'
-
 export interface PopupItem {
   id: string
   /** Nadpis okna (ML). */
@@ -45,14 +42,8 @@ export interface PopupItem {
   image: string | null
   /** Poloha na obrazovce. */
   position: PopupPosition
-  /** Zda se šířka udává v px nebo %. */
-  widthUnit: WidthUnit
-  /** Šířka v px. */
-  width: number
-  /** Šířka v % (alternativa k px). */
+  /** Šířka okna jako % šířky obrazovky (responzivně; výška se dopočítá z obsahu). */
   widthPercent: number
-  /** Výška v px. */
-  height: number
   /** Začátek zobrazování. */
   from: string | null
   /** Konec zobrazování. */
@@ -67,6 +58,8 @@ export interface PopupItem {
   popupFrame: boolean
   /** Datum vytvoření. */
   createdAt: string
+  /** Zveřejněné jazykové mutace (per-jazyk publikace). Bez seznamu = všechny vyplněné. */
+  publishedLangs?: LangCode[]
 }
 
 /** Efektivní stav zobrazování (z `enabled` + časového okna). */
@@ -107,10 +100,7 @@ const RAW: RawPopup[] = [
     },
     image: '/images/g1.jpg',
     position: 'bottom-right',
-    widthUnit: 'px',
-    width: 413,
     widthPercent: 30,
-    height: 360,
     from: '2026-07-01T08:00',
     to: '2026-09-30T20:00',
     enabled: true,
@@ -118,6 +108,8 @@ const RAW: RawPopup[] = [
     cookieExpiration: 7,
     popupFrame: true,
     createdAt: '2026-06-24T10:15',
+    // Němčina je vyplněná, ale schovaná na webu (demo „připraveno" — amber).
+    publishedLangs: ['cs', 'en'],
   },
   {
     id: 'p-498',
@@ -126,10 +118,7 @@ const RAW: RawPopup[] = [
     text: { cs: '<p>Doprodej vstupenek na festival v areálu Dolních Vítkovic.</p>' },
     image: '/images/g5.jpg',
     position: 'center',
-    widthUnit: 'px',
-    width: 413,
     widthPercent: 40,
-    height: 360,
     from: '2026-07-10T00:00',
     to: '2026-07-20T23:59',
     enabled: true,
@@ -145,10 +134,7 @@ const RAW: RawPopup[] = [
     text: { cs: '<p>Zážitkové prohlídky při svitu lamp. Kapacita omezena.</p>' },
     image: '/images/g8.jpg',
     position: 'top-center',
-    widthUnit: 'px',
-    width: 413,
     widthPercent: 100,
-    height: 360,
     from: '2026-08-01T00:00',
     to: null,
     enabled: true,
@@ -164,10 +150,7 @@ const RAW: RawPopup[] = [
     text: { cs: '<p>Sledujte program vánočních trhů mezi vysokými pecemi.</p>' },
     image: null,
     position: 'bottom-center',
-    widthUnit: 'px',
-    width: 413,
     widthPercent: 100,
-    height: 360,
     from: '2026-11-15T00:00',
     to: '2026-12-24T23:59',
     enabled: false,
@@ -183,10 +166,7 @@ const RAW: RawPopup[] = [
     text: { cs: '<p>Komentované prohlídky strojovny. Vstup zdarma.</p>' },
     image: '/images/g3.jpg',
     position: 'top-right',
-    widthUnit: 'px',
-    width: 413,
     widthPercent: 28,
-    height: 360,
     from: '2026-03-01T09:00',
     to: '2026-03-02T17:00',
     enabled: true,
@@ -194,6 +174,8 @@ const RAW: RawPopup[] = [
     cookieExpiration: 5,
     popupFrame: true,
     createdAt: '2026-02-10T08:30',
+    // Němčina vyplněná, ale nezveřejněná (demo „připraveno" — amber).
+    publishedLangs: ['cs'],
   },
   {
     id: 'p-480',
@@ -202,10 +184,7 @@ const RAW: RawPopup[] = [
     text: { cs: '<p>Interaktivní expozice pro celou rodinu je otevřená.</p>' },
     image: '/images/g11.jpg',
     position: 'middle-left',
-    widthUnit: 'px',
-    width: 413,
     widthPercent: 30,
-    height: 360,
     from: '2026-05-10T09:00',
     to: '2026-06-30T18:00',
     enabled: false,
@@ -239,10 +218,7 @@ export interface PopupTemplate {
     text: string
     titleUrl?: string
     position?: PopupPosition
-    widthUnit?: WidthUnit
-    width?: number
     widthPercent?: number
-    height?: number
     newWindow?: boolean
     popupFrame?: boolean
     cookieExpiration?: number
@@ -261,10 +237,7 @@ export const PREDEFINED_TEMPLATES: PopupTemplate[] = [
       text: '<p>Zveme vás na jedinečný hudební zážitek v multifunkční aule Gong. Rezervujte si místa online.</p>',
       titleUrl: '/akce',
       position: 'center',
-      widthUnit: 'px',
-      width: 480,
       widthPercent: 40,
-      height: 420,
       newWindow: false,
       popupFrame: true,
       cookieExpiration: 3,
@@ -281,10 +254,7 @@ export const PREDEFINED_TEMPLATES: PopupTemplate[] = [
       text: '<p>Upozorňujeme návštěvníky na dočasnou změnu otevírací doby areálu. Děkujeme za pochopení.</p>',
       titleUrl: '',
       position: 'top-center',
-      widthUnit: 'percent',
-      width: 900,
       widthPercent: 100,
-      height: 150,
       newWindow: false,
       popupFrame: false,
       cookieExpiration: 1,
@@ -301,10 +271,7 @@ export const PREDEFINED_TEMPLATES: PopupTemplate[] = [
       text: '<p>Kupte si zvýhodněný balíček vstupenek a ušetřete. Nabídka platí jen po omezenou dobu.</p>',
       titleUrl: '/vstupenky',
       position: 'bottom-right',
-      widthUnit: 'px',
-      width: 413,
       widthPercent: 30,
-      height: 360,
       newWindow: true,
       popupFrame: true,
       cookieExpiration: 7,
@@ -321,10 +288,7 @@ export const PREDEFINED_TEMPLATES: PopupTemplate[] = [
       text: '<p>Připravili jsme vzdělávací programy pro školy všech stupňů. Objednejte termín pro svou třídu.</p>',
       titleUrl: '/pro-skoly',
       position: 'middle-left',
-      widthUnit: 'px',
-      width: 420,
       widthPercent: 30,
-      height: 380,
       newWindow: false,
       popupFrame: true,
       cookieExpiration: 14,
@@ -341,10 +305,7 @@ export const PREDEFINED_TEMPLATES: PopupTemplate[] = [
       text: '<p>Nechte si zasílat program a novinky z Dolních Vítkovic přímo do e-mailu.</p>',
       titleUrl: '',
       position: 'bottom-right',
-      widthUnit: 'px',
-      width: 380,
       widthPercent: 28,
-      height: 300,
       newWindow: false,
       popupFrame: true,
       cookieExpiration: 30,

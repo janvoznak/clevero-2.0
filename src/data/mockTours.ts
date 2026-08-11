@@ -1,5 +1,6 @@
 import { imageFor } from './mockNews'
-import type { ML, ContentBlock } from './types'
+import { LANGS } from './types'
+import type { ML, ContentBlock, LangCode } from './types'
 
 /* ============================================================
    Modul „Prohlídky" (dříve Vstupenky).
@@ -22,6 +23,9 @@ export interface TourCategory {
   description: ML
   image: string
   published: boolean
+  /** Které jazykové mutace jdou na web (viz `@/utils/langPublish`).
+      undefined = zpětně kompatibilní fallback = všechny vyplněné. */
+  publishedLangs?: LangCode[]
 }
 
 /* ---------- Prohlídka ---------- */
@@ -75,6 +79,9 @@ export interface Tour {
   /** Unikátní ID prohlídky v Colosseu (napojení prodeje vstupenek). */
   colosseumId: string
   published: boolean
+  /** Které jazykové mutace jdou na web (viz `@/utils/langPublish`).
+      undefined = zpětně kompatibilní fallback = všechny vyplněné. */
+  publishedLangs?: LangCode[]
   /** Nejbližší termíny z Colossea (read-only). */
   slots: TourSlot[]
 }
@@ -104,12 +111,14 @@ export interface Ticket {
 export const MOCK_CATEGORIES: TourCategory[] = [
   {
     id: 'cat-dov',
-    name: ml('Dolní Vítkovice'),
+    // EN název vyplněn, ale záměrně skrytý na webu → ukázka stavu „ready/hidden" (amber).
+    name: { cs: 'Dolní Vítkovice', en: 'Lower Vítkovice', de: '', pl: '' },
     description: ml(
       '<p>Komentované prohlídky industriálního areálu Dolních Vítkovic — vysoké pece, Bolt Tower, plynojem Gong a další.</p>',
     ),
     image: imageFor(0),
     published: true,
+    publishedLangs: ['cs'],
   },
   {
     id: 'cat-hornicke',
@@ -139,6 +148,8 @@ type RawTour = Omit<Tour, 'title' | 'perex' | 'description' | 'scheduleNote' | '
   scheduleNote: string
   paymentNote: string
   highlights: string[]
+  /** Volitelné překlady názvu (ukázka jazykových mutací ve výpisu). */
+  titleTr?: Partial<Record<LangCode, string>>
 }
 
 const RAW_TOURS: RawTour[] = [
@@ -147,6 +158,9 @@ const RAW_TOURS: RawTour[] = [
     categoryId: 'cat-dov',
     areaId: 'v-bolt',
     title: 'Vysokopecní okruh vč. návštěvy Bolt Tower',
+    // EN živě, DE vyplněno ale skryté (amber), PL prázdné.
+    titleTr: { en: 'Blast Furnace Tour incl. Bolt Tower visit', de: 'Hochofen-Rundgang inkl. Besuch des Bolt Tower' },
+    publishedLangs: ['cs', 'en'],
     perex: 'Komentovaná prohlídka Vysoké pece č. 1 o historii Vítkovic a výrobě surového železa (v polovině prohlídky rozchod na Bolt Tower).',
     description:
       '<p>Vydejte se po stopách výroby surového železa. Komentovaná prohlídka vás provede vysokou pecí č. 1 a vysvětlí, jak fungoval jeden z nejdůležitějších provozů Vítkovic.</p>',
@@ -184,6 +198,9 @@ const RAW_TOURS: RawTour[] = [
     categoryId: 'cat-dov',
     areaId: 'v-gong',
     title: 'Prohlídka plynojemu Gong',
+    // EN vyplněno, ale skryté na webu → stav „ready/hidden" (amber).
+    titleTr: { en: 'Gong Gasholder Tour' },
+    publishedLangs: ['cs'],
     perex: 'Komentovaná prohlídka bývalého plynojemu přeměněného v multifunkční aulu Gong.',
     description: '<p>Prohlídka unikátní stavby plynojemu a jeho proměny v multifunkční aulu.</p>',
     image: imageFor(8),
@@ -237,7 +254,7 @@ const RAW_TOURS: RawTour[] = [
 
 export const MOCK_TOURS: Tour[] = RAW_TOURS.map((r) => ({
   ...r,
-  title: ml(r.title),
+  title: { ...ml(r.title), ...r.titleTr },
   perex: ml(r.perex),
   description: ml(r.description),
   scheduleNote: ml(r.scheduleNote),
@@ -311,7 +328,8 @@ export function ticketsForTour(tourId: string): Ticket[] {
 
 /** Prázdné entity pro zakládání. */
 export function blankCategory(): TourCategory {
-  return { id: 'nová', name: ml(''), description: ml(''), image: '', published: false }
+  // Nová kategorie: každá mutace půjde živě, jakmile dostane obsah.
+  return { id: 'nová', name: ml(''), description: ml(''), image: '', published: false, publishedLangs: LANGS.map((l) => l.code) }
 }
 export function blankTour(categoryId = 'cat-dov'): Tour {
   return {
@@ -330,6 +348,8 @@ export function blankTour(categoryId = 'cat-dov'): Tour {
     paymentNote: ml('Vstupenky lze platit platební kartou.'),
     colosseumId: '',
     published: false,
+    // Nová prohlídka: každá mutace půjde živě, jakmile dostane obsah.
+    publishedLangs: LANGS.map((l) => l.code),
     slots: [],
   }
 }

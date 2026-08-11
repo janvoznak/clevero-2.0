@@ -55,10 +55,7 @@ function clone(): PopupItem {
     text: empty(),
     image: null,
     position: 'center',
-    widthUnit: 'px',
-    width: 413,
     widthPercent: 30,
-    height: 360,
     from: null,
     to: null,
     enabled: true,
@@ -66,6 +63,8 @@ function clone(): PopupItem {
     cookieExpiration: 7,
     popupFrame: true,
     createdAt: '',
+    // Nové okno: každá mutace půjde živě, jakmile dostane obsah.
+    publishedLangs: LANGS.map((l) => l.code),
   }
 }
 
@@ -167,19 +166,12 @@ const overlay = computed(() =>
 
 /* ============================================================
    Rozměr a poloha okna na plátně (mini-viewport).
-   Šířka/výška se mapují na % plochy stránky vůči referenčnímu viewportu.
+   Šířka = % šířky obrazovky (responzivně); výška se řídí obsahem okna.
    ============================================================ */
-const REF_W = 1200
-const REF_H = 760
 function clamp(v: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, v))
 }
-const boxWpct = computed(() =>
-  form.widthUnit === 'px'
-    ? clamp((form.width / REF_W) * 100, 14, 96)
-    : clamp(form.widthPercent, 14, 100),
-)
-const boxHpct = computed(() => clamp((form.height / REF_H) * 100, 12, 92))
+const boxWpct = computed(() => clamp(form.widthPercent, 14, 100))
 
 const POS_ALIGN: Record<PopupPosition, string> = {
   'top-left': 'items-start justify-start',
@@ -193,15 +185,9 @@ const POS_ALIGN: Record<PopupPosition, string> = {
   'bottom-right': 'items-end justify-end',
 }
 
-const sizeLabel = computed(() => {
-  const w =
-    form.widthUnit === 'px'
-      ? `${form.width} px`
-      : `${form.widthPercent} %`
-  return `${w} × ${form.height} px`
-})
+const sizeLabel = computed(() => `${form.widthPercent} % šířky`)
 
-/* Resize tažením za pravý dolní roh okna (přepočet přes reálnou šířku plátna). */
+/* Resize tažením za pravý okraj okna — mění jen šířku (v %). Výška je dle obsahu. */
 const pageRef = ref<HTMLElement>()
 const resizing = ref(false)
 function startResize(e: PointerEvent) {
@@ -210,16 +196,11 @@ function startResize(e: PointerEvent) {
   const rect = pageRef.value?.getBoundingClientRect()
   if (!rect) return
   const sx = e.clientX
-  const sy = e.clientY
-  const startW = form.widthUnit === 'px' ? form.width : form.widthPercent
-  const startH = form.height
+  const startW = form.widthPercent
   resizing.value = true
   function move(ev: PointerEvent) {
     const dxFrac = (ev.clientX - sx) / rect!.width
-    const dyFrac = (ev.clientY - sy) / rect!.height
-    if (form.widthUnit === 'px') form.width = clamp(Math.round(startW + dxFrac * REF_W), 160, 1920)
-    else form.widthPercent = clamp(Math.round(startW + dxFrac * 100), 12, 100)
-    form.height = clamp(Math.round(startH + dyFrac * REF_H), 90, 1400)
+    form.widthPercent = clamp(Math.round(startW + dxFrac * 100), 12, 100)
   }
   function up() {
     resizing.value = false
@@ -275,23 +256,17 @@ function aiCompose() {
     // Heuristika: podle obsahu zvol polohu, velikost a motiv.
     if (/oznám|změn|uzáv|otevírac|doba|provoz/i.test(p)) {
       form.position = 'top-center'
-      form.widthUnit = 'percent'
       form.widthPercent = 100
-      form.height = 150
       form.popupFrame = false
       activeThemeId.value = 'soft'
     } else if (/sleva|prodej|balíč|vstupenk|nabídk|akce|kupón/i.test(p)) {
       form.position = 'bottom-right'
-      form.widthUnit = 'px'
-      form.width = 420
-      form.height = 380
+      form.widthPercent = 34
       form.popupFrame = true
       activeThemeId.value = 'terracotta'
     } else {
       form.position = 'center'
-      form.widthUnit = 'px'
-      form.width = 480
-      form.height = 420
+      form.widthPercent = 42
       form.popupFrame = true
       activeThemeId.value = 'light'
     }
@@ -632,7 +607,7 @@ function fireToast(msg: string) {
                   form.popupFrame ? 'shadow-2xl ring-1 ring-black/5' : 'shadow-lg',
                   resizing ? 'outline outline-2 outline-brand-500' : '',
                 ]"
-                :style="{ width: boxWpct + '%', minHeight: boxHpct + '%', maxHeight: '92%' }"
+                :style="{ width: boxWpct + '%', maxHeight: '92%' }"
               >
                 <!-- Celoplošný obrázek jako pozadí okna + tmavý přechod pro čitelnost textu -->
                 <template v-if="form.image">
@@ -825,14 +800,14 @@ function fireToast(msg: string) {
                   </div>
                 </div>
 
-                <!-- Resize handle -->
+                <!-- Resize handle — jen šířka (pravý okraj); výška je dle obsahu -->
                 <button
                   type="button"
-                  class="absolute bottom-0 right-0 z-10 grid h-6 w-6 cursor-se-resize touch-none place-items-center rounded-tl-md bg-brand-500 text-white opacity-0 shadow-sm outline-none transition-opacity hover:bg-brand-600 group-hover/popup:opacity-100 focus-visible:opacity-100"
-                  aria-label="Změnit velikost okna tažením"
+                  class="absolute right-0 top-1/2 z-10 grid h-10 w-3.5 -translate-y-1/2 cursor-ew-resize touch-none place-items-center rounded-l-md bg-brand-500 text-white opacity-0 shadow-sm outline-none transition-opacity hover:bg-brand-600 group-hover/popup:opacity-100 focus-visible:opacity-100"
+                  aria-label="Změnit šířku okna tažením"
                   @pointerdown="startResize"
                 >
-                  <Icon name="resize" :size="13" />
+                  <Icon name="resize" :size="12" />
                 </button>
               </div>
             </div>

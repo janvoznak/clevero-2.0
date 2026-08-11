@@ -18,6 +18,12 @@ import {
   MOCK_PROGRAMS, SCHOOL_LEVELS, GRADES, FOCUS_AREAS, PROGRAM_TAGS, blankProgram,
   type Program,
 } from '@/data/mockPrograms'
+import {
+  filledLangsOf,
+  publishedLangsOf,
+  publishLangRows,
+  toggleLangPublish,
+} from '@/utils/langPublish'
 
 const props = defineProps<{ id?: string }>()
 const router = useRouter()
@@ -28,6 +34,11 @@ function clone(): Program {
   const s = source.value
   const c = s ? (JSON.parse(JSON.stringify(s)) as Program) : blankProgram()
   c.contentBlocks = c.contentBlocks ?? defaultContentBlocks()
+  // Existující: zhmotnit fallback do explicitního seznamu, aby šlo přepínat.
+  // Nový: každá mutace půjde živě, jakmile dostane obsah.
+  c.publishedLangs = s
+    ? publishedLangsOf(filledLangsOf(c.title), c.publishedLangs)
+    : LANGS.map((l) => l.code)
   return c
 }
 const form = reactive<Program>(clone())
@@ -44,6 +55,15 @@ function langFilled(code: LangCode): boolean {
   return form.title[code].trim().length > 0
 }
 const filledLangs = computed(() => LANGS.filter((l) => langFilled(l.code)).map((l) => l.code))
+
+/* ---------- Publikování per jazyk ----------
+   Stav záznamu (PublishCard) řídí, KDY je program živý; tyto přepínače řídí,
+   KTERÉ mutace se na webu zobrazí. Prázdnou mutaci nelze zveřejnit. */
+const liveLangs = computed(() => publishedLangsOf(filledLangsOf(form.title), form.publishedLangs))
+const publishRows = computed(() => publishLangRows(form.title, form.publishedLangs))
+function onToggleLang(code: LangCode) {
+  form.publishedLangs = toggleLangPublish(form.publishedLangs, filledLangsOf(form.title), code)
+}
 
 /* ---------- Parametry (opakovatelné řádky) ---------- */
 let paramSeq = 0
@@ -86,6 +106,7 @@ function save() {
         <LangBar
           v-model="activeLang"
           :filled="filledLangs"
+          :published="liveLangs"
           :translating="translating"
           class="hidden lg:block"
           @translate="translateLang"
@@ -231,7 +252,7 @@ function save() {
 
       <!-- PRAVÝ rail -->
       <aside class="space-y-5 xl:sticky xl:top-[76px] xl:self-start">
-        <PublishCard updated-by="Hana Svrčková" />
+        <PublishCard updated-by="Hana Svrčková" :langs="publishRows" @toggle-lang="onToggleLang" />
 
         <!-- Štítky -->
         <FormSection title="Štítky" icon="filter" tag="program-tags">

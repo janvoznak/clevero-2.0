@@ -25,6 +25,7 @@ import AppSelect from '@/components/ui/AppSelect.vue'
 import TagChip from '@/components/ui/TagChip.vue'
 import RowActionsMenu from '@/components/admin/RowActionsMenu.vue'
 import { MOCK_NEWS, publishState, tagColor, categoryColor } from '@/data/mockNews'
+import { langPublishState, LANG_PUBLISH_META, filledLangsOf } from '@/utils/langPublish'
 import { LANGS } from '@/data/types'
 import type { NewsItem, LangCode } from '@/data/types'
 
@@ -145,6 +146,11 @@ function initials(name: string): string {
     .slice(0, 2)
     .join('')
     .toUpperCase()
+}
+
+/** Stav publikace jedné mutace v řádku výpisu (sdílený helper). */
+function lps(n: NewsItem, code: LangCode) {
+  return langPublishState(code, filledLangsOf(n.title), n.publishedLangs)
 }
 
 function goNew() {
@@ -394,10 +400,11 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
                 <span
                   v-for="l in LANGS"
                   :key="l.code"
-                  :title="n.title[l.code].trim() ? `${l.label} — zveřejněno` : `${l.label} — chybí překlad`"
-                  class="rounded px-1.5 py-0.5 text-[10.5px] font-700 uppercase tabular-nums"
-                  :class="n.title[l.code].trim() ? 'bg-forge-500/10 text-forge-600' : 'bg-steel-100 text-steel-400'"
+                  :title="`${l.label} — ${LANG_PUBLISH_META[lps(n, l.code)].label}`"
+                  class="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10.5px] font-700 uppercase tabular-nums"
+                  :class="LANG_PUBLISH_META[lps(n, l.code)].chip"
                 >
+                  <span class="h-1.5 w-1.5 rounded-full" :class="LANG_PUBLISH_META[lps(n, l.code)].dot" />
                   {{ l.code }}
                 </span>
               </div>

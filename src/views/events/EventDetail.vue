@@ -20,6 +20,12 @@ import ContentBuilder from '@/components/admin/ContentBuilder.vue'
 import { LANGS, SOURCE_LANG, defaultContentBlocks } from '@/data/types'
 import type { LangCode, ML } from '@/data/types'
 import {
+  filledLangsOf,
+  publishedLangsOf,
+  publishLangRows,
+  toggleLangPublish,
+} from '@/utils/langPublish'
+import {
   MOCK_EVENTS,
   EVENT_TYPES,
   PREDEFINED_EVENT_TAGS,
@@ -47,6 +53,8 @@ function clone(): DovEvent {
     const c = JSON.parse(JSON.stringify(s)) as DovEvent
     c.gallery = c.gallery ?? []
     c.contentBlocks = c.contentBlocks ?? defaultContentBlocks()
+    // Zhmotnit fallback do explicitního seznamu, aby šlo přepínat.
+    c.publishedLangs = publishedLangsOf(filledLangsOf(c.title), c.publishedLangs)
     return c
   }
   return {
@@ -74,6 +82,8 @@ function clone(): DovEvent {
     galleryIds: [],
     gallery: [],
     published: false,
+    // Nová akce: každá mutace půjde živě, jakmile dostane obsah.
+    publishedLangs: LANGS.map((l) => l.code),
   }
 }
 const form = reactive<DovEvent>(clone())
@@ -83,6 +93,15 @@ function langFilled(code: LangCode): boolean {
   return form.title[code].trim().length > 0
 }
 const filledLangs = computed(() => LANGS.filter((l) => langFilled(l.code)).map((l) => l.code))
+
+/* ---------- Publikování per jazyk ----------
+   Stav záznamu (published) + termín řídí, KDY je akce živá; tyto přepínače
+   řídí, KTERÉ mutace se na webu zobrazí. Prázdnou mutaci nelze zveřejnit. */
+const liveLangs = computed(() => publishedLangsOf(filledLangsOf(form.title), form.publishedLangs))
+const publishRows = computed(() => publishLangRows(form.title, form.publishedLangs))
+function onToggleLang(code: LangCode) {
+  form.publishedLangs = toggleLangPublish(form.publishedLangs, filledLangsOf(form.title), code)
+}
 
 const typeOptions = EVENT_TYPES.map((t) => ({ value: t, label: t }))
 /** Místo konání = objekt v Areálu (jedna kanonická vazba; barva v kalendáři
@@ -198,6 +217,7 @@ function save() {
         <LangBar
           v-model="activeLang"
           :filled="filledLangs"
+          :published="liveLangs"
           :translating="translating"
           class="hidden lg:block"
           @translate="translateLang"
@@ -489,7 +509,7 @@ function save() {
 
       <!-- PRAVÝ rail -->
       <aside class="space-y-5 xl:sticky xl:top-[76px] xl:self-start">
-        <PublishCard :published="form.published" updated-by="Petr Dvořák" />
+        <PublishCard :published="form.published" :langs="publishRows" updated-by="Petr Dvořák" @toggle-lang="onToggleLang" />
 
         <!-- Štítky (sdílený TagPicker — stejné UI/UX jako Aktuality) -->
         <FormSection title="Štítky" icon="filter" tag="event-tags">

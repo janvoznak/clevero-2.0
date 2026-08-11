@@ -29,7 +29,9 @@ import AppSwitch from '@/components/ui/AppSwitch.vue'
 import RowActionsMenu from '@/components/admin/RowActionsMenu.vue'
 import { MOCK_POPUPS, popupState, POPUP_STATE_META } from '@/data/mockPopups'
 import { LANGS } from '@/data/types'
+import type { LangCode } from '@/data/types'
 import type { PopupItem } from '@/data/mockPopups'
+import { langPublishState, LANG_PUBLISH_META, filledLangsOf } from '@/utils/langPublish'
 
 const router = useRouter()
 
@@ -42,6 +44,11 @@ const deleteTarget = ref<PopupItem | null>(null)
 
 /* Bez filtru — dle specifikace seznam nemá filtrační panel. Jen řazení dle vytvoření. */
 const visible = computed(() => [...rows.value].sort((a, b) => b.createdAt.localeCompare(a.createdAt)))
+
+/** Stav jedné jazykové mutace pro chip ve výpisu (živě / připraveno / prázdné). */
+function lps(row: PopupItem, code: LangCode) {
+  return langPublishState(code, filledLangsOf(row.title), row.publishedLangs)
+}
 
 function toggleEnabled(p: PopupItem, v: boolean) {
   p.enabled = v // prototyp — jen lokální stav
@@ -296,10 +303,11 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
                 <span
                   v-for="l in LANGS"
                   :key="l.code"
-                  :title="p.title[l.code].trim() ? `${l.label} — vyplněno` : `${l.label} — chybí překlad`"
-                  class="rounded px-1 py-0.5 text-[10px] font-700 uppercase"
-                  :class="p.title[l.code].trim() ? 'bg-forge-500/10 text-forge-600' : 'bg-steel-100 text-steel-400'"
+                  class="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-700 uppercase tabular-nums"
+                  :class="LANG_PUBLISH_META[lps(p, l.code)].chip"
+                  :title="`${l.label} — ${LANG_PUBLISH_META[lps(p, l.code)].label}`"
                 >
+                  <span class="h-1.5 w-1.5 rounded-full" :class="LANG_PUBLISH_META[lps(p, l.code)].dot" />
                   {{ l.code }}
                 </span>
               </div>
@@ -406,10 +414,11 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
                 <span
                   v-for="l in LANGS"
                   :key="l.code"
-                  :title="p.title[l.code].trim() ? `${l.label} — vyplněno` : `${l.label} — chybí překlad`"
-                  class="rounded px-1.5 py-0.5 text-[10.5px] font-700 uppercase tabular-nums"
-                  :class="p.title[l.code].trim() ? 'bg-forge-500/10 text-forge-600' : 'bg-steel-100 text-steel-400'"
+                  class="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10.5px] font-700 uppercase tabular-nums"
+                  :class="LANG_PUBLISH_META[lps(p, l.code)].chip"
+                  :title="`${l.label} — ${LANG_PUBLISH_META[lps(p, l.code)].label}`"
                 >
+                  <span class="h-1.5 w-1.5 rounded-full" :class="LANG_PUBLISH_META[lps(p, l.code)].dot" />
                   {{ l.code }}
                 </span>
               </div>

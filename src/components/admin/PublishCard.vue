@@ -13,9 +13,19 @@
  */
 import { ref } from 'vue'
 import Icon from '@/components/ui/Icon.vue'
+import AppSwitch from '@/components/ui/AppSwitch.vue'
 import FormSection from '@/components/admin/FormSection.vue'
+import type { LangCode } from '@/data/types'
 
 type Status = 'draft' | 'published' | 'scheduled'
+
+/** Řádek matice „Mutace na webu" — jedna jazyková mutace a její stav publikace. */
+export interface PublishLangRow {
+  code: LangCode
+  label: string
+  flag: string
+  state: 'live' | 'ready' | 'empty'
+}
 
 const props = withDefaults(
   defineProps<{
@@ -25,6 +35,9 @@ const props = withDefaults(
     created?: string
     updated?: string
     updatedBy?: string
+    /** Volitelné: publikování per jazyk. Když je předáno, zobrazí se matice
+        „Mutace na webu" (přepínač u každé mutace). Prázdnou nelze zapnout. */
+    langs?: PublishLangRow[]
   }>(),
   {
     published: true,
@@ -32,8 +45,17 @@ const props = withDefaults(
     created: '4. 8. 2025 · 14:00',
     updated: 'dnes · 9:14',
     updatedBy: 'Jan Voznak',
+    langs: undefined,
   },
 )
+
+defineEmits<{ 'toggle-lang': [LangCode] }>()
+
+const LANG_STATE_META: Record<PublishLangRow['state'], { label: string; dot: string }> = {
+  live: { label: 'Zveřejněno', dot: 'bg-forge-500' },
+  ready: { label: 'Skryté', dot: 'bg-amber-500' },
+  empty: { label: 'Prázdné', dot: 'bg-steel-300' },
+}
 
 /** Datum zveřejnění (naplánování) a konec zobrazení — datetime-local. */
 const publishFrom = defineModel<string>('publishFrom', { default: '' })
@@ -105,6 +127,42 @@ function initials(name: string): string {
         <p class="mt-1.5 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
           <Icon name="clock" :size="13" class="mt-0.5 shrink-0 text-steel-400" />
           Po tomto termínu se přestane zobrazovat. Prázdné = zobrazovat neomezeně.
+        </p>
+      </div>
+
+      <!-- Publikování per jazyk (jen když modul předá `langs`) -->
+      <div v-if="langs && langs.length" class="mt-4 rounded-md border border-steel-200 bg-steel-50/60 p-2.5">
+        <p class="mb-2 flex items-center gap-1.5 px-1 field-tag">
+          <Icon name="globe" :size="13" class="text-steel-400" /> Zobrazit jazyk na webu
+        </p>
+        <ul class="space-y-1">
+          <li
+            v-for="l in langs"
+            :key="l.code"
+            class="flex items-center justify-between gap-2 rounded-md bg-white px-2.5 py-1.5"
+          >
+            <span class="flex items-center gap-2 text-[12.5px]">
+              <span>{{ l.flag }}</span>
+              <span class="font-600 text-graphite-800">{{ l.code.toUpperCase() }}</span>
+              <span class="inline-flex items-center gap-1 text-[11px] text-steel-500">
+                <span class="h-1.5 w-1.5 rounded-full" :class="LANG_STATE_META[l.state].dot" />
+                {{ LANG_STATE_META[l.state].label }}
+              </span>
+            </span>
+            <AppSwitch
+              v-if="l.state !== 'empty'"
+              :model-value="l.state === 'live'"
+              :aria-label="`Zveřejnit mutaci ${l.label}`"
+              @update:model-value="$emit('toggle-lang', l.code)"
+            />
+            <span v-else class="text-[11px] text-steel-400" :title="`${l.label} — nejdřív doplňte obsah`">
+              nelze
+            </span>
+          </li>
+        </ul>
+        <p class="mt-2 px-1 text-[11px] leading-relaxed text-steel-500">
+          Přepínač zapne/vypne zobrazení dané jazykové verze na webu. Skryté a prázdné
+          verze návštěvník uvidí v češtině.
         </p>
       </div>
 
