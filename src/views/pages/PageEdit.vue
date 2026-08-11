@@ -14,7 +14,6 @@ import GalleryField from '@/components/admin/GalleryField.vue'
 import AttachmentsManager from '@/components/admin/AttachmentsManager.vue'
 import OpeningHoursEditor from '@/components/admin/OpeningHoursEditor.vue'
 import PageFormBuilder from '@/components/admin/PageFormBuilder.vue'
-import PageGroupBar from '@/components/admin/PageGroupBar.vue'
 import SlugField from '@/components/admin/SlugField.vue'
 import { useAutoSlug } from '@/utils/useAutoSlug'
 import LangBar from '@/components/admin/LangBar.vue'
@@ -34,9 +33,6 @@ import {
   slugPath,
   parentOptions,
   hasChildren,
-  createChildPage,
-  persistNewPage,
-  addAssociatedLink,
   defaultOpeningHours,
   FORM_TEMPLATES,
 } from '@/data/mockPages'
@@ -108,7 +104,8 @@ const sections = [
   { value: 'content', label: 'Obsah', icon: 'text' },
   { value: 'settings', label: 'Nastavení a vztahy', icon: 'settings' },
   { value: 'forms', label: 'Formuláře', icon: 'reference' },
-  { value: 'media', label: 'Obrázky & Přílohy', icon: 'gallery' },
+  { value: 'media', label: 'Galerie', icon: 'gallery' },
+  { value: 'attachments', label: 'Přílohy', icon: 'paperclip' },
 ]
 
 /* ---------- Proxy pro typované selecty ---------- */
@@ -154,23 +151,6 @@ const urlPreview = computed(() => {
    neupraví ručně. Titulek a meta se odvozují automaticky. ---------- */
 const { markManual } = useAutoSlug(() => form.title, () => form.slug)
 
-/* ---------- Přepínání mezi přidruženými stránkami ---------- */
-function goPage(id: string) {
-  router.push({ name: 'page-edit', params: { id } })
-}
-/* Přidání podstránky/odkazu na dosud neuložené stránce → nejdřív ji založíme. */
-function onAddChildNew() {
-  const parent = persistNewPage(MOCK_PAGES, form)
-  form.id = parent.id
-  const child = createChildPage(MOCK_PAGES, parent.id)
-  goPage(child.id)
-}
-function onAddLinkNew(payload: { label: ML; url: string }) {
-  const parent = persistNewPage(MOCK_PAGES, form)
-  form.id = parent.id
-  addAssociatedLink(parent, payload.label, payload.url)
-  goPage(parent.id)
-}
 /* Router recykluje instanci komponenty — při změně id načteme stránku znovu. */
 watch(
   () => props.id,
@@ -309,16 +289,6 @@ const { translating, toast, translateLang, translateField } = useMlTranslate(for
 
               <!-- TAB: Nastavení a vztahy (dříve v pravém railu) -->
               <TabsContent value="settings" class="space-y-5 outline-none">
-                <!-- Přidružené stránky (podstránky + externí odkazy) -->
-                <PageGroupBar
-                  :key="form.id"
-                  :current-id="form.id"
-                  :lang="activeLang"
-                  @navigate="goPage"
-                  @add-child-new="onAddChildNew"
-                  @add-link-new="onAddLinkNew"
-                />
-
                 <!-- Zařazení -->
                 <FormSection title="Zařazení" icon="layers" tag="page-entityParentId">
                   <div>
@@ -348,9 +318,6 @@ const { translating, toast, translateLang, translateField } = useMlTranslate(for
                       <p class="mb-0.5 field-tag">Adresa na webu</p>
                       <p class="break-all font-mono text-[11.5px] text-graphite-700">/cs{{ urlPreview }}</p>
                     </div>
-                    <a href="#" target="_blank" class="inline-flex items-center justify-center gap-2 rounded-md border border-steel-200 bg-white px-4 py-2 text-[13px] font-600 text-graphite-700 outline-none transition-colors hover:bg-steel-50 hover:text-graphite-900" @click.prevent>
-                      <Icon name="eye" :size="16" /> Náhled na webu
-                    </a>
                   </div>
                 </FormSection>
 
@@ -390,16 +357,18 @@ const { translating, toast, translateLang, translateField } = useMlTranslate(for
               </TabsContent>
 
 
-              <!-- TAB 4: Obrázky & Přílohy -->
+              <!-- TAB: Galerie -->
               <TabsContent value="media" class="space-y-6 outline-none">
-                <div>
-                  <GalleryField
-                    v-model:galleries="form.galleryIds"
-                    v-model:photos="form.gallery"
-                    link-tag="page-gallery_ids"
-                    photos-tag="page-images"
-                  />
-                </div>
+                <GalleryField
+                  v-model:galleries="form.galleryIds"
+                  v-model:photos="form.gallery"
+                  link-tag="page-gallery_ids"
+                  photos-tag="page-images"
+                />
+              </TabsContent>
+
+              <!-- TAB: Přílohy -->
+              <TabsContent value="attachments" class="space-y-6 outline-none">
                 <div>
                   <p class="mb-3 flex items-center gap-2 text-[12.5px] text-steel-500">
                     Přílohy ke stažení — rozlišené dle jazyka.

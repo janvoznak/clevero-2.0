@@ -114,8 +114,6 @@ function onDuplicate() {
   router.push({ name: 'faq-new' })
 }
 
-/** Prostý text odpovědi pro webový náhled. */
-const answerPlain = computed(() => form.answer[activeLang.value].replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim())
 </script>
 
 <template>
@@ -230,20 +228,6 @@ const answerPlain = computed(() => form.answer[activeLang.value].replace(/<[^>]*
                 class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13px] text-graphite-800 focus:border-brand-500 focus:outline-none"
               />
               <p class="mt-1 text-[11.5px] text-steel-500">Nižší číslo = dotaz výš ve své kategorii.</p>
-            </div>
-          </div>
-
-          <!-- Náhled na webu (akordeon) -->
-          <div class="mt-6 rounded-md border border-steel-200 bg-steel-50 p-4">
-            <p class="mb-2 flex items-center gap-1.5 field-tag"><Icon name="eye" :size="13" /> Náhled na webu</p>
-            <div class="rounded-md bg-white p-3 shadow-sm">
-              <div class="flex items-center justify-between gap-3">
-                <p class="text-[14px] font-600 text-graphite-900">{{ form.question[activeLang] || 'Otázka se zobrazí zde' }}</p>
-                <Icon name="chevronDown" :size="16" class="shrink-0 text-steel-400" />
-              </div>
-              <p class="mt-2 border-t border-steel-100 pt-2 text-[13px] leading-relaxed text-steel-600">
-                {{ answerPlain || 'Odpověď se zobrazí zde…' }}
-              </p>
             </div>
           </div>
         </div>

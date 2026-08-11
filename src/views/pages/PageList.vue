@@ -284,7 +284,6 @@ function goSubpage(parentId: string) {
 }
 const rowActions = [
   { key: 'edit', label: 'Editovat stránku', icon: 'edit' },
-  { key: 'preview', label: 'Náhled na webu', icon: 'eye' },
   { key: 'subpage', label: 'Přidat podstránku', icon: 'subpage' },
   { key: 'delete', label: 'Smazat stránku', icon: 'trash', danger: true },
 ]
@@ -292,7 +291,6 @@ function onRowAction(key: string, p: PageItem) {
   if (key === 'edit') goEdit(p.id)
   else if (key === 'subpage') goSubpage(p.id)
   else if (key === 'delete') askDelete(p)
-  // 'preview' — prototyp: náhled na webu je mrtvý odkaz
 }
 </script>
 

@@ -71,7 +71,6 @@ function goEdit(id: string) {
 }
 const rowActions = [
   { key: 'edit', label: 'Editovat objekt', icon: 'edit' },
-  { key: 'preview', label: 'Náhled na webu', icon: 'eye' },
   { key: 'delete', label: 'Smazat objekt', icon: 'trash', danger: true },
 ]
 const deleteTarget = ref<AreaObject | null>(null)

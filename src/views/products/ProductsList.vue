@@ -130,7 +130,6 @@ const lastSync = computed(() =>
 /* ---------- Akce nad řádkem ---------- */
 const rowActions = [
   { key: 'edit', label: 'Doplnit obsah produktu', icon: 'edit' },
-  { key: 'preview', label: 'Náhled na webu', icon: 'eye' },
   { key: 'colosseum', label: 'Otevřít v Colosseu', icon: 'externalLink' },
 ]
 function goEdit(id: string) {
@@ -138,7 +137,7 @@ function goEdit(id: string) {
 }
 function onRowAction(key: string, p: Product) {
   if (key === 'edit') goEdit(p.id)
-  // 'preview' i 'colosseum' — prototyp: mrtvé odkazy, nic se neděje
+  // 'colosseum' — prototyp: mrtvý odkaz, nic se neděje
 }
 
 function langFilled(p: Product, code: LangCode): boolean {

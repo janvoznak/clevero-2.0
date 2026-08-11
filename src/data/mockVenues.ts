@@ -82,6 +82,10 @@ export interface AreaObject {
   published: boolean
   /** Zveřejněné jazykové mutace (které se na webu zobrazí). Bez seznamu = všechny vyplněné. */
   publishedLangs?: LangCode[]
+  /** Hlavní přidružená stránka objektu (ID z modulu Stránky). Kořen skupiny
+      přidružených stránek (hlavní stránka + podstránky + externí odkazy),
+      která se zobrazí jako záložky v detailu budovy. */
+  mainPageId?: string
 }
 
 function ml(cs: string, extra?: Partial<Record<LangCode, string>>): ML {
@@ -110,6 +114,8 @@ type RawVenue = {
   publishedLangs?: LangCode[]
   stats?: VenueStat[]
   photos?: GalleryImage[]
+  /** Hlavní přidružená stránka objektu (ID z modulu Stránky). */
+  mainPageId?: string
 }
 
 /** Základní fotky objektu (prototyp — placeholdery přes imageFor). */
@@ -130,6 +136,7 @@ const RAW: RawVenue[] = [
     openState: 'open',
     showOpeningHours: false,
     published: true,
+    mainPageId: 'pg-onas',
   },
   {
     id: 'v-bolt',
@@ -283,6 +290,7 @@ export const MOCK_VENUES: AreaObject[] = RAW.map((r) => ({
   showOpeningHours: r.showOpeningHours,
   published: r.published,
   publishedLangs: r.publishedLangs,
+  mainPageId: r.mainPageId,
 }))
 
 /** Vyhledání místa/objektu podle ID (pro kalendář, výpisy, detaily akcí). */

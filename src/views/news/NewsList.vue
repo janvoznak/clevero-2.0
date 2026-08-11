@@ -163,14 +163,12 @@ function goEdit(id: string) {
 
 /* ---------- Akce nad řádkem (kontextové menu ⋮) ---------- */
 const rowActions = [
-  { key: 'preview', label: 'Náhled aktuality na webu', icon: 'eye' },
   { key: 'edit', label: 'Editovat aktualitu', icon: 'edit' },
   { key: 'delete', label: 'Smazat aktualitu', icon: 'trash', danger: true },
 ]
 function onRowAction(key: string, n: NewsItem) {
   if (key === 'edit') goEdit(n.id)
   else if (key === 'delete') deleteTarget.value = n
-  // 'preview' — prototyp: náhled na webu je mrtvý odkaz, nic se neděje
 }
 
 /* ---------- Stránkování (Reka Pagination) ----------
