@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import { TabsRoot, TabsList, TabsTrigger, TabsContent } from 'reka-ui'
 import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
-import CardActionsMenu from '@/components/admin/CardActionsMenu.vue'
+import DetailActions from '@/components/admin/DetailActions.vue'
 import AppSwitch from '@/components/ui/AppSwitch.vue'
 import FormSection from '@/components/admin/FormSection.vue'
 import PublishCard from '@/components/admin/PublishCard.vue'
@@ -85,6 +85,13 @@ function save() {
   saved.value = true
   window.setTimeout(() => (saved.value = false), 2000)
 }
+function saveBack() {
+  save()
+  router.push({ name: 'galleries-list' })
+}
+function onDuplicate() {
+  router.push({ name: 'gallery-section-new' })
+}
 
 /* ---------- Galerie v sekci ---------- */
 function goNewGallery() {
@@ -133,17 +140,16 @@ function fmtDate(d: string | null): string {
           @translate="translateLang"
         />
         <div class="h-6 w-px bg-steel-200" />
-        <CardActionsMenu
-          v-if="isEdit"
+        <DetailActions
           :name="form.name.cs"
           entity="sekci"
+          :is-edit="isEdit"
+          :saved="saved"
+          @save="save"
+          @save-back="saveBack"
+          @duplicate="onDuplicate"
           @delete="router.push({ name: 'galleries-list' })"
         />
-        <AppButton variant="secondary" @click="router.push({ name: 'galleries-list' })">Zrušit</AppButton>
-        <AppButton variant="primary" @click="save">
-          <Icon :name="saved ? 'check' : 'save'" :size="16" />
-          {{ saved ? 'Uloženo' : 'Uložit sekci' }}
-        </AppButton>
       </div>
     </div>
 

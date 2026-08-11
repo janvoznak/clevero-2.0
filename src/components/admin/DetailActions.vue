@@ -1,4 +1,10 @@
 <script setup lang="ts">
+/**
+ * Sjednocené akce hlavičky detailu/editace napříč všemi moduly.
+ * Jediné primární tlačítko „Uložit" + kebab „⋮" vlevo s dalšími akcemi:
+ *   Uložit a zpět · Duplikovat · Smazat. Žádné tlačítko „Zrušit".
+ * (Princip 0b: jeden prvek = jedna komponenta.)
+ */
 import { computed, ref } from 'vue'
 import {
   DialogRoot,
@@ -12,38 +18,37 @@ import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import RowActionsMenu from '@/components/admin/RowActionsMenu.vue'
 
-/**
- * Kontextové menu „⋮" pro detail/editaci záznamu (hlavička obrazovky).
- * Sjednocuje akce, které v detailu dřív chyběly — hlavně mazání záznamu.
- * Vizuálně i chováním navazuje na RowActionsMenu z výpisů.
- */
 const props = withDefaults(
   defineProps<{
-    /** Název záznamu zobrazený v potvrzení mazání (např. titulek). */
+    /** Název záznamu (do potvrzení mazání). */
     name?: string
-    /** Sklonění entity (akuzativ) pro nadpis dialogu, např. „program", „akci". */
+    /** Sklonění entity (akuzativ) pro dialog, např. „akci", „prohlídku". */
     entity?: string
-    /** Zobrazit položku Smazat (u nového záznamu není co mazat). */
-    canDelete?: boolean
-    /** Zobrazit položku Duplikovat. */
+    /** Existující záznam → nabídnout Duplikovat + Smazat. Nový = jen Uložit a zpět. */
+    isEdit?: boolean
+    /** Umožnit duplikaci (u importovaných záznamů, např. produktů, bez smyslu). */
     canDuplicate?: boolean
+    /** Po uložení: tlačítko ukáže „Uloženo" + fajfku. */
+    saved?: boolean
   }>(),
-  { name: '', entity: 'záznam', canDelete: true, canDuplicate: true },
+  { name: '', entity: 'záznam', isEdit: true, canDuplicate: true, saved: false },
 )
 
-const emit = defineEmits<{ delete: []; duplicate: [] }>()
+const emit = defineEmits<{ save: []; 'save-back': []; duplicate: []; delete: [] }>()
 
-const actions = computed(() => {
-  const list: { key: string; label: string; icon: string; danger?: boolean }[] = []
-  if (props.canDuplicate) list.push({ key: 'duplicate', label: 'Duplikovat', icon: 'copy' })
-  if (props.canDelete) list.push({ key: 'delete', label: 'Smazat', icon: 'trash', danger: true })
+const menuActions = computed(() => {
+  const list: { key: string; label: string; icon: string; danger?: boolean }[] = [
+    { key: 'save-back', label: 'Uložit a zpět', icon: 'check' },
+  ]
+  if (props.isEdit && props.canDuplicate) list.push({ key: 'duplicate', label: 'Duplikovat', icon: 'copy' })
+  if (props.isEdit) list.push({ key: 'delete', label: 'Smazat', icon: 'trash', danger: true })
   return list
 })
 
 const confirmOpen = ref(false)
-
 function onSelect(key: string) {
-  if (key === 'duplicate') emit('duplicate')
+  if (key === 'save-back') emit('save-back')
+  else if (key === 'duplicate') emit('duplicate')
   else if (key === 'delete') confirmOpen.value = true
 }
 function confirmDelete() {
@@ -53,7 +58,16 @@ function confirmDelete() {
 </script>
 
 <template>
-  <RowActionsMenu :actions="actions" label="Další akce" @select="onSelect" />
+  <div class="flex items-center gap-2">
+    <!-- Kebab s dalšími akcemi (vlevo od Uložit) -->
+    <RowActionsMenu :actions="menuActions" label="Další akce" @select="onSelect" />
+
+    <!-- Jediné primární tlačítko -->
+    <AppButton variant="primary" @click="emit('save')">
+      <Icon :name="saved ? 'check' : 'save'" :size="16" />
+      {{ saved ? 'Uloženo' : 'Uložit' }}
+    </AppButton>
+  </div>
 
   <!-- Potvrzení smazání (prototyp — reálně nic nemaže) -->
   <DialogRoot :open="confirmOpen" @update:open="(v) => (confirmOpen = v)">

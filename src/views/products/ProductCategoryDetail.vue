@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import { TabsRoot, TabsList, TabsTrigger, TabsContent } from 'reka-ui'
 import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
-import CardActionsMenu from '@/components/admin/CardActionsMenu.vue'
+import DetailActions from '@/components/admin/DetailActions.vue'
 import FormSection from '@/components/admin/FormSection.vue'
 import LangBar from '@/components/admin/LangBar.vue'
 import MlFieldHeader from '@/components/admin/MlFieldHeader.vue'
@@ -59,6 +59,13 @@ function save() {
 function goProduct(id: string) {
   router.push({ name: 'product-edit', params: { id } })
 }
+function saveBack() {
+  save()
+  router.push({ name: 'product-categories-list' })
+}
+function onDuplicate() {
+  router.push({ name: 'product-category-new' })
+}
 </script>
 
 <template>
@@ -86,17 +93,16 @@ function goProduct(id: string) {
           @translate="translateLang"
         />
         <div class="h-6 w-px bg-steel-200" />
-        <CardActionsMenu
-          v-if="isEdit"
+        <DetailActions
           :name="form.name.cs"
           entity="kategorii"
+          :is-edit="isEdit"
+          :saved="saved"
+          @save="save"
+          @save-back="saveBack"
+          @duplicate="onDuplicate"
           @delete="router.push({ name: 'product-categories-list' })"
         />
-        <AppButton variant="secondary" @click="router.push({ name: 'product-categories-list' })">Zrušit</AppButton>
-        <AppButton variant="primary" @click="save">
-          <Icon :name="saved ? 'check' : 'save'" :size="16" />
-          {{ saved ? 'Uloženo' : 'Uložit kategorii' }}
-        </AppButton>
       </div>
     </div>
 
