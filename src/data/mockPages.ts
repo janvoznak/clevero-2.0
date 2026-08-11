@@ -51,6 +51,9 @@ export interface PageItem {
   allowHp: boolean
   priority: number
   enabled: boolean
+  /** Zveřejněné jazykové mutace (explicitní seznam). Nezadáno = živé jsou
+      všechny vyplněné mutace (zpětně kompatibilní fallback). */
+  publishedLangs?: LangCode[]
   /* Formuláře */
   formTemplateId: string
   dynamicFormId: string
@@ -376,6 +379,8 @@ const RAW: RawPage[] = [
     allowMenu: true,
     allowFooter: '1',
     priority: 1,
+    // Demo: němčina je vyplněná, ale zatím skrytá na webu (stav „ready" — jantar).
+    publishedLangs: ['cs', 'en'],
   },
   {
     ...base,
@@ -421,6 +426,8 @@ const RAW: RawPage[] = [
     contactForm: 'full_contact',
     contactFormText: { cs: 'Ozveme se vám do dvou pracovních dnů.' },
     usedCookies: ['preferences'],
+    // Demo: angličtina je vyplněná, ale zatím skrytá na webu (stav „ready" — jantar).
+    publishedLangs: ['cs', 'de'],
   },
   {
     ...base,

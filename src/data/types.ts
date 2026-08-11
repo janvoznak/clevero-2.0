@@ -65,6 +65,11 @@ export interface NewsItem {
   slug?: ML
   summary: ML
   text: ML
+  /** Které jazykové mutace jsou zveřejněné (živě na webu). Publikování je per
+      jazyk — společné časové okno (dateFrom/dateTo) řídí, KDY je aktualita živá,
+      tento seznam řídí, KTERÉ mutace se zobrazí. Prázdná mutace nemůže být živá.
+      Nevyplněno (undefined) = zpětně kompatibilní fallback: všechny vyplněné. */
+  publishedLangs?: LangCode[]
   /** Obsah aktuality jako bloky (ContentBuilder) — jednotná sekce „Obsah". */
   contentBlocks?: ContentBlock[]
   videoLink: string

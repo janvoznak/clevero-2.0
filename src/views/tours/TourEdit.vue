@@ -9,6 +9,8 @@ import AppSelect from '@/components/ui/AppSelect.vue'
 import AppSwitch from '@/components/ui/AppSwitch.vue'
 import FormSection from '@/components/admin/FormSection.vue'
 import PublishCard from '@/components/admin/PublishCard.vue'
+import BackRefsCard from '@/components/admin/BackRefsCard.vue'
+import { backRefsForTour } from '@/data/backrefs'
 import AiPanel from '@/components/admin/AiPanel.vue'
 import ContentBuilder from '@/components/admin/ContentBuilder.vue'
 import LangBar from '@/components/admin/LangBar.vue'
@@ -16,6 +18,12 @@ import MlFieldHeader from '@/components/admin/MlFieldHeader.vue'
 import { useMlTranslate } from '@/utils/useMlTranslate'
 import { LANGS, SOURCE_LANG, defaultContentBlocks } from '@/data/types'
 import type { LangCode } from '@/data/types'
+import {
+  filledLangsOf,
+  publishedLangsOf,
+  publishLangRows,
+  toggleLangPublish,
+} from '@/utils/langPublish'
 import {
   MOCK_TOURS,
   CATEGORY_OPTIONS,
@@ -44,9 +52,14 @@ const isEdit = computed(() => !!props.id)
 const source = computed(() => MOCK_TOURS.find((t) => t.id === props.id))
 function clone(): Tour {
   const s = source.value
-  const c = s
-    ? (JSON.parse(JSON.stringify(s)) as Tour)
-    : blankTour(typeof route.query.category === 'string' ? route.query.category : 'cat-dov')
+  if (s) {
+    const c = JSON.parse(JSON.stringify(s)) as Tour
+    c.contentBlocks = c.contentBlocks ?? defaultContentBlocks()
+    // Zhmotnit fallback do explicitního seznamu, aby šlo přepínat.
+    c.publishedLangs = publishedLangsOf(filledLangsOf(c.title), c.publishedLangs)
+    return c
+  }
+  const c = blankTour(typeof route.query.category === 'string' ? route.query.category : 'cat-dov')
   c.contentBlocks = c.contentBlocks ?? defaultContentBlocks()
   return c
 }
@@ -56,6 +69,15 @@ function langFilled(code: LangCode): boolean {
   return form.title[code].trim().length > 0
 }
 const filledLangs = computed(() => LANGS.filter((l) => langFilled(l.code)).map((l) => l.code))
+
+/* ---------- Publikování per jazyk ----------
+   Stav prohlídky (PublishCard) řídí, KDY je prohlídka živá; tyto přepínače
+   řídí, KTERÉ mutace se na webu zobrazí. Prázdnou mutaci nelze zveřejnit. */
+const liveLangs = computed(() => publishedLangsOf(filledLangsOf(form.title), form.publishedLangs))
+const publishRows = computed(() => publishLangRows(form.title, form.publishedLangs))
+function onToggleLang(code: LangCode) {
+  form.publishedLangs = toggleLangPublish(form.publishedLangs, filledLangsOf(form.title), code)
+}
 
 /* ---------- Sekce ---------- */
 const activeSection = ref('basic')
@@ -160,6 +182,7 @@ function backToCategory() {
         <LangBar
           v-model="activeLang"
           :filled="filledLangs"
+          :published="liveLangs"
           :translating="translating"
           class="hidden lg:block"
           @translate="translateLang"
@@ -381,7 +404,8 @@ function backToCategory() {
 
       <!-- PRAVÝ rail -->
       <aside class="space-y-5 xl:sticky xl:top-[76px] xl:self-start">
-        <PublishCard :published="form.published" updated-by="Jana Svobodová" />
+        <PublishCard :published="form.published" :langs="publishRows" updated-by="Jana Svobodová" @toggle-lang="onToggleLang" />
+        <BackRefsCard :groups="backRefsForTour(form.id)" entity-label="tuto prohlídku" />
       </aside>
     </div>
 

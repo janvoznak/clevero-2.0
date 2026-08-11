@@ -17,8 +17,15 @@ import {
   type Program,
 } from '@/data/mockPrograms'
 import { LANGS } from '@/data/types'
+import type { LangCode } from '@/data/types'
+import { langPublishState, LANG_PUBLISH_META, filledLangsOf } from '@/utils/langPublish'
 
 const router = useRouter()
+
+/** Stav jedné jazykové mutace programu pro sloupec „Jazykové mutace". */
+function lps(row: Program, code: LangCode) {
+  return langPublishState(code, filledLangsOf(row.title), row.publishedLangs)
+}
 
 /** Iniciály autora pro avatar (stejně jako v Aktualitách). */
 function initials(name: string): string {
@@ -242,10 +249,11 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
                 <span
                   v-for="l in LANGS"
                   :key="l.code"
-                  :title="p.title[l.code].trim() ? `${l.label} — vyplněno` : `${l.label} — chybí překlad`"
-                  class="rounded px-1.5 py-0.5 text-[10.5px] font-700 uppercase tabular-nums"
-                  :class="p.title[l.code].trim() ? 'bg-forge-500/10 text-forge-600' : 'bg-steel-100 text-steel-400'"
+                  class="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10.5px] font-700 uppercase tabular-nums"
+                  :class="LANG_PUBLISH_META[lps(p, l.code)].chip"
+                  :title="`${l.label} — ${LANG_PUBLISH_META[lps(p, l.code)].label}`"
                 >
+                  <span class="h-1.5 w-1.5 rounded-full" :class="LANG_PUBLISH_META[lps(p, l.code)].dot" />
                   {{ l.code }}
                 </span>
               </div>

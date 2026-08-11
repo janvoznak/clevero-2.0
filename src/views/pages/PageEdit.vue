@@ -20,6 +20,12 @@ import { useAutoSlug } from '@/utils/useAutoSlug'
 import LangBar from '@/components/admin/LangBar.vue'
 import MlFieldHeader from '@/components/admin/MlFieldHeader.vue'
 import { useMlTranslate } from '@/utils/useMlTranslate'
+import {
+  filledLangsOf,
+  publishedLangsOf,
+  publishLangRows,
+  toggleLangPublish,
+} from '@/utils/langPublish'
 import { LANGS, defaultContentBlocks } from '@/data/types'
 import type { LangCode, ML } from '@/data/types'
 import {
@@ -49,6 +55,8 @@ function clone(): PageItem {
   if (s) {
     const c = JSON.parse(JSON.stringify(s)) as PageItem
     c.galleryIds = c.galleryIds ?? []
+    // Zhmotnit fallback do explicitního seznamu, aby šlo přepínat.
+    c.publishedLangs = publishedLangsOf(filledLangsOf(c.title), c.publishedLangs)
     return c
   }
   const parentId = typeof route.query.parent === 'string' ? route.query.parent : null
@@ -70,6 +78,8 @@ function clone(): PageItem {
     allowHp: false,
     priority: 0,
     enabled: true,
+    // Nová stránka: každá mutace půjde živě, jakmile dostane obsah.
+    publishedLangs: LANGS.map((l) => l.code),
     formTemplateId: '',
     dynamicFormId: '',
     inquiryFormType: 'none',
@@ -121,6 +131,16 @@ function langFilled(code: LangCode): boolean {
   return form.title[code].trim().length > 0
 }
 const filledLangs = computed(() => LANGS.filter((l) => langFilled(l.code)).map((l) => l.code))
+
+/* ---------- Publikování per jazyk ----------
+   Přepínač „Zobrazit na webu" (PublishCard) řídí, ZDA je stránka živá; tyto
+   přepínače řídí, KTERÉ jazykové mutace se na webu zobrazí. Prázdnou mutaci
+   nelze zveřejnit. */
+const liveLangs = computed(() => publishedLangsOf(filledLangsOf(form.title), form.publishedLangs))
+const publishRows = computed(() => publishLangRows(form.title, form.publishedLangs))
+function onToggleLang(code: LangCode) {
+  form.publishedLangs = toggleLangPublish(form.publishedLangs, filledLangsOf(form.title), code)
+}
 
 /* Hierarchická URL náhled (dle rodiče z mock stromu + vlastní slug). */
 const urlPreview = computed(() => {
@@ -204,6 +224,7 @@ const { translating, toast, translateLang, translateField } = useMlTranslate(for
         <LangBar
           v-model="activeLang"
           :filled="filledLangs"
+          :published="liveLangs"
           :translating="translating"
           class="hidden lg:block"
           @translate="translateLang"
@@ -227,7 +248,7 @@ const { translating, toast, translateLang, translateField } = useMlTranslate(for
 
       <!-- Jazykové mutace (mobil) -->
       <div class="px-8 pb-3 lg:hidden">
-        <LangBar v-model="activeLang" :filled="filledLangs" :translating="translating" @translate="translateLang" />
+        <LangBar v-model="activeLang" :filled="filledLangs" :published="liveLangs" :translating="translating" @translate="translateLang" />
       </div>
     </div>
 
@@ -394,7 +415,12 @@ const { translating, toast, translateLang, translateField } = useMlTranslate(for
 
       <!-- PRAVÝ rail -->
       <aside class="space-y-5 xl:sticky xl:top-[92px] xl:self-start">
-        <PublishCard :published="form.enabled" updated-by="Jan Voznak" />
+        <PublishCard
+          :published="form.enabled"
+          :langs="publishRows"
+          updated-by="Jan Voznak"
+          @toggle-lang="onToggleLang"
+        />
       </aside>
     </div>
 

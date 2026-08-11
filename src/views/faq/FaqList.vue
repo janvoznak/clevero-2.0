@@ -28,13 +28,17 @@ import RowActionsMenu from '@/components/admin/RowActionsMenu.vue'
 import { MOCK_FAQ, FAQ_CATEGORY_OPTIONS, faqCategoryColor, faqState, type FaqItem } from '@/data/mockFaq'
 import { LANGS } from '@/data/types'
 import type { LangCode } from '@/data/types'
+import { langPublishState, LANG_PUBLISH_META, filledLangsOf } from '@/utils/langPublish'
 
 const router = useRouter()
 
-/* ---------- Filtry ---------- */
+/* ---------- Filtry ----------
+   Těžiště je fulltext v otázce (a odpovědi) — u FAQ hledá redaktor konkrétní
+   dotaz podle znění, ne podle abecedy. Pořadí v rámci kategorie je pevné
+   (řídí se polem order v detailu), proto tu žádné „řazení" není. */
+const search = ref('')
 const filterCategory = ref('all')
 const filterStatus = ref('all')
-const sortBy = ref('order')
 
 const categoryOptions = [{ value: 'all', label: 'Všechny kategorie' }, ...FAQ_CATEGORY_OPTIONS]
 const statusOptions = [
@@ -42,18 +46,20 @@ const statusOptions = [
   { value: 'published', label: 'Zveřejněno' },
   { value: 'draft', label: 'Koncept' },
 ]
-const sortOptions = [
-  { value: 'order', label: 'Podle pořadí' },
-  { value: 'question', label: 'Podle otázky (A–Z)' },
-]
+
+/** Diakritiku-nezávislé porovnání (např. „muzeum" najde „múzeum"). */
+function norm(s: string): string {
+  // U+0300–U+036F = kombinující diakritická znaménka (odstraníme po NFD rozkladu)
+  return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+}
 
 const hasFilters = computed(
-  () => filterCategory.value !== 'all' || filterStatus.value !== 'all' || sortBy.value !== 'order',
+  () => search.value.trim() !== '' || filterCategory.value !== 'all' || filterStatus.value !== 'all',
 )
 function clearFilters() {
+  search.value = ''
   filterCategory.value = 'all'
   filterStatus.value = 'all'
-  sortBy.value = 'order'
 }
 
 /* ---------- Data + mazání (prototyp — jen lokální stav) ---------- */
@@ -61,15 +67,18 @@ const rows = ref<FaqItem[]>([...MOCK_FAQ])
 const deleteTarget = ref<FaqItem | null>(null)
 
 const visible = computed(() => {
+  const q = norm(search.value.trim())
   const list = rows.value.filter((f) => {
     const matchesCategory = filterCategory.value === 'all' || f.category === filterCategory.value
     const matchesStatus = filterStatus.value === 'all' || faqState(f) === filterStatus.value
-    return matchesCategory && matchesStatus
+    // Fulltext: otázka napříč všemi mutacemi + prostý text odpovědi (CS).
+    const matchesSearch =
+      q === '' ||
+      LANGS.some((l) => norm(f.question[l.code as LangCode]).includes(q)) ||
+      norm(plain(f.answer.cs)).includes(q)
+    return matchesCategory && matchesStatus && matchesSearch
   })
-  return [...list].sort((a, b) => {
-    if (sortBy.value === 'question') return a.question.cs.localeCompare(b.question.cs, 'cs')
-    return a.order - b.order
-  })
+  return [...list].sort((a, b) => a.order - b.order)
 })
 
 function setPublished(f: FaqItem, v: boolean) {
@@ -105,6 +114,11 @@ function toggleOne(id: string, v: boolean | 'indeterminate') {
   if (v === true) next.add(id)
   else next.delete(id)
   selected.value = next
+}
+
+/** Stav publikace jedné jazykové mutace (živě / připraveno / prázdné). */
+function lps(f: FaqItem, code: LangCode) {
+  return langPublishState(code, filledLangsOf(f.question), f.publishedLangs)
 }
 
 /** Prostý text z richtextu (pro náhled odpovědi v seznamu). */
@@ -161,6 +175,18 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
     <!-- Filter bar -->
     <div class="mb-4 rounded-lg border border-steel-200 bg-white p-3">
       <div class="flex flex-wrap items-end gap-x-3 gap-y-3">
+        <div class="min-w-[260px] flex-1 sm:max-w-md">
+          <label class="mb-1 block field-tag">Hledat v dotazech</label>
+          <div class="relative">
+            <Icon name="search" :size="15" class="absolute left-3 top-1/2 -translate-y-1/2 text-steel-400" />
+            <input
+              v-model="search"
+              type="text"
+              placeholder="Hledat podle otázky (např. vstupenky, parkování)…"
+              class="h-9 w-full rounded-md border border-steel-200 pl-9 pr-3 text-[13px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none"
+            />
+          </div>
+        </div>
         <div>
           <label class="mb-1 block field-tag">Kategorie</label>
           <AppSelect v-model="filterCategory" :options="categoryOptions" />
@@ -168,10 +194,6 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
         <div>
           <label class="mb-1 block field-tag">Stav</label>
           <AppSelect v-model="filterStatus" :options="statusOptions" />
-        </div>
-        <div class="ml-auto">
-          <label class="mb-1 block field-tag">Řazení</label>
-          <AppSelect v-model="sortBy" :options="sortOptions" />
         </div>
         <button
           v-if="hasFilters"
@@ -294,10 +316,11 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
                 <span
                   v-for="l in LANGS"
                   :key="l.code"
-                  :title="f.question[l.code as LangCode].trim() ? `${l.label} — vyplněno` : `${l.label} — chybí překlad`"
-                  class="rounded px-1.5 py-0.5 text-[10.5px] font-700 uppercase tabular-nums"
-                  :class="f.question[l.code as LangCode].trim() ? 'bg-forge-500/10 text-forge-600' : 'bg-steel-100 text-steel-400'"
+                  :title="`${l.label} — ${LANG_PUBLISH_META[lps(f, l.code as LangCode)].label}`"
+                  class="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10.5px] font-700 uppercase tabular-nums"
+                  :class="LANG_PUBLISH_META[lps(f, l.code as LangCode)].chip"
                 >
+                  <span class="h-1.5 w-1.5 rounded-full" :class="LANG_PUBLISH_META[lps(f, l.code as LangCode)].dot" />
                   {{ l.code }}
                 </span>
               </div>

@@ -22,6 +22,8 @@ import AppSelect from '@/components/ui/AppSelect.vue'
 import AppSwitch from '@/components/ui/AppSwitch.vue'
 import RowActionsMenu from '@/components/admin/RowActionsMenu.vue'
 import { LANGS } from '@/data/types'
+import type { LangCode } from '@/data/types'
+import { langPublishState, LANG_PUBLISH_META, filledLangsOf } from '@/utils/langPublish'
 import {
   MOCK_PAGES,
   treeRows,
@@ -38,6 +40,12 @@ const router = useRouter()
 /* ---------- Data (prototyp — lokální stav) ---------- */
 const rows = ref<PageItem[]>([...MOCK_PAGES])
 const collapsed = ref<Set<string>>(new Set())
+
+/* Stav jedné jazykové mutace stránky pro sloupec „Jazykové mutace"
+   (živě / vyplněno-skryté / prázdné). */
+function lps(page: PageItem, code: LangCode) {
+  return langPublishState(code, filledLangsOf(page.title), page.publishedLangs)
+}
 
 /* ---------- Filtry: Stav + fulltextové hledání ---------- */
 const filterStatus = ref('all')
@@ -508,10 +516,11 @@ function onRowAction(key: string, p: PageItem) {
                   <span
                     v-for="l in LANGS"
                     :key="l.code"
-                    :title="item.row.page.title[l.code].trim() ? `${l.label} — vyplněno` : `${l.label} — chybí překlad`"
-                    class="rounded px-1.5 py-0.5 text-[10.5px] font-700 uppercase tabular-nums"
-                    :class="item.row.page.title[l.code].trim() ? 'bg-forge-500/10 text-forge-600' : 'bg-steel-100 text-steel-400'"
+                    class="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10.5px] font-700 uppercase tabular-nums"
+                    :class="LANG_PUBLISH_META[lps(item.row.page, l.code)].chip"
+                    :title="`${l.label} — ${LANG_PUBLISH_META[lps(item.row.page, l.code)].label}`"
                   >
+                    <span class="h-1.5 w-1.5 rounded-full" :class="LANG_PUBLISH_META[lps(item.row.page, l.code)].dot" />
                     {{ l.code }}
                   </span>
                 </div>

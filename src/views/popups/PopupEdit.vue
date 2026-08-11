@@ -6,8 +6,6 @@ import {
   TabsList,
   TabsTrigger,
   TabsContent,
-  RadioGroupRoot,
-  RadioGroupItem,
   DialogRoot,
   DialogPortal,
   DialogOverlay,
@@ -33,6 +31,12 @@ import { LANGS, SOURCE_LANG } from '@/data/types'
 import type { LangCode, ML } from '@/data/types'
 import { MOCK_POPUPS, popupState, PREDEFINED_TEMPLATES } from '@/data/mockPopups'
 import type { PopupItem, PopupTemplate } from '@/data/mockPopups'
+import {
+  filledLangsOf,
+  publishedLangsOf,
+  publishLangRows,
+  toggleLangPublish,
+} from '@/utils/langPublish'
 
 const props = defineProps<{ id?: string }>()
 const router = useRouter()
@@ -43,7 +47,12 @@ const source = computed(() => MOCK_POPUPS.find((p) => p.id === props.id))
 const empty = (): ML => ({ cs: '', en: '', de: '', pl: '' })
 function clone(): PopupItem {
   const s = source.value
-  if (s) return JSON.parse(JSON.stringify(s))
+  if (s) {
+    const c = JSON.parse(JSON.stringify(s)) as PopupItem
+    // Zhmotnit fallback do explicitního seznamu, aby šlo přepínat.
+    c.publishedLangs = publishedLangsOf(filledLangsOf(c.title), c.publishedLangs)
+    return c
+  }
   return {
     id: 'nové',
     title: empty(),
@@ -51,10 +60,7 @@ function clone(): PopupItem {
     text: empty(),
     image: null,
     position: 'center',
-    widthUnit: 'px',
-    width: 413,
     widthPercent: 30,
-    height: 360,
     from: null,
     to: null,
     enabled: true,
@@ -62,6 +68,8 @@ function clone(): PopupItem {
     cookieExpiration: 7,
     popupFrame: true,
     createdAt: '',
+    // Nové okno: každá mutace půjde živě, jakmile dostane obsah.
+    publishedLangs: LANGS.map((l) => l.code),
   }
 }
 
@@ -76,15 +84,6 @@ const sections = [
   { value: 'appearance', label: 'Vzhled a umístění', icon: 'layout' },
   { value: 'schedule', label: 'Zobrazování', icon: 'calendar' },
 ]
-
-/** Šířka svázaná s aktivní jednotkou (px / %). */
-const widthValue = computed({
-  get: () => (form.widthUnit === 'px' ? form.width : form.widthPercent),
-  set: (v: number) => {
-    if (form.widthUnit === 'px') form.width = v
-    else form.widthPercent = v
-  },
-})
 
 const state = computed(() => popupState(form))
 
@@ -105,6 +104,15 @@ function langFilled(code: LangCode): boolean {
   return form.title[code].trim().length > 0
 }
 const filledLangs = computed(() => LANGS.filter((l) => langFilled(l.code)).map((l) => l.code))
+
+/* ---------- Publikování per jazyk ----------
+   Časové okno (PublishCard) řídí, KDY se okno zobrazuje; tyto přepínače
+   řídí, KTERÉ mutace se na webu ukážou. Prázdnou mutaci nelze zveřejnit. */
+const liveLangs = computed(() => publishedLangsOf(filledLangsOf(form.title), form.publishedLangs))
+const publishRows = computed(() => publishLangRows(form.title, form.publishedLangs))
+function onToggleLang(code: LangCode) {
+  form.publishedLangs = toggleLangPublish(form.publishedLangs, filledLangsOf(form.title), code)
+}
 
 /* ---------- Ukládání (prototyp — jen lokální stav) ---------- */
 const saved = ref(false)
@@ -136,10 +144,7 @@ function applyTemplate(tpl: PopupTemplate) {
   form.text[SOURCE_LANG] = a.text
   if (a.titleUrl !== undefined) form.titleUrl = a.titleUrl
   if (a.position) form.position = a.position
-  if (a.widthUnit) form.widthUnit = a.widthUnit
-  if (a.width !== undefined) form.width = a.width
   if (a.widthPercent !== undefined) form.widthPercent = a.widthPercent
-  if (a.height !== undefined) form.height = a.height
   if (a.newWindow !== undefined) form.newWindow = a.newWindow
   if (a.popupFrame !== undefined) form.popupFrame = a.popupFrame
   if (a.cookieExpiration !== undefined) form.cookieExpiration = a.cookieExpiration
@@ -181,6 +186,7 @@ function applyTemplate(tpl: PopupTemplate) {
         <LangBar
           v-model="activeLang"
           :filled="filledLangs"
+          :published="liveLangs"
           :translating="translating"
           class="hidden lg:block"
           @translate="translateLang"
@@ -205,7 +211,7 @@ function applyTemplate(tpl: PopupTemplate) {
 
       <!-- Jazykové mutace (mobil / <lg) -->
       <div class="px-8 pb-3 lg:hidden">
-        <LangBar v-model="activeLang" :filled="filledLangs" :translating="translating" @translate="translateLang" />
+        <LangBar v-model="activeLang" :filled="filledLangs" :published="liveLangs" :translating="translating" @translate="translateLang" />
       </div>
     </div>
 
@@ -312,66 +318,44 @@ function applyTemplate(tpl: PopupTemplate) {
               </div>
             </div>
 
-            <!-- Vizuální nastavení velikosti (resize) — obousměrně svázané s poli níže -->
+            <!-- Šířka okna (responzivně, v % obrazovky) — výška se řídí obsahem -->
             <div>
               <p class="mb-2 flex items-center gap-2 text-[12.5px] text-steel-500">
-                Náhled velikosti okna
-                <span class="field-tag">popup-width / popup-height</span>
+                Šířka okna
+                <span class="field-tag">popup-width_percent</span>
               </p>
-              <PopupSizePreview
-                v-model:width="form.width"
-                v-model:width-percent="form.widthPercent"
-                v-model:height="form.height"
-                :unit="form.widthUnit"
-                :frame="form.popupFrame"
-              />
+              <PopupSizePreview v-model:width-percent="form.widthPercent" :frame="form.popupFrame" />
             </div>
 
-            <div class="grid gap-4 sm:grid-cols-2">
-              <!-- Šířka + přepínač jednotky -->
-              <div>
-                <label class="mb-1.5 flex items-center justify-between">
-                  <span class="text-[13px] font-600 text-graphite-800">Šířka okna <span class="text-brand-500">*</span></span>
-                  <span class="field-tag">{{ form.widthUnit === 'px' ? 'popup-width' : 'popup-width_percent' }}</span>
-                </label>
-                <div class="flex items-stretch gap-2">
-                  <input
-                    v-model.number="widthValue"
-                    type="number"
-                    min="0"
-                    class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13.5px] text-graphite-800 focus:border-brand-500 focus:outline-none"
-                  />
-                  <RadioGroupRoot
-                    v-model="form.widthUnit"
-                    class="inline-flex shrink-0 items-center rounded-md border border-steel-200 bg-steel-50 p-1"
-                    aria-label="Jednotka šířky"
-                  >
-                    <RadioGroupItem
-                      v-for="u in (['px', 'percent'] as const)"
-                      :key="u"
-                      :value="u"
-                      class="rounded px-2.5 py-1 text-[12.5px] font-600 text-steel-500 outline-none transition-colors hover:text-graphite-800 data-[state=checked]:bg-white data-[state=checked]:text-graphite-900 data-[state=checked]:shadow-sm"
-                    >
-                      {{ u === 'px' ? 'px' : '%' }}
-                    </RadioGroupItem>
-                  </RadioGroupRoot>
-                </div>
-                <p class="mt-1 field-tag">tmp_value_or_percent</p>
-              </div>
-
-              <!-- Výška -->
-              <div>
-                <label class="mb-1.5 flex items-center justify-between">
-                  <span class="text-[13px] font-600 text-graphite-800">Výška okna (px) <span class="text-brand-500">*</span></span>
-                  <span class="field-tag">popup-height</span>
-                </label>
+            <div class="max-w-xs">
+              <label class="mb-1.5 flex items-center justify-between">
+                <span class="text-[13px] font-600 text-graphite-800">Šířka okna (% obrazovky) <span class="text-brand-500">*</span></span>
+                <span class="field-tag">popup-width_percent</span>
+              </label>
+              <div class="flex items-center gap-3">
                 <input
-                  v-model.number="form.height"
-                  type="number"
-                  min="0"
-                  class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13.5px] text-graphite-800 focus:border-brand-500 focus:outline-none"
+                  v-model.number="form.widthPercent"
+                  type="range"
+                  min="12"
+                  max="100"
+                  step="1"
+                  class="h-2 flex-1 cursor-pointer accent-brand-500"
+                  aria-label="Šířka okna v procentech obrazovky"
                 />
+                <div class="flex h-10 w-20 items-center rounded-md border border-steel-200 px-2">
+                  <input
+                    v-model.number="form.widthPercent"
+                    type="number"
+                    min="12"
+                    max="100"
+                    class="w-full text-right text-[13.5px] text-graphite-800 focus:outline-none"
+                  />
+                  <span class="pl-1 text-[13px] text-steel-400">%</span>
+                </div>
               </div>
+              <p class="mt-1 text-[11.5px] leading-relaxed text-steel-500">
+                Na mobilu se okno vždy přizpůsobí šířce displeje; výška roste podle obsahu.
+              </p>
             </div>
 
             <div class="flex items-center justify-between rounded-md bg-steel-50 px-3 py-2.5">
@@ -410,7 +394,9 @@ function applyTemplate(tpl: PopupTemplate) {
           :initial-status="cardStatus"
           v-model:publish-from="publishFromModel"
           v-model:publish-to="publishToModel"
+          :langs="publishRows"
           updated-by="Jan Voznak"
+          @toggle-lang="onToggleLang"
         />
 
       </aside>

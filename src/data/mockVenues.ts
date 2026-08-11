@@ -1,7 +1,7 @@
 import { imageFor, TAG_PALETTE } from './mockNews'
 import { defaultOpeningHours } from './mockPages'
-import { defaultContentBlocks } from './types'
-import type { ML, Tag, GalleryImage } from './types'
+import { defaultContentBlocks, LANGS } from './types'
+import type { ML, Tag, GalleryImage, LangCode } from './types'
 import type { OpeningDay } from './mockPages'
 import type { ContentBlock } from './mockPages'
 
@@ -80,10 +80,12 @@ export interface AreaObject {
   openingHours: OpeningDay[]
   showOpeningHours: boolean
   published: boolean
+  /** Zveřejněné jazykové mutace (které se na webu zobrazí). Bez seznamu = všechny vyplněné. */
+  publishedLangs?: LangCode[]
 }
 
-function ml(cs: string): ML {
-  return { cs, en: '', de: '', pl: '' }
+function ml(cs: string, extra?: Partial<Record<LangCode, string>>): ML {
+  return { cs, en: '', de: '', pl: '', ...extra }
 }
 function stat(value: string, label: string): VenueStat {
   return { id: `${value}-${label}`, value, label }
@@ -92,6 +94,8 @@ function stat(value: string, label: string): VenueStat {
 type RawVenue = {
   id: string
   title: string
+  /** Přeložené názvy (mimo CS) — kvůli ukázce stavu publikace per jazyk. */
+  titleI18n?: Partial<Record<LangCode, string>>
   summary: string
   image: string
   color: string
@@ -102,6 +106,8 @@ type RawVenue = {
   statusNote?: string
   showOpeningHours: boolean
   published: boolean
+  /** Explicitně zveřejněné mutace (bez seznamu = všechny vyplněné). */
+  publishedLangs?: LangCode[]
   stats?: VenueStat[]
   photos?: GalleryImage[]
 }
@@ -128,6 +134,7 @@ const RAW: RawVenue[] = [
   {
     id: 'v-bolt',
     title: 'Bolt Tower',
+    titleI18n: { en: 'Bolt Tower', de: 'Bolt Tower' },
     summary: 'Vyhlídková nástavba na vrcholu vysoké pece č. 1 s kavárnou a jedinečným výhledem na celý areál i Ostravu.',
     image: imageFor(0),
     color: '#ee703d',
@@ -138,6 +145,8 @@ const RAW: RawVenue[] = [
     openState: 'open',
     showOpeningHours: true,
     published: true,
+    // Němčina je vyplněná, ale zatím skrytá na webu → stav „připraveno" (amber).
+    publishedLangs: ['cs', 'en'],
     stats: [stat('78 m', 'výška vyhlídky'), stat('2015', 'rok otevření')],
   },
   {
@@ -170,6 +179,7 @@ const RAW: RawVenue[] = [
   {
     id: 'v-u6',
     title: 'Malý svět techniky U6',
+    titleI18n: { en: 'Small World of Technology U6' },
     summary:
       'Interaktivní expozice s exponáty na motivy Julese Verna. U6 v novém kabátu láká na desítky pokusů, které si návštěvníci vyzkouší na vlastní kůži.',
     image: imageFor(4),
@@ -181,6 +191,8 @@ const RAW: RawVenue[] = [
     openState: 'open',
     showOpeningHours: true,
     published: true,
+    // Angličtina je vyplněná, ale zatím skrytá na webu → stav „připraveno" (amber).
+    publishedLangs: ['cs'],
     stats: [stat('12 m', 'výška vyhlídkové plošiny'), stat('1938', 'rok dokončení stavby'), stat('900 t', 'váha dmychadel'), stat('900 m²', 'rozloha expozice')],
   },
   {
@@ -255,7 +267,7 @@ const RAW: RawVenue[] = [
 
 export const MOCK_VENUES: AreaObject[] = RAW.map((r) => ({
   id: r.id,
-  title: ml(r.title),
+  title: ml(r.title, r.titleI18n),
   summary: ml(r.summary),
   contentBlocks: defaultContentBlocks(),
   stats: r.stats ?? [],
@@ -270,6 +282,7 @@ export const MOCK_VENUES: AreaObject[] = RAW.map((r) => ({
   openingHours: defaultOpeningHours(),
   showOpeningHours: r.showOpeningHours,
   published: r.published,
+  publishedLangs: r.publishedLangs,
 }))
 
 /** Vyhledání místa/objektu podle ID (pro kalendář, výpisy, detaily akcí). */
@@ -302,5 +315,7 @@ export function blankVenue(): AreaObject {
     openingHours: defaultOpeningHours(),
     showOpeningHours: true,
     published: false,
+    // Nový objekt: každá mutace půjde živě, jakmile dostane obsah.
+    publishedLangs: LANGS.map((l) => l.code),
   }
 }

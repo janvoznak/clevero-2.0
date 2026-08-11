@@ -4,9 +4,11 @@ import { useRouter } from 'vue-router'
 import { DialogRoot, DialogPortal, DialogOverlay, DialogContent, DialogTitle, DialogDescription } from 'reka-ui'
 import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
-import AppSwitch from '@/components/ui/AppSwitch.vue'
 import RowActionsMenu from '@/components/admin/RowActionsMenu.vue'
 import { MOCK_SECTIONS, galleriesInSection, type GallerySection } from '@/data/mockGalleries'
+import { LANGS } from '@/data/types'
+import type { LangCode } from '@/data/types'
+import { langPublishState, LANG_PUBLISH_META, filledLangsOf } from '@/utils/langPublish'
 
 const router = useRouter()
 const rows = ref<GallerySection[]>([...MOCK_SECTIONS])
@@ -14,8 +16,9 @@ const rows = ref<GallerySection[]>([...MOCK_SECTIONS])
 function plain(html: string): string {
   return html.replace(/<[^>]*>/g, '').trim()
 }
-function setPublished(s: GallerySection, v: boolean) {
-  s.published = v
+/** Stav jedné jazykové mutace sekce (živě / připraveno / prázdné). */
+function lps(s: GallerySection, code: LangCode) {
+  return langPublishState(code, filledLangsOf(s.name), s.publishedLangs)
 }
 function goNew() {
   router.push({ name: 'gallery-section-new' })
@@ -66,7 +69,7 @@ function confirmDelete() {
             <th class="px-4 py-3 font-600">Sekce</th>
             <th class="px-2 py-3 font-600">Popis</th>
             <th class="w-28 px-2 py-3 font-600">Galerie</th>
-            <th class="w-24 px-2 py-3 font-600">Zveřejněno</th>
+            <th class="w-40 px-2 py-3 font-600">Jazykové mutace</th>
             <th class="w-16 px-3 py-3 text-right font-600">Akce</th>
           </tr>
         </thead>
@@ -94,7 +97,18 @@ function confirmDelete() {
               </span>
             </td>
             <td class="px-2 py-3 align-middle">
-              <AppSwitch :model-value="s.published" :aria-label="`Zveřejnit ${s.name.cs}`" @update:model-value="(v) => setPublished(s, v)" />
+              <div class="flex flex-wrap items-center gap-1">
+                <span
+                  v-for="l in LANGS"
+                  :key="l.code"
+                  :title="`${l.label} — ${LANG_PUBLISH_META[lps(s, l.code)].label}`"
+                  class="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10.5px] font-700 uppercase tabular-nums"
+                  :class="LANG_PUBLISH_META[lps(s, l.code)].chip"
+                >
+                  <span class="h-1.5 w-1.5 rounded-full" :class="LANG_PUBLISH_META[lps(s, l.code)].dot" />
+                  {{ l.code }}
+                </span>
+              </div>
             </td>
             <td class="px-3 py-3 align-middle">
               <div class="flex justify-end">

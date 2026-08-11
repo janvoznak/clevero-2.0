@@ -1,4 +1,4 @@
-import type { ML, Tag, ContentBlock } from './types'
+import type { ML, Tag, ContentBlock, LangCode } from './types'
 import { TAG_PALETTE } from './mockNews'
 
 /* ============================================================
@@ -94,6 +94,8 @@ export interface Program {
   description: ML
   /** Obsah programu jako bloky (ContentBuilder) — jednotná sekce „Obsah". */
   contentBlocks?: ContentBlock[]
+  /** Zveřejněné jazykové mutace. Bez seznamu = živé jsou všechny vyplněné (zpětná kompatibilita). */
+  publishedLangs?: LangCode[]
   image: string
   date: string | null
   /** Průřezové štítky (např. Novinka). */
@@ -120,6 +122,8 @@ function params(rows: [string, string][]): ProgramParam[] {
 type RawProgram = {
   id: string
   title: string
+  /** Vyplněné překlady názvu (demo jazykových mutací). Slučuje se přes ml(). */
+  titleML?: Partial<ML>
   perex: string
   description: string
   imageSeed: number
@@ -130,12 +134,16 @@ type RawProgram = {
   grades: string[]
   focus: string[]
   params: ProgramParam[]
+  /** Explicitní seznam zveřejněných mutací (bez něj = všechny vyplněné). */
+  publishedLangs?: LangCode[]
 }
 
 const RAW: RawProgram[] = [
   {
     id: 'prg-finance',
     title: 'Co za to stojí',
+    // EN nadpis vyplněný, ale mimo publishedLangs → mutace „připraveno, skryté" (amber).
+    titleML: { en: 'Worth Every Penny' },
     perex: 'Interaktivní program o penězích, hospodaření a finanční gramotnosti pro malé správce svého majetku.',
     description:
       '<p>Vydejte se s námi do světa, kde peníze ožívají! V programu se z účastníků stanou malí správci svého majetku — vydělávají herní bankovky, nakupují ve fiktivním obchodě, plánují, šetří i utrácejí. Velkým zážitkem je pokus s UV světlem, při kterém odhalují falešné bankovky.</p><p>Celý program vrcholí výrobou vlastní pokladničky, kterou si odnášejí jako připomínku, že hospodařit s penězi lze chytře a zodpovědně.</p>',
@@ -147,6 +155,7 @@ const RAW: RawProgram[] = [
     grades: ['2.tř.', '3.tř.', '4.tř.', '5.tř.'],
     focus: ['Finanční gramotnost'],
     params: params([['Délka programu', '90 minut'], ['Kapacita', '10–16 žáků, prosíme o dodržení kapacity a věku'], ['Cena', '2 000,- Kč']]),
+    publishedLangs: ['cs'],
   },
   {
     id: 'prg-handicap',
@@ -179,6 +188,8 @@ const RAW: RawProgram[] = [
   {
     id: 'prg-zavodit',
     title: 'A I deme závodit!',
+    // EN živě, DE vyplněné, ale mimo publishedLangs → „připraveno, skryté" (amber).
+    titleML: { en: "Let's Race with AI!", de: 'Auf zum KI-Rennen!' },
     perex: 'Program o umělé inteligenci a robotice — postav a naprogramuj závodní robot.',
     description: '<p>Žáci se seznámí se základy umělé inteligence a robotiky. Sestaví a naprogramují vlastní robot, který pak vyšlou do závodu.</p>',
     imageSeed: 13,
@@ -189,6 +200,7 @@ const RAW: RawProgram[] = [
     grades: ['6.tř.', '7.tř.', '8.tř.', '9.tř.'],
     focus: ['AI', 'Fyzika', 'IT/Robotika'],
     params: params([['Délka programu', '120 minut'], ['Kapacita', '12–16 žáků'], ['Cena', '2 500,- Kč']]),
+    publishedLangs: ['cs', 'en'],
   },
   {
     id: 'prg-geometrie',
@@ -226,7 +238,7 @@ const PROGRAM_AUTHORS = ['Jana Svobodová', 'Petr Dvořák', 'Martin Kučera']
 export const MOCK_PROGRAMS: Program[] = RAW.map((r, i) => ({
   id: r.id,
   author: PROGRAM_AUTHORS[i % PROGRAM_AUTHORS.length],
-  title: ml(r.title),
+  title: { ...ml(r.title), ...r.titleML },
   perex: ml(r.perex),
   description: ml(r.description),
   image: `/images/g${(r.imageSeed % 18) + 1}.jpg`,
@@ -238,6 +250,7 @@ export const MOCK_PROGRAMS: Program[] = RAW.map((r, i) => ({
   grades: r.grades,
   focus: r.focus,
   params: r.params,
+  publishedLangs: r.publishedLangs,
 }))
 
 export function blankProgram(): Program {

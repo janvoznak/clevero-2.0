@@ -21,10 +21,17 @@ import {
   OPEN_STATE_META,
   type AreaObject,
 } from '@/data/mockVenues'
+import { langPublishState, LANG_PUBLISH_META, filledLangsOf } from '@/utils/langPublish'
 import { LANGS } from '@/data/types'
+import type { LangCode } from '@/data/types'
 
 const router = useRouter()
 const rows = ref<AreaObject[]>([...MOCK_VENUES])
+
+/** Stav publikace jedné mutace v řádku výpisu (sdílený helper). */
+function lps(v: AreaObject, code: LangCode) {
+  return langPublishState(code, filledLangsOf(v.title), v.publishedLangs)
+}
 
 /* ---------- Filtry ---------- */
 const search = ref('')
@@ -185,10 +192,11 @@ function confirmDelete() {
                 <span
                   v-for="l in LANGS"
                   :key="l.code"
-                  :title="v.title[l.code].trim() ? `${l.label} — vyplněno` : `${l.label} — chybí překlad`"
-                  class="rounded px-1.5 py-0.5 text-[10.5px] font-700 uppercase tabular-nums"
-                  :class="v.title[l.code].trim() ? 'bg-forge-500/10 text-forge-600' : 'bg-steel-100 text-steel-400'"
+                  :title="`${l.label} — ${LANG_PUBLISH_META[lps(v, l.code)].label}`"
+                  class="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10.5px] font-700 uppercase tabular-nums"
+                  :class="LANG_PUBLISH_META[lps(v, l.code)].chip"
                 >
+                  <span class="h-1.5 w-1.5 rounded-full" :class="LANG_PUBLISH_META[lps(v, l.code)].dot" />
                   {{ l.code }}
                 </span>
               </div>
