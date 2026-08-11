@@ -2,11 +2,18 @@
 import { computed, ref } from 'vue'
 import Icon from '@/components/ui/Icon.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
+import ClearFiltersButton from '@/components/ui/ClearFiltersButton.vue'
 import { MOCK_TICKETS, MOCK_TOURS, tour, fmtSlot } from '@/data/mockTours'
 
 const tourOptions = [{ value: 'all', label: 'Všechny prohlídky' }, ...MOCK_TOURS.map((t) => ({ value: t.id, label: t.title.cs }))]
 const filterTour = ref('all')
 const search = ref('')
+
+const hasFilters = computed(() => search.value.trim() !== '' || filterTour.value !== 'all')
+function clearFilters() {
+  search.value = ''
+  filterTour.value = 'all'
+}
 
 const rows = computed(() => {
   const q = search.value.trim().toLowerCase()
@@ -71,6 +78,7 @@ function fmtPurchased(iso: string): string {
             <input v-model="search" type="text" placeholder="Jméno nebo e-mail…" class="h-9 w-full rounded-md border border-steel-200 pl-9 pr-3 text-[13px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
           </div>
         </div>
+        <ClearFiltersButton :visible="hasFilters" @clear="clearFilters" />
       </div>
     </div>
 

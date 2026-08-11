@@ -17,6 +17,7 @@ import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import RowActionsMenu from '@/components/admin/RowActionsMenu.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
+import ClearFiltersButton from '@/components/ui/ClearFiltersButton.vue'
 import TagChip from '@/components/ui/TagChip.vue'
 import EventTimeline from '@/components/admin/calendar/EventTimeline.vue'
 import {
@@ -159,13 +160,7 @@ function confirmDelete() {
             <label class="mb-1 block text-[11.5px] font-600 text-steel-500">Stav</label>
             <AppSelect v-model="filterStatus" :options="statusOptions" />
           </div>
-          <button
-            v-if="hasFilters"
-            class="inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-[12.5px] font-500 text-steel-500 transition-colors hover:bg-steel-100 hover:text-graphite-800"
-            @click="clearFilters"
-          >
-            <Icon name="x" :size="14" /> Zrušit filtry
-          </button>
+          <ClearFiltersButton :visible="hasFilters" @clear="clearFilters" />
         </div>
 
         <!-- Přepínač Výpis / Kalendář -->

@@ -72,7 +72,7 @@ function clone(): DovEvent {
     image: '',
     price: '',
     ticketUrl: '',
-    ticketMode: 'none',
+    ticketMode: 'free',
     ageLimit: '',
     duration: '',
     performers: '',
@@ -131,7 +131,6 @@ const sections = [
   { value: 'content', label: 'Obsah', icon: 'text' },
   { value: 'when', label: 'Termín a místo', icon: 'calendar' },
   { value: 'tickets', label: 'Vstupenky a detaily', icon: 'ticket' },
-  { value: 'media', label: 'Plakát', icon: 'image' },
   { value: 'gallery', label: 'Galerie', icon: 'gallery' },
 ]
 
@@ -477,30 +476,31 @@ function onDuplicate() {
                 </div>
               </TabsContent>
 
-              <!-- Sekce: Plakát (jeden hlavní vizuál akce) -->
-              <TabsContent value="media" class="outline-none">
-                <p class="mb-3 flex items-start gap-1.5 text-[12.5px] leading-relaxed text-steel-500">
-                  <Icon name="image" :size="13" class="mt-0.5 shrink-0 text-steel-400" />
-                  <span>Jeden <strong class="font-600 text-graphite-700">hlavní vizuál / plakát</strong> akce — zobrazí se v detailu, ve výpisu i při sdílení. Víc fotek (např. z minulého ročníku) se připojuje v záložce <strong class="font-600 text-graphite-700">Galerie</strong>.</span>
-                </p>
-                <div class="flex items-center gap-4">
-                  <span class="h-28 w-44 shrink-0 overflow-hidden rounded-lg bg-steel-100">
-                    <img v-if="form.image" :src="form.image" alt="" class="h-full w-full object-cover" />
-                    <span v-else class="grid h-full w-full place-items-center text-steel-400"><Icon name="image" :size="24" /></span>
-                  </span>
-                  <div class="space-y-2">
-                    <button class="inline-flex items-center gap-2 rounded-md border border-dashed border-steel-300 px-3.5 py-2.5 text-[13px] font-500 text-graphite-700 transition-colors hover:border-brand-400 hover:bg-brand-50/40 hover:text-brand-600">
-                      <Icon name="upload" :size="16" /> Nahrát plakát
-                    </button>
-                    <button v-if="form.image" class="block text-[12px] font-500 text-danger-500 hover:text-danger-600" @click="form.image = ''">
-                      Odebrat plakát
-                    </button>
+              <!-- Sekce: Galerie (plakát + připojené galerie + přímo nahrané fotky) -->
+              <TabsContent value="gallery" class="space-y-5 outline-none">
+                <!-- Plakát = jeden hlavní vizuál akce (dřív samostatná záložka) -->
+                <FormSection
+                  title="Plakát (hlavní vizuál)"
+                  icon="image"
+                  hint="Jeden hlavní vizuál / plakát akce — zobrazí se v detailu, ve výpisu i při sdílení. Víc fotek (např. z minulého ročníku) přidej do galerie níže."
+                  tag="event-image"
+                >
+                  <div class="flex items-center gap-4">
+                    <span class="h-28 w-44 shrink-0 overflow-hidden rounded-lg bg-steel-100">
+                      <img v-if="form.image" :src="form.image" alt="" class="h-full w-full object-cover" />
+                      <span v-else class="grid h-full w-full place-items-center text-steel-400"><Icon name="image" :size="24" /></span>
+                    </span>
+                    <div class="space-y-2">
+                      <button class="inline-flex items-center gap-2 rounded-md border border-dashed border-steel-300 px-3.5 py-2.5 text-[13px] font-500 text-graphite-700 transition-colors hover:border-brand-400 hover:bg-brand-50/40 hover:text-brand-600">
+                        <Icon name="upload" :size="16" /> Nahrát plakát
+                      </button>
+                      <button v-if="form.image" class="block text-[12px] font-500 text-danger-500 hover:text-danger-600" @click="form.image = ''">
+                        Odebrat plakát
+                      </button>
+                    </div>
                   </div>
-                </div>
-              </TabsContent>
+                </FormSection>
 
-              <!-- Sekce: Galerie (připojené galerie + přímo nahrané fotky) -->
-              <TabsContent value="gallery" class="outline-none">
                 <GalleryField
                   v-model:galleries="form.galleryIds"
                   v-model:photos="form.gallery"

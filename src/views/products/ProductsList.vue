@@ -12,6 +12,7 @@ import {
 import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
+import ClearFiltersButton from '@/components/ui/ClearFiltersButton.vue'
 import TagChip from '@/components/ui/TagChip.vue'
 import RowActionsMenu from '@/components/admin/RowActionsMenu.vue'
 import { LANGS } from '@/data/types'
@@ -241,13 +242,7 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
           <label class="mb-1 block field-tag">Řazení</label>
           <AppSelect v-model="sortBy" :options="sortOptions" />
         </div>
-        <button
-          v-if="hasFilters"
-          class="inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-[12.5px] font-500 text-steel-500 transition-colors hover:bg-steel-100 hover:text-graphite-800"
-          @click="clearFilters"
-        >
-          <Icon name="x" :size="14" /> Zrušit filtry
-        </button>
+        <ClearFiltersButton :visible="hasFilters" @clear="clearFilters" />
       </div>
     </div>
 

@@ -21,13 +21,15 @@ export const EVENT_TYPES = [
     akce chová na webu:
     - 'colosseum' → vstupenky přebírá navázaná prohlídka (dostupnost + košík z Colossea),
     - 'external'  → prodej řeší pořadatel/nájemce na vlastním webu (jen odkaz),
-    - 'none'      → akce nemá online prodej (vstup zdarma / na místě). */
-export type TicketMode = 'colosseum' | 'external' | 'none'
+    - 'onsite'    → placená akce bez online prodeje — vstupenky jen na místě (pokladna Colossea),
+    - 'free'      → vstup zdarma, vstupenky se neprodávají. */
+export type TicketMode = 'colosseum' | 'external' | 'onsite' | 'free'
 
 export const TICKET_MODE_OPTIONS: { value: TicketMode; label: string; hint: string; icon: string }[] = [
   { value: 'colosseum', label: 'Přes Colosseum', hint: 'Vstupenky prodává navázaná prohlídka — dostupnost i košík táhne Colosseum.', icon: 'ticket' },
   { value: 'external', label: 'Externí odkaz', hint: 'Prodej řeší pořadatel / nájemce na svém webu — web jen odkáže.', icon: 'link' },
-  { value: 'none', label: 'Zdarma / bez prodeje', hint: 'Akce nemá online prodej vstupenek (vstup zdarma nebo na místě).', icon: 'check' },
+  { value: 'onsite', label: 'Prodej na místě', hint: 'Placená akce bez online prodeje — vstupenky jen na místě, na pokladně přes Colosseum.', icon: 'map' },
+  { value: 'free', label: 'Zdarma', hint: 'Vstup zdarma — vstupenky se neprodávají.', icon: 'check' },
 ]
 
 /** Předdefinované možnosti věkového omezení (dropdown v detailu akce).
@@ -162,6 +164,16 @@ const RAW_EVENTS: RawEvent[] = [
   { id: 'e-konference', title: 'Konference Industry 5.0', areaId: 'v-u6', type: 'Konference', from: '2026-08-20', to: '2026-08-21', summary: 'Odborná konference o budoucnosti průmyslu.', image: imageFor(14), published: false, tags: ['Pro školy'] },
 ]
 
+/** Odvození způsobu prodeje z dostupných polí, když RawEvent `ticketMode` neurčuje.
+    Placená akce (má cenu, ne „zdarma") bez online prodeje = prodej na místě, ne „zdarma". */
+function deriveTicketMode(r: RawEvent): TicketMode {
+  if (r.tourIds?.length) return 'colosseum'
+  if (r.ticketUrl) return 'external'
+  const price = (r.price ?? '').trim()
+  if (price && !/zdarma/i.test(price)) return 'onsite'
+  return 'free'
+}
+
 /** Normalizace na plný model (ML — vyplněná zatím jen čeština). */
 export const MOCK_EVENTS: DovEvent[] = RAW_EVENTS.map((r) => ({
   id: r.id,
@@ -177,7 +189,7 @@ export const MOCK_EVENTS: DovEvent[] = RAW_EVENTS.map((r) => ({
   image: r.image,
   price: r.price ?? '',
   ticketUrl: r.ticketUrl ?? '',
-  ticketMode: r.ticketMode ?? (r.tourIds?.length ? 'colosseum' : r.ticketUrl ? 'external' : 'none'),
+  ticketMode: r.ticketMode ?? deriveTicketMode(r),
   ageLimit: r.ageLimit ?? '',
   duration: r.duration ?? '',
   performers: r.performers ?? '',
