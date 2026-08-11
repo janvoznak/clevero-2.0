@@ -3,9 +3,12 @@
  * Sdílený správce fotogalerie napříč moduly (Aktuality, Areál, Galerie, Produkty).
  * Jeden prvek = jedna komponenta → záložka Galerie vypadá a chová se všude stejně.
  * Řádkový výpis (tabulka) dle vzoru: Pořadí (úchyt + číslo + hlavní), Náhled, Název,
- * SEO popisek, Velikost, Vodoznak, Akce. Řazení: drag&drop + tlačítka ↑/↓,
- * topování úplně nahoru (⤒ = hlavní na 1. pozici). Prototyp — nahrávání,
- * vodoznak i velikosti jsou zástupné (nefunkční vizuál).
+ * SEO popisek, Velikost, Akce. Řazení: drag&drop + tlačítka ↑/↓,
+ * topování úplně nahoru (⤒ = hlavní na 1. pozici). Prototyp — nahrávání
+ * i velikosti jsou zástupné (nefunkční vizuál).
+ * Vodoznaky záměrně neřešíme — DOV chce, aby jeho obsah bylo možné re-publikovat.
+ * Editor fotek (ořez/úpravy) je prozatím vynechán — dořeší se až na konci podle
+ * ziskovosti projektu; u řádku proto není akce „Upravit v editoru".
  */
 import { computed, ref } from 'vue'
 import { CheckboxRoot, CheckboxIndicator } from 'reka-ui'
@@ -153,7 +156,6 @@ function nameOf(img: GalleryImage): string {
             <th class="px-2 py-2.5 font-600">Název</th>
             <th class="px-2 py-2.5 font-600">SEO popisek</th>
             <th class="w-28 px-2 py-2.5 font-600">Velikost</th>
-            <th class="w-24 px-2 py-2.5 font-600">Vodoznak</th>
             <th class="w-28 px-3 py-2.5 text-right font-600">Akce</th>
           </tr>
         </thead>
@@ -228,17 +230,6 @@ function nameOf(img: GalleryImage): string {
               <span class="block font-mono text-[10.5px] text-steel-400 tabular-nums">{{ dimsOf(img) }}</span>
             </td>
 
-            <!-- Vodoznak (prototyp — nefunkční vizuál) -->
-            <td class="px-2 py-2.5">
-              <div class="flex items-center gap-1 text-steel-400">
-                <button class="grid h-6 w-6 place-items-center rounded hover:bg-steel-100 hover:text-graphite-700" title="Bez vodoznaku"><Icon name="eye" :size="14" /></button>
-                <button class="grid h-6 w-6 place-items-center rounded hover:bg-steel-100 hover:text-graphite-700" title="S vodoznakem"><Icon name="image" :size="14" /></button>
-                <span class="grid grid-cols-3 gap-px" title="Pozice vodoznaku">
-                  <span v-for="n in 9" :key="n" class="h-1 w-1 rounded-[1px] bg-steel-300" />
-                </span>
-              </div>
-            </td>
-
             <!-- Akce -->
             <td class="px-3 py-2.5">
               <div class="flex items-center justify-end gap-0.5">
@@ -271,14 +262,6 @@ function nameOf(img: GalleryImage): string {
                   @click.stop="moveDown(i)"
                 >
                   <Icon name="chevronDown" :size="16" />
-                </button>
-                <button
-                  draggable="false"
-                  class="grid h-7 w-7 place-items-center rounded-md text-steel-500 transition-colors hover:bg-steel-100 hover:text-graphite-800"
-                  title="Upravit v editoru"
-                  @mousedown.stop
-                >
-                  <Icon name="edit" :size="14" />
                 </button>
                 <button
                   draggable="false"
