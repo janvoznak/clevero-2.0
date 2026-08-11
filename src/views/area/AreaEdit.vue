@@ -34,6 +34,8 @@ import {
 import { galleriesForVenue } from '@/data/mockGalleries'
 import BackRefsCard from '@/components/admin/BackRefsCard.vue'
 import { backRefsForArea } from '@/data/backrefs'
+import PageGroupBar from '@/components/admin/PageGroupBar.vue'
+import { MOCK_PAGES } from '@/data/mockPages'
 
 const props = defineProps<{ id?: string }>()
 const router = useRouter()
@@ -73,10 +75,30 @@ const activeSection = ref('basic')
 const sections = [
   { value: 'basic', label: 'Základní informace', icon: 'page' },
   { value: 'content', label: 'Obsah', icon: 'text' },
+  { value: 'pages', label: 'Přidružené stránky', icon: 'layout' },
   { value: 'backrefs', label: 'Zpětné vazby', icon: 'link' },
   { value: 'gallery', label: 'Galerie', icon: 'gallery' },
   { value: 'hours', label: 'Provoz a otevírací doba', icon: 'clock' },
 ]
+
+/* ---------- Přidružené stránky (skupina záložek — hlavní stránka + podstránky) ----------
+   Detail budovy odkazuje na hlavní stránku (kořen skupiny). Lišta pak zobrazí
+   hlavní stránku + její podstránky + externí odkazy (sdílený PageGroupBar). */
+const rootPageOptions = computed(() => [
+  { value: '', label: '— žádná —' },
+  ...MOCK_PAGES.filter((p) => p.parentId === null).map((p) => ({
+    value: p.id,
+    label: p.title.cs || 'Bez názvu',
+  })),
+])
+const mainPageValue = computed({
+  get: () => form.mainPageId ?? '',
+  set: (v: string) => (form.mainPageId = v || undefined),
+})
+/** Klik na přidruženou stránku otevře její editaci v modulu Stránky. */
+function goAssociatedPage(id: string) {
+  router.push({ name: 'page-edit', params: { id } })
+}
 
 /* ---------- Zajímavá čísla ---------- */
 let statSeq = 0
@@ -247,6 +269,35 @@ function onDuplicate() {
               <!-- Sekce: Obsah (jednotný ContentBuilder — nic dalšího pod ním) -->
               <TabsContent value="content" class="outline-none">
                 <ContentBuilder v-model="form.contentBlocks" />
+              </TabsContent>
+
+              <!-- Sekce: Přidružené stránky (skupina záložek objektu) -->
+              <TabsContent value="pages" class="space-y-4 outline-none">
+                <FormSection title="Hlavní stránka objektu" icon="layout" tag="area-main_page">
+                  <label class="mb-1.5 block text-[13px] font-600 text-graphite-800">Vybraná stránka</label>
+                  <AppSelect v-model="mainPageValue" :options="rootPageOptions" class="max-w-sm" />
+                  <p class="mt-2 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
+                    <Icon name="reference" :size="13" class="mt-0.5 shrink-0 text-steel-400" />
+                    Hlavní stránka je kořen skupiny — pod ní se zobrazí přidružené podstránky a externí
+                    odkazy jako záložky v detailu budovy na webu.
+                  </p>
+                </FormSection>
+
+                <PageGroupBar
+                  v-if="form.mainPageId"
+                  :key="form.mainPageId"
+                  :current-id="form.mainPageId"
+                  :lang="activeLang"
+                  @navigate="goAssociatedPage"
+                />
+                <div
+                  v-else
+                  class="rounded-lg border border-dashed border-steel-300 bg-steel-50/50 px-4 py-8 text-center"
+                >
+                  <Icon name="layout" :size="24" class="mx-auto mb-2 text-steel-300" />
+                  <p class="text-[13px] font-600 text-graphite-700">Objekt nemá přidruženou žádnou stránku</p>
+                  <p class="mt-1 text-[12px] text-steel-500">Vyberte hlavní stránku výše a doplňte podstránky a odkazy.</p>
+                </div>
               </TabsContent>
 
               <!-- Sekce: Zpětné vazby (kdo na objekt odkazuje — odvozené, read-only) -->

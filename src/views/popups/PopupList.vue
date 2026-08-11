@@ -151,13 +151,11 @@ function goEdit(id: string) {
 /* ---------- Akce nad řádkem (kontextové menu ⋮) ---------- */
 const rowActions = [
   { key: 'edit', label: 'Editovat pop-up', icon: 'edit' },
-  { key: 'preview', label: 'Náhled na webu', icon: 'eye' },
   { key: 'delete', label: 'Smazat pop-up', icon: 'trash', danger: true },
 ]
 function onRowAction(key: string, p: PopupItem) {
   if (key === 'edit') goEdit(p.id)
   else if (key === 'delete') deleteTarget.value = p
-  // 'preview' — prototyp: náhled na webu je mrtvý odkaz
 }
 
 /* ---------- Stránkování (Reka Pagination) — prototyp: simulovaný počet ---------- */

@@ -106,14 +106,12 @@ function goNew() {
 /* ---------- Akce nad řádkem (kontextové menu ⋮) ---------- */
 const rowActions = [
   { key: 'edit', label: 'Editovat akci', icon: 'edit' },
-  { key: 'preview', label: 'Náhled na webu', icon: 'eye' },
   { key: 'delete', label: 'Smazat akci', icon: 'trash', danger: true },
 ]
 const deleteTarget = ref<DovEvent | null>(null)
 function onRowAction(key: string, e: DovEvent) {
   if (key === 'edit') goDetail(e)
   else if (key === 'delete') deleteTarget.value = e
-  // 'preview' — prototyp: náhled na webu je mrtvý odkaz
 }
 function confirmDelete() {
   if (!deleteTarget.value) return

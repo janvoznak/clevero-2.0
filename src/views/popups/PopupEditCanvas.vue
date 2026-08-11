@@ -1021,14 +1021,6 @@ function fireToast(msg: string) {
                 Po zavření se okno návštěvníkovi znovu nezobrazí po tento počet dní.
               </p>
             </div>
-            <a
-              href="#"
-              target="_blank"
-              class="flex w-full items-center justify-center gap-2 rounded-md border border-steel-200 bg-white px-4 py-2.5 text-[13px] font-600 text-graphite-700 outline-none transition-colors hover:bg-steel-50 hover:text-graphite-900 focus-visible:ring-4 focus-visible:ring-brand-500/15"
-              @click.prevent="fireToast('Náhled na webu je v prototypu jen ilustrační')"
-            >
-              <Icon name="eye" :size="16" /> Náhled na webu
-            </a>
           </div>
         </FormSection>
       </aside>

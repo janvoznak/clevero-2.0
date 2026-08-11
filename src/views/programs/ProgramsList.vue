@@ -104,7 +104,6 @@ function goNew() { router.push({ name: 'program-new' }) }
 function goEdit(id: string) { router.push({ name: 'program-edit', params: { id } }) }
 
 const rowActions = [
-  { key: 'preview', label: 'Náhled na webu', icon: 'eye' },
   { key: 'edit', label: 'Editovat program', icon: 'edit' },
   { key: 'delete', label: 'Smazat program', icon: 'trash', danger: true },
 ]
