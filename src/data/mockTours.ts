@@ -54,6 +54,8 @@ export interface Tour {
   /** Místo konání — objekt v Areálu (kde prohlídka fyzicky probíhá). */
   areaId: string
   title: ML
+  /** Část URL (slug) — ML, auto z názvu prohlídky. */
+  slug?: ML
   /** Krátký perex do výpisu. */
   perex: ML
   /** Hlavní popis (richtext). */

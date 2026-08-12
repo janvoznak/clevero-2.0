@@ -13,12 +13,14 @@ import BackRefsCard from '@/components/admin/BackRefsCard.vue'
 import { backRefsForTour } from '@/data/backrefs'
 import AiPanel from '@/components/admin/AiPanel.vue'
 import ContentBuilder from '@/components/admin/ContentBuilder.vue'
+import SlugField from '@/components/admin/SlugField.vue'
+import { useAutoSlug } from '@/utils/useAutoSlug'
 import GalleryField from '@/components/admin/GalleryField.vue'
 import LangBar from '@/components/admin/LangBar.vue'
 import MlFieldHeader from '@/components/admin/MlFieldHeader.vue'
 import { useMlTranslate } from '@/utils/useMlTranslate'
 import { LANGS, SOURCE_LANG, defaultContentBlocks } from '@/data/types'
-import type { LangCode } from '@/data/types'
+import type { LangCode, ML } from '@/data/types'
 import {
   filledLangsOf,
   publishedLangsOf,
@@ -78,6 +80,17 @@ function langFilled(code: LangCode): boolean {
   return form.title[code].trim().length > 0
 }
 const filledLangs = computed(() => LANGS.filter((l) => langFilled(l.code)).map((l) => l.code))
+
+/** URL slug se generuje automaticky z názvu prohlídky (dokud ho klient neupraví ručně). */
+const emptyML = (): ML => ({ cs: '', en: '', de: '', pl: '' })
+const slugText = computed({
+  get: () => form.slug?.[activeLang.value] ?? '',
+  set: (v: string) => {
+    if (!form.slug) form.slug = emptyML()
+    form.slug[activeLang.value] = v
+  },
+})
+const { markManual } = useAutoSlug(() => form.title, () => (form.slug ??= emptyML()))
 
 /* ---------- Publikování per jazyk ----------
    Stav prohlídky (PublishCard) řídí, KDY je prohlídka živá; tyto přepínače
@@ -261,6 +274,8 @@ function onDuplicate() {
                   <MlFieldHeader label="Název prohlídky" :lang="activeLang" tag="tour-title" required @translate="translateField('title')" />
                   <input v-model="form.title[activeLang]" type="text" placeholder="Např. Vysokopecní okruh vč. návštěvy Bolt Tower" class="h-11 w-full rounded-md border border-steel-200 px-3.5 text-[15px] font-500 text-graphite-900 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
                 </div>
+
+                <SlugField v-model="slugText" :tag="`tour-url · ${activeLang.toUpperCase()}`" @edit="markManual(activeLang)" />
 
                 <div class="grid gap-4 sm:grid-cols-[minmax(0,1fr)_180px]">
                   <div>

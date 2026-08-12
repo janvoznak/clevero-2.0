@@ -7,12 +7,14 @@ import DetailActions from '@/components/admin/DetailActions.vue'
 import FormSection from '@/components/admin/FormSection.vue'
 import PublishCard from '@/components/admin/PublishCard.vue'
 import ContentBuilder from '@/components/admin/ContentBuilder.vue'
+import SlugField from '@/components/admin/SlugField.vue'
+import { useAutoSlug } from '@/utils/useAutoSlug'
 import TagPicker from '@/components/admin/TagPicker.vue'
 import LangBar from '@/components/admin/LangBar.vue'
 import MlFieldHeader from '@/components/admin/MlFieldHeader.vue'
 import { useMlTranslate } from '@/utils/useMlTranslate'
 import { LANGS, defaultContentBlocks } from '@/data/types'
-import type { LangCode } from '@/data/types'
+import type { LangCode, ML } from '@/data/types'
 import {
   MOCK_PROGRAMS, SCHOOL_LEVELS, GRADES, FOCUS_AREAS, PROGRAM_TAGS, blankProgram,
   type Program,
@@ -63,6 +65,17 @@ const publishRows = computed(() => publishLangRows(form.title, form.publishedLan
 function onToggleLang(code: LangCode) {
   form.publishedLangs = toggleLangPublish(form.publishedLangs, filledLangsOf(form.title), code)
 }
+
+/** URL slug se generuje automaticky z názvu programu (dokud ho klient neupraví ručně). */
+const emptyML = (): ML => ({ cs: '', en: '', de: '', pl: '' })
+const slugText = computed({
+  get: () => form.slug?.[activeLang.value] ?? '',
+  set: (v: string) => {
+    if (!form.slug) form.slug = emptyML()
+    form.slug[activeLang.value] = v
+  },
+})
+const { markManual } = useAutoSlug(() => form.title, () => (form.slug ??= emptyML()))
 
 /* ---------- Parametry (opakovatelné řádky) ---------- */
 let paramSeq = 0
@@ -155,6 +168,11 @@ function onDuplicate() {
                     <MlFieldHeader label="Název programu" :lang="activeLang" tag="program-title" required @translate="translateField('title')" />
                     <input v-model="form.title[activeLang]" type="text" placeholder="Např. Co za to stojí" class="h-11 w-full rounded-md border border-steel-200 px-3.5 text-[15px] font-500 text-graphite-900 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
                   </div>
+                  <SlugField
+                    v-model="slugText"
+                    :tag="`program-url · ${activeLang.toUpperCase()}`"
+                    @edit="markManual(activeLang)"
+                  />
                   <div>
                     <MlFieldHeader label="Perex" :lang="activeLang" tag="program-perex" @translate="translateField('perex')" />
                     <textarea v-model="form.perex[activeLang]" rows="2" placeholder="Krátký výtah zobrazený ve výpisu programů" class="w-full resize-y rounded-md border border-steel-200 px-3.5 py-2.5 text-[14px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
