@@ -20,7 +20,6 @@ import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import ClearFiltersButton from '@/components/ui/ClearFiltersButton.vue'
-import AppSwitch from '@/components/ui/AppSwitch.vue'
 import RowActionsMenu from '@/components/admin/RowActionsMenu.vue'
 import { LANGS } from '@/data/types'
 import type { LangCode } from '@/data/types'
@@ -47,14 +46,19 @@ const collapsed = ref<Set<string>>(new Set())
 function lps(page: PageItem, code: LangCode) {
   return langPublishState(code, filledLangsOf(page.title), page.publishedLangs)
 }
+/** Stránka je publikovaná, když má aspoň jednu živou (zveřejněnou a vyplněnou) mutaci.
+    Stav publikace řídí sloupec „Jazykové mutace" — samostatný master přepínač proto nemá smysl. */
+function pagePublished(page: PageItem): boolean {
+  return LANGS.some((l) => lps(page, l.code) === 'live')
+}
 
-/* ---------- Filtry: Stav + fulltextové hledání ---------- */
+/* ---------- Filtry: Stav publikace + fulltextové hledání ---------- */
 const filterStatus = ref('all')
 const search = ref('')
 const statusOptions = [
   { value: 'all', label: 'Všechny stavy' },
-  { value: 'active', label: 'Aktivní' },
-  { value: 'inactive', label: 'Neaktivní' },
+  { value: 'published', label: 'Publikováno' },
+  { value: 'unpublished', label: 'Nepublikováno' },
 ]
 const hasFilters = computed(() => filterStatus.value !== 'all' || search.value.trim() !== '')
 function clearFilters() {
@@ -69,8 +73,8 @@ const flatFiltered = computed<TreeRow[]>(() => {
     .filter((p) => {
       const mS =
         filterStatus.value === 'all' ||
-        (filterStatus.value === 'active' && p.enabled) ||
-        (filterStatus.value === 'inactive' && !p.enabled)
+        (filterStatus.value === 'published' && pagePublished(p)) ||
+        (filterStatus.value === 'unpublished' && !pagePublished(p))
       const mQ =
         !q ||
         LANGS.some((l) => p.title[l.code].toLowerCase().includes(q)) ||
@@ -116,10 +120,6 @@ function toggleSection(key: PageSection) {
   if (next.has(key)) next.delete(key)
   else next.add(key)
   collapsedSections.value = next
-}
-
-function setEnabled(p: PageItem, v: boolean) {
-  p.enabled = v // prototyp — lokální stav
 }
 
 /* ---------- Drag & drop řazení / zanoření (jen ve stromovém režimu) ---------- */
@@ -200,11 +200,6 @@ function toggleOne(id: string, v: boolean | 'indeterminate') {
   if (v === true) next.add(id)
   else next.delete(id)
   selected.value = next
-}
-function bulkSetEnabled(v: boolean) {
-  rows.value.forEach((p) => {
-    if (selected.value.has(p.id)) p.enabled = v
-  })
 }
 function confirmDeleteBulk() {
   rows.value = rows.value.filter((p) => !selected.value.has(p.id))
@@ -356,12 +351,6 @@ function onRowAction(key: string, p: PageItem) {
           <button class="text-[12.5px] font-500 text-steel-500 hover:text-graphite-800" @click="selected = new Set()">
             Zrušit výběr
           </button>
-          <AppButton variant="secondary" size="sm" @click="bulkSetEnabled(true)">
-            <Icon name="check" :size="15" /> Zapnout
-          </AppButton>
-          <AppButton variant="secondary" size="sm" @click="bulkSetEnabled(false)">
-            <Icon name="x" :size="15" /> Vypnout
-          </AppButton>
           <DialogRoot>
             <DialogTrigger as-child>
               <AppButton variant="danger" size="sm"><Icon name="trash" :size="15" /> Smazat vybrané</AppButton>
@@ -407,7 +396,6 @@ function onRowAction(key: string, p: PageItem) {
             </th>
             <th class="px-2 py-3 font-600">Název stránky</th>
             <th class="px-2 py-3 font-600">Jazykové mutace</th>
-            <th class="w-24 px-2 py-3 font-600">Stav</th>
             <th class="w-16 px-3 py-3 text-right font-600">Akce</th>
           </tr>
         </thead>
@@ -416,7 +404,7 @@ function onRowAction(key: string, p: PageItem) {
             <!-- Hlavička sekce -->
             <tr v-if="item.kind === 'section'" class="border-b border-steel-200">
               <td
-                colspan="5"
+                colspan="4"
                 class="p-0"
                 :class="sectionActive(item.section.key) ? 'bg-brand-100 shadow-[inset_3px_0_0_0_var(--color-brand-500)]' : 'bg-steel-50'"
               >
@@ -518,13 +506,6 @@ function onRowAction(key: string, p: PageItem) {
                   </span>
                 </div>
               </td>
-              <td class="px-2 py-3 align-middle">
-                <AppSwitch
-                  :model-value="item.row.page.enabled"
-                  :aria-label="`Zobrazovat ${item.row.page.title.cs}`"
-                  @update:model-value="(v) => setEnabled(item.row.page, v)"
-                />
-              </td>
               <td class="px-3 py-3 align-middle">
                 <div class="flex justify-end">
                   <RowActionsMenu :actions="rowActions" label="Akce se stránkou" @select="(key) => onRowAction(key, item.row.page)" />
@@ -535,7 +516,7 @@ function onRowAction(key: string, p: PageItem) {
 
           <!-- Empty state (jen při hledání bez výsledku) -->
           <tr v-if="hasFilters && visibleRowList.length === 0">
-            <td colspan="5" class="px-4 py-16 text-center">
+            <td colspan="4" class="px-4 py-16 text-center">
               <div class="mx-auto grid h-12 w-12 place-items-center rounded-xl bg-steel-100 text-steel-400">
                 <Icon name="page" :size="24" />
               </div>
