@@ -42,15 +42,18 @@ const DOT: Record<'live' | 'ready' | 'empty', { cls: string; title: string }> = 
 <template>
   <TabsRoot :model-value="model" @update:model-value="(v) => (model = v as LangCode)">
     <TabsList
-      class="inline-flex items-center gap-2 rounded-lg border border-steel-200 bg-steel-50 p-1"
+      class="inline-flex items-center gap-2 rounded-xl border border-steel-200 bg-steel-50 p-1.5"
       aria-label="Jazyková mutace"
     >
-      <!-- Jedna pilulka na mutaci: vlaječka + kód + tečka (+ ✨ za oddělovačem). -->
+      <!-- Jedna OHRANIČENÁ kapsle na mutaci: vlaječka + kód + tečka (+ ✨ AI překlad
+           téže mutace). Vlastní rámeček každé kapsle jasně ukazuje, kam ✨ patří. -->
       <div
         v-for="l in LANGS"
         :key="l.code"
-        class="inline-flex items-center overflow-hidden rounded-md transition-colors"
-        :class="model === l.code ? 'bg-white shadow-sm ring-1 ring-steel-200' : 'hover:bg-steel-100'"
+        class="inline-flex items-center overflow-hidden rounded-lg border transition-colors"
+        :class="model === l.code
+          ? 'border-brand-300 bg-white shadow-sm ring-1 ring-brand-500/10'
+          : 'border-steel-200 bg-transparent hover:border-steel-300 hover:bg-white'"
       >
         <TabsTrigger
           :value="l.code"
@@ -65,12 +68,13 @@ const DOT: Record<'live' | 'ready' | 'empty', { cls: string; title: string }> = 
             :title="DOT[dotState(l.code)].title"
           />
         </TabsTrigger>
-        <!-- ✨ AI překlad celé mutace z češtiny — uvnitř téže pilulky, za oddělovačem -->
+        <!-- ✨ AI překlad TÉTO mutace z češtiny — uvnitř téže ohraničené kapsle -->
         <template v-if="l.code !== SOURCE_LANG">
-          <span class="h-4 w-px shrink-0" :class="model === l.code ? 'bg-steel-200' : 'bg-steel-300/60'" />
+          <span class="h-5 w-px shrink-0" :class="model === l.code ? 'bg-steel-200' : 'bg-steel-200/70'" />
           <button
             type="button"
-            class="grid h-8 w-7 place-items-center text-steel-400 outline-none transition-colors hover:bg-brand-50 hover:text-brand-600"
+            class="grid h-8 w-7 place-items-center outline-none transition-colors hover:bg-brand-50"
+            :class="model === l.code ? 'text-brand-500 hover:text-brand-600' : 'text-steel-400 hover:text-brand-600'"
             :title="`Přeložit ${l.label} z češtiny (AI)`"
             @click="$emit('translate', l.code)"
           >
