@@ -59,8 +59,8 @@ function confirmDelete() {
 
 <template>
   <div class="flex items-center gap-2">
-    <!-- Kebab s dalšími akcemi (vlevo od Uložit) -->
-    <RowActionsMenu :actions="menuActions" label="Další akce" @select="onSelect" />
+    <!-- Kebab s dalšími akcemi (vlevo od Uložit) — stejná výška jako Uložit (h-10) -->
+    <RowActionsMenu :actions="menuActions" label="Další akce" size="md" @select="onSelect" />
 
     <!-- Jediné primární tlačítko -->
     <AppButton variant="primary" @click="emit('save')">

@@ -2,6 +2,11 @@
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import {
+  AccordionRoot,
+  AccordionItem,
+  AccordionHeader,
+  AccordionTrigger,
+  AccordionContent,
   CheckboxRoot,
   CheckboxIndicator,
   DialogRoot,
@@ -23,10 +28,9 @@ import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import ClearFiltersButton from '@/components/ui/ClearFiltersButton.vue'
-import AppSwitch from '@/components/ui/AppSwitch.vue'
 import TagChip from '@/components/ui/TagChip.vue'
 import RowActionsMenu from '@/components/admin/RowActionsMenu.vue'
-import { MOCK_FAQ, FAQ_CATEGORY_OPTIONS, faqCategoryColor, faqState, type FaqItem } from '@/data/mockFaq'
+import { MOCK_FAQ, FAQ_CATEGORY_OPTIONS, faqCategoryColor, type FaqItem } from '@/data/mockFaq'
 import { LANGS } from '@/data/types'
 import type { LangCode } from '@/data/types'
 import { langPublishState, LANG_PUBLISH_META, filledLangsOf } from '@/utils/langPublish'
@@ -67,11 +71,17 @@ function clearFilters() {
 const rows = ref<FaqItem[]>([...MOCK_FAQ])
 const deleteTarget = ref<FaqItem | null>(null)
 
+/* Rozbalené položky accordionu (víc naráz). */
+const openItems = ref<string[]>([])
+
 const visible = computed(() => {
   const q = norm(search.value.trim())
   const list = rows.value.filter((f) => {
     const matchesCategory = filterCategory.value === 'all' || f.category === filterCategory.value
-    const matchesStatus = filterStatus.value === 'all' || faqState(f) === filterStatus.value
+    const matchesStatus =
+      filterStatus.value === 'all' ||
+      (filterStatus.value === 'published' && faqPublished(f)) ||
+      (filterStatus.value === 'draft' && !faqPublished(f))
     // Fulltext: otázka napříč všemi mutacemi + prostý text odpovědi (CS).
     const matchesSearch =
       q === '' ||
@@ -82,8 +92,10 @@ const visible = computed(() => {
   return [...list].sort((a, b) => a.order - b.order)
 })
 
-function setPublished(f: FaqItem, v: boolean) {
-  f.published = v
+/** Dotaz je zveřejněný, když má aspoň jednu živou (zveřejněnou a vyplněnou) mutaci.
+    Stav publikace nesou jazykové mutace — samostatný master přepínač proto nemá smysl. */
+function faqPublished(f: FaqItem): boolean {
+  return LANGS.some((l) => lps(f, l.code as LangCode) === 'live')
 }
 function confirmDeleteOne() {
   if (!deleteTarget.value) return
@@ -247,99 +259,97 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
       </div>
     </Transition>
 
-    <!-- Table -->
+    <!-- Accordion (klik na otázku rozbalí odpověď) -->
     <div class="overflow-hidden rounded-lg border border-steel-200 bg-white">
-      <table class="w-full border-collapse text-left">
-        <thead>
-          <tr class="border-b border-steel-200 bg-steel-50 text-[11px] uppercase tracking-wider text-steel-500">
-            <th class="w-11 px-4 py-3">
-              <CheckboxRoot
-                :model-value="allSelected"
-                class="grid h-4 w-4 place-items-center rounded border border-steel-300 bg-white data-[state=checked]:border-brand-500 data-[state=checked]:bg-brand-500"
-                @update:model-value="toggleAll"
-              >
-                <CheckboxIndicator class="text-white"><Icon name="check" :size="12" /></CheckboxIndicator>
-              </CheckboxRoot>
-            </th>
-            <th class="px-2 py-3 font-600">Otázka</th>
-            <th class="w-52 px-2 py-3 font-600">Kategorie</th>
-            <th class="w-20 px-2 py-3 font-600">Pořadí</th>
-            <th class="w-32 px-2 py-3 font-600">Jazykové mutace</th>
-            <th class="w-24 px-2 py-3 font-600">Zveřejněno</th>
-            <th class="w-16 px-3 py-3 text-right font-600">Akce</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="f in visible"
-            :key="f.id"
-            class="group border-b border-steel-100 transition-colors last:border-0 hover:bg-steel-50/60"
-            :class="selected.has(f.id) && 'bg-brand-50/40'"
-          >
-            <td class="px-4 py-3 align-middle">
-              <CheckboxRoot
-                :model-value="selected.has(f.id)"
-                class="grid h-4 w-4 place-items-center rounded border border-steel-300 bg-white data-[state=checked]:border-brand-500 data-[state=checked]:bg-brand-500"
-                @update:model-value="(v) => toggleOne(f.id, v)"
-              >
-                <CheckboxIndicator class="text-white"><Icon name="check" :size="12" /></CheckboxIndicator>
-              </CheckboxRoot>
-            </td>
-            <td class="px-2 py-3 align-middle">
-              <button class="flex items-start gap-3 text-left" @click="goEdit(f.id)">
-                <span class="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-md bg-steel-100 text-steel-400">
+      <!-- Záhlaví: vybrat vše -->
+      <div class="flex items-center gap-3 border-b border-steel-200 bg-steel-50 px-4 py-2.5 text-[11px] font-600 uppercase tracking-wider text-steel-500">
+        <CheckboxRoot
+          :model-value="allSelected"
+          aria-label="Vybrat vše"
+          class="grid h-4 w-4 shrink-0 place-items-center rounded border border-steel-300 bg-white data-[state=checked]:border-brand-500 data-[state=checked]:bg-brand-500"
+          @update:model-value="toggleAll"
+        >
+          <CheckboxIndicator class="text-white"><Icon name="check" :size="12" /></CheckboxIndicator>
+        </CheckboxRoot>
+        <span>Otázka</span>
+      </div>
+
+      <AccordionRoot v-if="visible.length" v-model="openItems" type="multiple" class="divide-y divide-steel-100">
+        <AccordionItem
+          v-for="f in visible"
+          :key="f.id"
+          :value="f.id"
+          class="transition-colors"
+          :class="selected.has(f.id) && 'bg-brand-50/40'"
+        >
+          <!-- Řádek otázky -->
+          <div class="flex items-center gap-3 px-4 py-2.5">
+            <CheckboxRoot
+              :model-value="selected.has(f.id)"
+              :aria-label="`Vybrat ${f.question.cs}`"
+              class="grid h-4 w-4 shrink-0 place-items-center rounded border border-steel-300 bg-white data-[state=checked]:border-brand-500 data-[state=checked]:bg-brand-500"
+              @update:model-value="(v) => toggleOne(f.id, v)"
+            >
+              <CheckboxIndicator class="text-white"><Icon name="check" :size="12" /></CheckboxIndicator>
+            </CheckboxRoot>
+
+            <!-- Spouštěč = otázka (rozbalí odpověď) -->
+            <AccordionHeader class="min-w-0 flex-1">
+              <AccordionTrigger class="group flex w-full items-center gap-3 text-left outline-none">
+                <span class="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-steel-100 text-steel-400 transition-colors group-data-[state=open]:bg-brand-50 group-data-[state=open]:text-brand-600">
                   <Icon name="faq" :size="16" />
                 </span>
-                <span class="min-w-0">
+                <span class="min-w-0 flex-1">
                   <span class="block truncate text-[14px] font-600 text-graphite-900 group-hover:text-brand-600">
                     {{ f.question.cs || 'Bez otázky' }}
                   </span>
-                  <span class="mt-0.5 block max-w-[460px] truncate text-[12px]" :class="plain(f.answer.cs) ? 'text-steel-500' : 'text-amber-600'">
-                    {{ plain(f.answer.cs) || 'Odpověď zatím není vyplněná' }}
+                  <span class="mt-0.5 flex items-center gap-2">
+                    <span class="font-mono text-[11px] text-steel-400">#{{ String(f.order).padStart(2, '0') }}</span>
+                    <TagChip :label="f.category" :color="faqCategoryColor(f.category)" />
                   </span>
                 </span>
-              </button>
-            </td>
-            <td class="px-2 py-3 align-middle">
-              <TagChip :label="f.category" :color="faqCategoryColor(f.category)" />
-            </td>
-            <td class="px-2 py-3 align-middle">
-              <span class="font-mono text-[12.5px] text-steel-500">{{ String(f.order).padStart(2, '0') }}</span>
-            </td>
-            <td class="px-2 py-3 align-middle">
-              <div class="flex flex-wrap items-center gap-1">
-                <span
-                  v-for="l in LANGS"
-                  :key="l.code"
-                  :title="`${l.label} — ${LANG_PUBLISH_META[lps(f, l.code as LangCode)].label}`"
-                  class="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10.5px] font-700 uppercase tabular-nums"
-                  :class="LANG_PUBLISH_META[lps(f, l.code as LangCode)].chip"
-                >
-                  <span class="h-1.5 w-1.5 rounded-full" :class="LANG_PUBLISH_META[lps(f, l.code as LangCode)].dot" />
-                  {{ l.code }}
+                <!-- Jazykové mutace -->
+                <span class="hidden shrink-0 items-center gap-1 md:flex">
+                  <span
+                    v-for="l in LANGS"
+                    :key="l.code"
+                    :title="`${l.label} — ${LANG_PUBLISH_META[lps(f, l.code as LangCode)].label}`"
+                    class="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10.5px] font-700 uppercase tabular-nums"
+                    :class="LANG_PUBLISH_META[lps(f, l.code as LangCode)].chip"
+                  >
+                    <span class="h-1.5 w-1.5 rounded-full" :class="LANG_PUBLISH_META[lps(f, l.code as LangCode)].dot" />
+                    {{ l.code }}
+                  </span>
                 </span>
-              </div>
-            </td>
-            <td class="px-2 py-3 align-middle">
-              <AppSwitch :model-value="f.published" :aria-label="`Zveřejnit ${f.question.cs}`" @update:model-value="(v) => setPublished(f, v)" />
-            </td>
-            <td class="px-3 py-3 align-middle">
-              <div class="flex justify-end">
-                <RowActionsMenu :actions="rowActions" label="Akce s dotazem" @select="(key) => onRowAction(key, f)" />
-              </div>
-            </td>
-          </tr>
+                <Icon name="chevronDown" :size="18" class="shrink-0 text-steel-400 transition-transform group-data-[state=open]:rotate-180" />
+              </AccordionTrigger>
+            </AccordionHeader>
 
-          <!-- Empty state -->
-          <tr v-if="visible.length === 0">
-            <td colspan="7" class="px-4 py-16 text-center">
-              <div class="mx-auto grid h-12 w-12 place-items-center rounded-xl bg-steel-100 text-steel-400"><Icon name="faq" :size="24" /></div>
-              <p class="mt-3 text-[14px] font-600 text-graphite-800">Žádné dotazy</p>
-              <p class="mt-1 text-[13px] text-steel-500">{{ hasFilters ? 'Zkuste upravit filtry.' : 'Vytvořte první dotaz.' }}</p>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+            <!-- Akce (mimo spouštěč) -->
+            <RowActionsMenu :actions="rowActions" label="Akce s dotazem" @select="(key) => onRowAction(key, f)" />
+          </div>
+
+          <!-- Odpověď (rozbaleno) -->
+          <AccordionContent class="acc-content">
+            <div class="px-4 pb-4 pl-[60px]">
+              <div v-if="plain(f.answer.cs)" class="faq-answer max-w-3xl text-[13.5px] leading-relaxed text-steel-600" v-html="f.answer.cs" />
+              <p v-else class="flex items-center gap-1.5 text-[13px] text-amber-600">
+                <Icon name="x" :size="14" /> Odpověď zatím není vyplněná.
+              </p>
+              <div class="mt-3">
+                <AppButton variant="secondary" size="sm" @click="goEdit(f.id)"><Icon name="edit" :size="14" /> Editovat dotaz</AppButton>
+              </div>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+      </AccordionRoot>
+
+      <!-- Empty state -->
+      <div v-else class="px-4 py-16 text-center">
+        <div class="mx-auto grid h-12 w-12 place-items-center rounded-xl bg-steel-100 text-steel-400"><Icon name="faq" :size="24" /></div>
+        <p class="mt-3 text-[14px] font-600 text-graphite-800">Žádné dotazy</p>
+        <p class="mt-1 text-[13px] text-steel-500">{{ hasFilters ? 'Zkuste upravit filtry.' : 'Vytvořte první dotaz.' }}</p>
+      </div>
     </div>
 
     <!-- Pagination -->
@@ -389,3 +399,33 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
     </DialogRoot>
   </div>
 </template>
+
+<style scoped>
+/* Animace rozbalení (reka-ui poskytuje výšku obsahu přes CSS proměnnou). */
+.acc-content {
+  overflow: hidden;
+}
+.acc-content[data-state='open'] {
+  animation: acc-down 200ms ease-out;
+}
+.acc-content[data-state='closed'] {
+  animation: acc-up 160ms ease-in;
+}
+@keyframes acc-down {
+  from { height: 0; }
+  to { height: var(--reka-accordion-content-height); }
+}
+@keyframes acc-up {
+  from { height: var(--reka-accordion-content-height); }
+  to { height: 0; }
+}
+
+/* Čitelné formátování richtextu odpovědi v náhledu. */
+.faq-answer :deep(p) { margin: 0 0 0.5rem; }
+.faq-answer :deep(p:last-child) { margin-bottom: 0; }
+.faq-answer :deep(ul) { margin: 0.25rem 0 0.5rem; padding-left: 1.1rem; list-style: disc; }
+.faq-answer :deep(ol) { margin: 0.25rem 0 0.5rem; padding-left: 1.2rem; list-style: decimal; }
+.faq-answer :deep(li) { margin: 0.15rem 0; }
+.faq-answer :deep(a) { color: var(--color-brand-600); text-decoration: underline; }
+.faq-answer :deep(strong) { font-weight: 700; color: var(--color-graphite-800); }
+</style>

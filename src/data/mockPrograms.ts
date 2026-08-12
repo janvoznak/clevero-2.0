@@ -88,6 +88,8 @@ export interface Program {
   /** Autor / správce programu (kdo vytvořil/upravil). */
   author: string
   title: ML
+  /** Část URL (slug) — ML, auto z názvu programu. */
+  slug?: ML
   /** Krátký perex do výpisu. */
   perex: ML
   /** Popis programu (richtext). */

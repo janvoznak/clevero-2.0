@@ -61,6 +61,8 @@ export interface DovEvent {
   id: string
   /** Vícejazyčný název (ML) — v seznamu/kalendáři zobrazujeme CZ. */
   title: ML
+  /** Část URL (slug) — ML, auto z názvu akce. */
+  slug?: ML
   /** Podnadpis / claim (ML). */
   subtitle: ML
   type: string

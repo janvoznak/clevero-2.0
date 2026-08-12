@@ -10,6 +10,8 @@ import TagChip from '@/components/ui/TagChip.vue'
 import TagPicker from '@/components/admin/TagPicker.vue'
 import FormSection from '@/components/admin/FormSection.vue'
 import PublishCard from '@/components/admin/PublishCard.vue'
+import SlugField from '@/components/admin/SlugField.vue'
+import { useAutoSlug } from '@/utils/useAutoSlug'
 import LangBar from '@/components/admin/LangBar.vue'
 import MlFieldHeader from '@/components/admin/MlFieldHeader.vue'
 import { useMlTranslate } from '@/utils/useMlTranslate'
@@ -180,6 +182,16 @@ function aiImport() {
   }, 1900)
 }
 
+/** URL slug se generuje automaticky z názvu akce (dokud ho klient neupraví ručně). */
+const slugText = computed({
+  get: () => form.slug?.[activeLang.value] ?? '',
+  set: (v: string) => {
+    if (!form.slug) form.slug = empty()
+    form.slug[activeLang.value] = v
+  },
+})
+const { markManual } = useAutoSlug(() => form.title, () => (form.slug ??= empty()))
+
 /* ---------- AI překlad mutací (prototyp) — sdílené řešení ---------- */
 const mlFields: (keyof DovEvent)[] = ['title', 'subtitle', 'summary']
 const { translating, translateLang, translateField } = useMlTranslate(form, mlFields)
@@ -297,6 +309,12 @@ function onDuplicate() {
                     class="h-11 w-full rounded-md border border-steel-200 px-3.5 text-[15px] font-500 text-graphite-900 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none"
                   />
                 </div>
+
+                <SlugField
+                  v-model="slugText"
+                  :tag="`event-url · ${activeLang.toUpperCase()}`"
+                  @edit="markManual(activeLang)"
+                />
 
                 <div>
                   <MlFieldHeader label="Podnadpis" :lang="activeLang" tag="event-subtitle" @translate="translateField('subtitle')" />

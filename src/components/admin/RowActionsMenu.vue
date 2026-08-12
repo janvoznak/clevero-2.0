@@ -22,8 +22,10 @@ withDefaults(
     actions: RowAction[]
     /** Přístupný popisek spouštěče. */
     label?: string
+    /** Velikost spouštěče: 'sm' (výpisy, výchozí) | 'md' (hlavička detailu — zarovnané s tlačítkem Uložit). */
+    size?: 'sm' | 'md'
   }>(),
-  { label: 'Akce' },
+  { label: 'Akce', size: 'sm' },
 )
 defineEmits<{ select: [key: string] }>()
 </script>
@@ -34,7 +36,8 @@ defineEmits<{ select: [key: string] }>()
       <button
         type="button"
         :aria-label="label"
-        class="grid h-8 w-8 place-items-center rounded-md border border-steel-200 bg-white text-graphite-700 outline-none transition-colors hover:border-steel-300 hover:bg-steel-100 hover:text-graphite-900 data-[state=open]:border-brand-500 data-[state=open]:bg-brand-50 data-[state=open]:text-brand-600"
+        class="grid place-items-center rounded-md border border-steel-200 bg-white text-graphite-700 outline-none transition-colors hover:border-steel-300 hover:bg-steel-100 hover:text-graphite-900 data-[state=open]:border-brand-500 data-[state=open]:bg-brand-50 data-[state=open]:text-brand-600"
+        :class="size === 'md' ? 'h-10 w-10' : 'h-8 w-8'"
       >
         <Icon name="more" :size="20" />
       </button>

@@ -14,9 +14,11 @@ import TagPicker from '@/components/admin/TagPicker.vue'
 import GalleryField from '@/components/admin/GalleryField.vue'
 import LangBar from '@/components/admin/LangBar.vue'
 import MlFieldHeader from '@/components/admin/MlFieldHeader.vue'
+import SlugField from '@/components/admin/SlugField.vue'
+import { useAutoSlug } from '@/utils/useAutoSlug'
 import { useMlTranslate } from '@/utils/useMlTranslate'
 import { LANGS } from '@/data/types'
-import type { LangCode } from '@/data/types'
+import type { LangCode, ML } from '@/data/types'
 import {
   MOCK_VENUES,
   PREDEFINED_AREA_TAGS,
@@ -34,8 +36,6 @@ import {
 import { galleriesForVenue } from '@/data/mockGalleries'
 import BackRefsCard from '@/components/admin/BackRefsCard.vue'
 import { backRefsForArea } from '@/data/backrefs'
-import PageGroupBar from '@/components/admin/PageGroupBar.vue'
-import { MOCK_PAGES } from '@/data/mockPages'
 
 const props = defineProps<{ id?: string }>()
 const router = useRouter()
@@ -70,38 +70,18 @@ function onToggleLang(code: LangCode) {
   form.publishedLangs = toggleLangPublish(form.publishedLangs, filledLangsOf(form.title), code)
 }
 
-/* ---------- Sekce (podtržené záložky) ---------- */
+/* ---------- Sekce (podtržené záložky) ----------
+   Fixní záložky budovy + individuální záložky přidružených stránek (per budova).
+   Přidružené stránky (form.pageTabs) se přidají za fixní záložky pod svými názvy. */
 const activeSection = ref('basic')
-const sections = [
+const baseSections = [
   { value: 'basic', label: 'Základní informace', icon: 'page' },
   { value: 'content', label: 'Obsah', icon: 'text' },
-  { value: 'pages', label: 'Přidružené stránky', icon: 'layout' },
-  { value: 'backrefs', label: 'Zpětné vazby', icon: 'link' },
+  { value: 'backrefs', label: 'Zařazení a vazby', icon: 'link' },
   { value: 'gallery', label: 'Galerie', icon: 'gallery' },
-  { value: 'hours', label: 'Provoz a otevírací doba', icon: 'clock' },
 ]
-
-/* ---------- Přidružené stránky (skupina záložek — hlavní stránka + podstránky) ----------
-   Detail budovy odkazuje na hlavní stránku (kořen skupiny). Lišta pak zobrazí
-   hlavní stránku + její podstránky + externí odkazy (sdílený PageGroupBar). */
-/* reka-ui Select nepovoluje položku s prázdnou hodnotou (`value=""`) — pro
-   „žádná stránka" proto používáme sentinel `__none__`, který mapujeme na undefined. */
-const NO_PAGE = '__none__'
-const rootPageOptions = computed(() => [
-  { value: NO_PAGE, label: '— žádná —' },
-  ...MOCK_PAGES.filter((p) => p.parentId === null).map((p) => ({
-    value: p.id,
-    label: p.title.cs || 'Bez názvu',
-  })),
-])
-const mainPageValue = computed({
-  get: () => form.mainPageId ?? NO_PAGE,
-  set: (v: string) => (form.mainPageId = v === NO_PAGE ? undefined : v),
-})
-/** Klik na přidruženou stránku otevře její editaci v modulu Stránky. */
-function goAssociatedPage(id: string) {
-  router.push({ name: 'page-edit', params: { id } })
-}
+/** Individuální záložky přidružených stránek (kopírují jejich názvy). */
+const pageTabs = computed(() => form.pageTabs ?? [])
 
 /* ---------- Zajímavá čísla ---------- */
 let statSeq = 0
@@ -120,6 +100,18 @@ function removeStat(i: number) {
 const coverImage = computed(() => form.photos.find((p) => p.isMain) ?? form.photos[0] ?? null)
 watch(coverImage, (c) => { form.image = c?.src ?? '' }, { immediate: true })
 
+
+/* ---------- URL slug (sdílené řešení jako Aktuality) ----------
+   Auto z názvu objektu, dokud ho klient neupraví ručně. */
+const emptyML = (): ML => ({ cs: '', en: '', de: '', pl: '' })
+const slugText = computed({
+  get: () => form.slug?.[activeLang.value] ?? '',
+  set: (v: string) => {
+    if (!form.slug) form.slug = emptyML()
+    form.slug[activeLang.value] = v
+  },
+})
+const { markManual } = useAutoSlug(() => form.title, () => (form.slug ??= emptyML()))
 
 /* ---------- AI překlad mutací (prototyp) — sdílené řešení ---------- */
 const mlFields: (keyof AreaObject)[] = ['title', 'summary', 'statusNote']
@@ -189,14 +181,25 @@ function onDuplicate() {
         <div class="rounded-lg border border-steel-200 bg-white">
           <TabsRoot v-model="activeSection">
             <TabsList class="flex flex-wrap gap-1.5 overflow-x-auto border-b border-steel-200 bg-steel-50/60 px-3 pt-2" aria-label="Sekce objektu">
+              <!-- Fixní záložky budovy -->
               <TabsTrigger
-                v-for="s in sections"
+                v-for="s in baseSections"
                 :key="s.value"
                 :value="s.value"
                 class="-mb-px inline-flex shrink-0 items-center gap-2 rounded-t-md border-b-2 border-transparent px-4 py-2.5 text-[13px] font-600 text-steel-500 outline-none transition-colors hover:bg-steel-100 hover:text-graphite-800 data-[state=active]:border-brand-500 data-[state=active]:bg-brand-50 data-[state=active]:text-brand-700"
               >
                 <Icon :name="s.icon" :size="16" />
                 {{ s.label }}
+              </TabsTrigger>
+              <!-- Individuální záložky přidružených stránek (per budova) -->
+              <TabsTrigger
+                v-for="(p, i) in pageTabs"
+                :key="`pgtab-${i}`"
+                :value="`pgtab-${i}`"
+                class="-mb-px inline-flex shrink-0 items-center gap-2 rounded-t-md border-b-2 border-transparent px-4 py-2.5 text-[13px] font-600 text-steel-500 outline-none transition-colors hover:bg-steel-100 hover:text-graphite-800 data-[state=active]:border-brand-500 data-[state=active]:bg-brand-50 data-[state=active]:text-brand-700"
+              >
+                <Icon name="subpage" :size="16" />
+                {{ p }}
               </TabsTrigger>
             </TabsList>
 
@@ -212,6 +215,12 @@ function onDuplicate() {
                     class="h-11 w-full rounded-md border border-steel-200 px-3.5 text-[15px] font-500 text-graphite-900 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none"
                   />
                 </div>
+
+                <SlugField
+                  v-model="slugText"
+                  :tag="`area-url · ${activeLang.toUpperCase()}`"
+                  @edit="markManual(activeLang)"
+                />
 
                 <div>
                   <MlFieldHeader label="Krátký popis (perex)" :lang="activeLang" tag="area-summary" @translate="translateField('summary')" />
@@ -267,80 +276,8 @@ function onDuplicate() {
                     <Icon name="plus" :size="15" /> Přidat číslo
                   </button>
                 </div>
-              </TabsContent>
 
-              <!-- Sekce: Obsah (jednotný ContentBuilder — nic dalšího pod ním) -->
-              <TabsContent value="content" class="outline-none">
-                <ContentBuilder v-model="form.contentBlocks" />
-              </TabsContent>
-
-              <!-- Sekce: Přidružené stránky (skupina záložek objektu) -->
-              <TabsContent value="pages" class="space-y-4 outline-none">
-                <FormSection title="Hlavní stránka objektu" icon="layout" tag="area-main_page">
-                  <label class="mb-1.5 block text-[13px] font-600 text-graphite-800">Vybraná stránka</label>
-                  <AppSelect v-model="mainPageValue" :options="rootPageOptions" class="max-w-sm" />
-                  <p class="mt-2 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
-                    <Icon name="reference" :size="13" class="mt-0.5 shrink-0 text-steel-400" />
-                    Hlavní stránka je kořen skupiny — pod ní se zobrazí přidružené podstránky a externí
-                    odkazy jako záložky v detailu budovy na webu.
-                  </p>
-                </FormSection>
-
-                <PageGroupBar
-                  v-if="form.mainPageId"
-                  :key="form.mainPageId"
-                  :current-id="form.mainPageId"
-                  :lang="activeLang"
-                  @navigate="goAssociatedPage"
-                />
-                <div
-                  v-else
-                  class="rounded-lg border border-dashed border-steel-300 bg-steel-50/50 px-4 py-8 text-center"
-                >
-                  <Icon name="layout" :size="24" class="mx-auto mb-2 text-steel-300" />
-                  <p class="text-[13px] font-600 text-graphite-700">Objekt nemá přidruženou žádnou stránku</p>
-                  <p class="mt-1 text-[12px] text-steel-500">Vyberte hlavní stránku výše a doplňte podstránky a odkazy.</p>
-                </div>
-              </TabsContent>
-
-              <!-- Sekce: Zpětné vazby (kdo na objekt odkazuje — odvozené, read-only) -->
-              <TabsContent value="backrefs" class="outline-none">
-                <BackRefsCard :groups="backRefsForArea(form.id)" entity-label="tento objekt" />
-              </TabsContent>
-
-              <!-- Sekce: Galerie -->
-              <TabsContent value="gallery" class="space-y-5 outline-none">
-                <!-- Hlavní obrázek (náhledovka) = cover odvozený z galerie níže -->
-                <div class="flex items-center gap-4 rounded-lg border border-steel-200 bg-steel-50/50 p-4">
-                  <span class="relative h-24 w-36 shrink-0 overflow-hidden rounded-lg bg-steel-100">
-                    <img v-if="coverImage" :src="coverImage.src" :alt="coverImage.alt" class="h-full w-full object-cover" />
-                    <span v-else class="grid h-full w-full place-items-center text-steel-400"><Icon name="image" :size="22" /></span>
-                    <span v-if="coverImage" class="absolute left-1.5 top-1.5 inline-flex items-center gap-1 rounded bg-graphite-900/80 px-1.5 py-0.5 text-[10px] font-700 text-white">
-                      <Icon name="star" :size="11" class="text-brand-400" /> Hlavní
-                    </span>
-                  </span>
-                  <div class="min-w-0">
-                    <div class="flex items-center gap-2">
-                      <span class="text-[13px] font-600 text-graphite-800">Hlavní obrázek (náhledovka)</span>
-                      <span class="field-tag">area-image</span>
-                    </div>
-                    <p class="mt-1.5 text-[11.5px] leading-relaxed text-steel-500">
-                      Náhledovka se bere z galerie níže — hlavní je fotka označená ★ (1. pozice). Pořadí a hlavní fotku nastavíš přetažením nebo tlačítkem „topovat nahoru". Nenahrává se zvlášť.
-                    </p>
-                  </div>
-                </div>
-
-                <GalleryField
-                  v-model:galleries="form.galleryIds"
-                  v-model:photos="form.photos"
-                  link-tag="gallery-area_id"
-                  photos-tag="area-photos"
-                />
-              </TabsContent>
-
-              <!-- Sekce: Provoz a otevírací doba (sjednoceno) -->
-              <TabsContent value="hours" class="space-y-4 outline-none">
-                <!-- Provozní stav — nadřazený otevírací době -->
+                <!-- Provoz a otevírací doba (sjednoceno do Základních informací) -->
                 <FormSection title="Provozní stav" icon="clock" hint="Nadřazený otevírací době — řídí, co se zobrazí na webu." tag="area-open_state">
                   <div class="flex flex-wrap items-center gap-3">
                     <AppSelect v-model="form.openState" :options="OPEN_STATE_OPTIONS" class="w-44" />
@@ -389,6 +326,62 @@ function onDuplicate() {
                     <p v-else class="mt-3 text-[12.5px] text-steel-400">Otevírací doba se na webu objektu nezobrazí.</p>
                   </template>
                 </FormSection>
+              </TabsContent>
+
+              <!-- Sekce: Obsah (jednotný ContentBuilder — nic dalšího pod ním) -->
+              <TabsContent value="content" class="outline-none">
+                <ContentBuilder v-model="form.contentBlocks" />
+              </TabsContent>
+
+              <!-- Sekce: Zpětné vazby (kdo na objekt odkazuje — odvozené, read-only) -->
+              <TabsContent value="backrefs" class="outline-none">
+                <BackRefsCard :groups="backRefsForArea(form.id)" entity-label="tento objekt" />
+              </TabsContent>
+
+              <!-- Sekce: Galerie -->
+              <TabsContent value="gallery" class="space-y-5 outline-none">
+                <!-- Hlavní obrázek (náhledovka) = cover odvozený z galerie níže -->
+                <div class="flex items-center gap-4 rounded-lg border border-steel-200 bg-steel-50/50 p-4">
+                  <span class="relative h-24 w-36 shrink-0 overflow-hidden rounded-lg bg-steel-100">
+                    <img v-if="coverImage" :src="coverImage.src" :alt="coverImage.alt" class="h-full w-full object-cover" />
+                    <span v-else class="grid h-full w-full place-items-center text-steel-400"><Icon name="image" :size="22" /></span>
+                    <span v-if="coverImage" class="absolute left-1.5 top-1.5 inline-flex items-center gap-1 rounded bg-graphite-900/80 px-1.5 py-0.5 text-[10px] font-700 text-white">
+                      <Icon name="star" :size="11" class="text-brand-400" /> Hlavní
+                    </span>
+                  </span>
+                  <div class="min-w-0">
+                    <div class="flex items-center gap-2">
+                      <span class="text-[13px] font-600 text-graphite-800">Hlavní obrázek (náhledovka)</span>
+                      <span class="field-tag">area-image</span>
+                    </div>
+                    <p class="mt-1.5 text-[11.5px] leading-relaxed text-steel-500">
+                      Náhledovka se bere z galerie níže — hlavní je fotka označená ★ (1. pozice). Pořadí a hlavní fotku nastavíš přetažením nebo tlačítkem „topovat nahoru". Nenahrává se zvlášť.
+                    </p>
+                  </div>
+                </div>
+
+                <GalleryField
+                  v-model:galleries="form.galleryIds"
+                  v-model:photos="form.photos"
+                  link-tag="gallery-area_id"
+                  photos-tag="area-photos"
+                />
+              </TabsContent>
+
+              <!-- Sekce: Přidružené stránky budovy (individuální — kopírují názvy stránek) -->
+              <TabsContent
+                v-for="(p, i) in pageTabs"
+                :key="`pgtabc-${i}`"
+                :value="`pgtab-${i}`"
+                class="outline-none"
+              >
+                <div class="rounded-lg border border-dashed border-steel-300 bg-steel-50/40 px-4 py-12 text-center">
+                  <Icon name="subpage" :size="26" class="mx-auto mb-2 text-steel-300" />
+                  <p class="text-[14px] font-700 text-graphite-800">{{ p }}</p>
+                  <p class="mx-auto mt-1 max-w-md text-[12.5px] leading-relaxed text-steel-500">
+                    Přidružená stránka budovy „{{ p }}". Obsah této záložky doplníme podle finálního zadání.
+                  </p>
+                </div>
               </TabsContent>
             </div>
           </TabsRoot>

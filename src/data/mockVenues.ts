@@ -55,6 +55,8 @@ export interface AreaObject {
   title: ML
   /** Krátký popis / perex (ML). */
   summary: ML
+  /** Část URL (slug) — ML, auto z názvu objektu. */
+  slug?: ML
   /** Popis budovy skládaný z bloků (blokový editor jako Stránky). */
   contentBlocks: ContentBlock[]
   /** Zajímavá čísla / statistiky. */
@@ -86,6 +88,9 @@ export interface AreaObject {
       přidružených stránek (hlavní stránka + podstránky + externí odkazy),
       která se zobrazí jako záložky v detailu budovy. */
   mainPageId?: string
+  /** Individuální záložky přidružených stránek (kopírují jejich názvy) —
+      zobrazí se v detailu budovy za fixními záložkami. Per budova. */
+  pageTabs?: string[]
 }
 
 function ml(cs: string, extra?: Partial<Record<LangCode, string>>): ML {
@@ -116,6 +121,8 @@ type RawVenue = {
   photos?: GalleryImage[]
   /** Hlavní přidružená stránka objektu (ID z modulu Stránky). */
   mainPageId?: string
+  /** Individuální záložky přidružených stránek (kopírují jejich názvy). */
+  pageTabs?: string[]
 }
 
 /** Základní fotky objektu (prototyp — placeholdery přes imageFor). */
@@ -137,6 +144,7 @@ const RAW: RawVenue[] = [
     showOpeningHours: false,
     published: true,
     mainPageId: 'pg-onas',
+    pageTabs: ['Expozice', 'Vstupenky', 'Pro školy'],
   },
   {
     id: 'v-bolt',
@@ -291,6 +299,7 @@ export const MOCK_VENUES: AreaObject[] = RAW.map((r) => ({
   published: r.published,
   publishedLangs: r.publishedLangs,
   mainPageId: r.mainPageId,
+  pageTabs: r.pageTabs,
 }))
 
 /** Vyhledání místa/objektu podle ID (pro kalendář, výpisy, detaily akcí). */
