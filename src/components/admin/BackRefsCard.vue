@@ -16,8 +16,12 @@ const props = withDefaults(
     groups: BackRefGroup[]
     /** Popisek entity pro prázdný stav, např. „prohlídku". */
     entityLabel?: string
+    /** Titulek sekce (výchozí „Zpětné vazby"). */
+    title?: string
+    /** Ikona sekce; prázdný řetězec = bez ikony. */
+    icon?: string
   }>(),
-  { entityLabel: 'tento záznam' },
+  { entityLabel: 'tento záznam', title: 'Zpětné vazby', icon: 'link' },
 )
 
 const router = useRouter()
@@ -29,7 +33,7 @@ function open(routeName: string, id: string) {
 </script>
 
 <template>
-  <FormSection title="Zpětné vazby" icon="link" tag="record-backrefs">
+  <FormSection :title="title" :icon="icon" tag="record-backrefs">
     <p class="mb-3 text-[11.5px] leading-relaxed text-steel-500">
       Kde všude se na {{ entityLabel }} odkazuje. Vazba se spravuje v daném záznamu — tady je jen přehled.
     </p>
@@ -41,7 +45,7 @@ function open(routeName: string, id: string) {
     <div v-else class="space-y-3">
       <div v-for="g in groups" :key="g.key">
         <p class="mb-1.5 flex items-center gap-1.5 field-tag">
-          <Icon :name="g.icon" :size="13" class="text-steel-400" /> {{ g.label }}
+          {{ g.label }}
           <span class="text-steel-400">· {{ g.items.length }}</span>
         </p>
         <ul class="space-y-1">

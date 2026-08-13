@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import Icon from '@/components/ui/Icon.vue'
-defineProps<{ title: string; icon: string; hint?: string; tag?: string }>()
+defineProps<{ title: string; icon?: string; hint?: string; tag?: string }>()
 </script>
 
 <template>
   <section class="rounded-lg border border-steel-200 bg-white">
     <header class="flex items-center gap-3 border-b border-steel-100 px-5 py-3.5">
-      <span class="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-steel-100 text-graphite-700">
+      <span v-if="icon" class="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-steel-100 text-graphite-700">
         <Icon :name="icon" :size="17" />
       </span>
       <div class="min-w-0 flex-1">

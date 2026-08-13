@@ -88,9 +88,18 @@ export interface AreaObject {
       přidružených stránek (hlavní stránka + podstránky + externí odkazy),
       která se zobrazí jako záložky v detailu budovy. */
   mainPageId?: string
-  /** Individuální záložky přidružených stránek (kopírují jejich názvy) —
-      zobrazí se v detailu budovy za fixními záložkami. Per budova. */
-  pageTabs?: string[]
+  /** Individuální záložky přidružených stránek (kopírují záložky na FE webu) —
+      zobrazí se v detailu budovy za záložkou Galerie. Každá má vlastní obsah
+      (blokový editor). Per budova. */
+  pageTabs?: AreaPageTab[]
+}
+
+/** Jedna přidružená záložka budovy — kopíruje záložku na FE webu; má vlastní obsah. */
+export interface AreaPageTab {
+  /** Název záložky (např. Expozice, Vstupenky, Pro školy). */
+  label: string
+  /** Obsah záložky — blokový editor (ContentBuilder). */
+  contentBlocks: ContentBlock[]
 }
 
 function ml(cs: string, extra?: Partial<Record<LangCode, string>>): ML {
@@ -130,22 +139,9 @@ function vphotos(n: number, offset: number): GalleryImage[] {
   return Array.from({ length: n }, (_, i) => ({ id: `ph-${offset}-${i}`, src: imageFor(offset + i), alt: `Foto ${i + 1}`, isMain: i === 0 }))
 }
 
+/* Seznam budov dle skutečnosti (pořadí = výpis v modulu Areál). ID zachována
+   kvůli vazbám z jiných modulů (akce, galerie, novinky, prohlídky). */
 const RAW: RawVenue[] = [
-  {
-    id: 'v-areal',
-    title: 'Areál DOV',
-    summary: 'Industriální areál Dolních Vítkovic jako celek — festivaly a akce napříč celým prostorem.',
-    image: imageFor(1),
-    color: '#64748b',
-    silhouette: 'areal',
-    tags: ['Atraktivity'],
-    accessible: true,
-    openState: 'open',
-    showOpeningHours: false,
-    published: true,
-    mainPageId: 'pg-onas',
-    pageTabs: ['Expozice', 'Vstupenky', 'Pro školy'],
-  },
   {
     id: 'v-bolt',
     title: 'Bolt Tower',
@@ -165,8 +161,55 @@ const RAW: RawVenue[] = [
     stats: [stat('78 m', 'výška vyhlídky'), stat('2015', 'rok otevření')],
   },
   {
+    id: 'v-areal',
+    title: 'Velký svět techniky',
+    titleI18n: { en: 'Big World of Technology' },
+    summary: 'Science centrum s interaktivními expozicemi — stovky exponátů, kde si vědu a techniku vyzkoušíte na vlastní kůži.',
+    image: imageFor(1),
+    color: '#1f7a8c',
+    silhouette: 'technika',
+    tags: ['Atraktivity'],
+    accessible: true,
+    openState: 'open',
+    showOpeningHours: true,
+    published: true,
+    stats: [stat('14 000 m²', 'plocha expozic'), stat('2014', 'rok otevření')],
+  },
+  {
+    id: 'v-u6',
+    title: 'Malý svět techniky U6',
+    titleI18n: { en: 'Small World of Technology U6' },
+    summary:
+      'Interaktivní expozice s exponáty na motivy Julese Verna. U6 v novém kabátu láká na desítky pokusů, které si návštěvníci vyzkouší na vlastní kůži.',
+    image: imageFor(4),
+    color: '#3b6fb0',
+    silhouette: 'technika',
+    tags: ['Atraktivity'],
+    photos: vphotos(4, 4),
+    accessible: true,
+    openState: 'open',
+    showOpeningHours: true,
+    published: true,
+    // Angličtina je vyplněná, ale zatím skrytá na webu → stav „připraveno" (amber).
+    publishedLangs: ['cs'],
+    stats: [stat('12 m', 'výška vyhlídkové plošiny'), stat('1938', 'rok dokončení stavby'), stat('900 t', 'váha dmychadel'), stat('900 m²', 'rozloha expozice')],
+  },
+  {
+    id: 'v-hotel',
+    title: 'Dětský svět',
+    summary: 'Zábavní a herní prostor pro nejmenší — bezpečné hraní, prolézačky a kreativní koutky přímo v areálu.',
+    image: imageFor(7),
+    color: '#e0762a',
+    silhouette: 'areal',
+    tags: ['Atraktivity'],
+    accessible: true,
+    openState: 'open',
+    showOpeningHours: true,
+    published: true,
+  },
+  {
     id: 'v-gong',
-    title: 'Multifunkční aula Gong',
+    title: 'Gong',
     summary: 'Bývalý plynojem přeměněný v multifunkční aulu pro koncerty, konference a společenské akce.',
     image: imageFor(8),
     color: '#7b5ea7',
@@ -192,28 +235,9 @@ const RAW: RawVenue[] = [
     published: true,
   },
   {
-    id: 'v-u6',
-    title: 'Malý svět techniky U6',
-    titleI18n: { en: 'Small World of Technology U6' },
-    summary:
-      'Interaktivní expozice s exponáty na motivy Julese Verna. U6 v novém kabátu láká na desítky pokusů, které si návštěvníci vyzkouší na vlastní kůži.',
-    image: imageFor(4),
-    color: '#3b6fb0',
-    silhouette: 'technika',
-    tags: ['Atraktivity'],
-    photos: vphotos(4, 4),
-    accessible: true,
-    openState: 'open',
-    showOpeningHours: true,
-    published: true,
-    // Angličtina je vyplněná, ale zatím skrytá na webu → stav „připraveno" (amber).
-    publishedLangs: ['cs'],
-    stats: [stat('12 m', 'výška vyhlídkové plošiny'), stat('1938', 'rok dokončení stavby'), stat('900 t', 'váha dmychadel'), stat('900 m²', 'rozloha expozice')],
-  },
-  {
     id: 'v-hlubina',
-    title: 'Důl Hlubina',
-    summary: 'Národní kulturní památka — bývalý černouhelný důl s autentickými prostorami a zážitkovými prohlídkami.',
+    title: 'Hornické muzeum',
+    summary: 'Expozice o hornické historii v autentických prostorách bývalého dolu — zážitkové prohlídky s průvodcem.',
     image: imageFor(5),
     color: '#b04f20',
     silhouette: 'hlubina',
@@ -225,6 +249,19 @@ const RAW: RawVenue[] = [
     showOpeningHours: true,
     published: true,
     stats: [stat('1852', 'rok založení dolu')],
+  },
+  {
+    id: 'v-marycka',
+    title: 'Heligonka',
+    summary: 'Komorní klubová scéna v areálu — koncerty, besedy a společenské večery v industriální atmosféře.',
+    image: imageFor(6),
+    color: '#e0a52a',
+    silhouette: 'areal',
+    tags: ['Atraktivity', 'Gastro'],
+    accessible: true,
+    openState: 'open',
+    showOpeningHours: true,
+    published: true,
   },
   {
     id: 'v-hopjump',
@@ -253,32 +290,56 @@ const RAW: RawVenue[] = [
     published: true,
   },
   {
-    id: 'v-marycka',
-    title: 'Restaurace Maryčka',
-    summary: 'Restaurace s industriální atmosférou přímo v areálu — regionální kuchyně a domácí pivo.',
-    image: imageFor(6),
-    color: '#e0a52a',
-    silhouette: 'areal',
-    tags: ['Gastro'],
+    id: 'v-nzm',
+    title: 'Národní zemědělské muzeum',
+    summary: 'Pobočka Národního zemědělského muzea v areálu — expozice o zemědělství, potravinách a životě na venkově.',
+    image: imageFor(2),
+    color: '#6a9a3b',
+    silhouette: 'technika',
+    tags: ['Atraktivity'],
     accessible: true,
     openState: 'open',
     showOpeningHours: true,
     published: true,
   },
   {
-    id: 'v-hotel',
-    title: 'Ubytování v areálu',
-    summary: 'Designové ubytování v srdci industriálního areálu — ideální pro víkendový pobyt i firemní akce.',
-    image: imageFor(7),
-    color: '#5b5bd6',
+    id: 'v-fajnadilna',
+    title: 'Fajna Dilna',
+    summary: 'Kreativní a řemeslné dílny pro děti i dospělé — tvořivé workshopy a maker space v industriálním prostředí.',
+    image: imageFor(11),
+    color: '#cf6a4c',
     silhouette: 'areal',
-    tags: ['Ubytování'],
+    tags: ['Atraktivity'],
     accessible: true,
-    openState: 'seasonal',
-    showOpeningHours: false,
-    published: false,
+    openState: 'open',
+    showOpeningHours: true,
+    published: true,
+  },
+  {
+    id: 'v-futureum',
+    title: 'FUTUREUM',
+    summary: 'Interaktivní expozice o budoucnosti, vědě a inovacích — pohled na svět zítřka pro celou rodinu.',
+    image: imageFor(12),
+    color: '#5b5bd6',
+    silhouette: 'technika',
+    tags: ['Atraktivity'],
+    accessible: true,
+    openState: 'open',
+    showOpeningHours: true,
+    published: true,
   },
 ]
+
+/** Výchozí záložky přidružených stránek — kopírují záložky na FE webu.
+    Stejné pro všechny budovy (lze přepsat per budova polem RawVenue.pageTabs). */
+export const DEFAULT_PAGE_TAB_LABELS = ['Expozice', 'Vstupenky', 'Pro školy']
+/** Sestaví záložky s vlastní výchozí sadou bloků (unikátní ID přes index). */
+function makePageTabs(labels: string[]): AreaPageTab[] {
+  return labels.map((label, i) => ({
+    label,
+    contentBlocks: defaultContentBlocks().map((b) => ({ ...b, id: `${b.id}-pt${i}` })),
+  }))
+}
 
 export const MOCK_VENUES: AreaObject[] = RAW.map((r) => ({
   id: r.id,
@@ -299,7 +360,9 @@ export const MOCK_VENUES: AreaObject[] = RAW.map((r) => ({
   published: r.published,
   publishedLangs: r.publishedLangs,
   mainPageId: r.mainPageId,
-  pageTabs: r.pageTabs,
+  // Všechny budovy mají stejné záložky (Expozice/Vstupenky/Pro školy), pokud si
+  // budova neurčí vlastní přes RawVenue.pageTabs.
+  pageTabs: makePageTabs(r.pageTabs ?? DEFAULT_PAGE_TAB_LABELS),
 }))
 
 /** Vyhledání místa/objektu podle ID (pro kalendář, výpisy, detaily akcí). */
@@ -334,5 +397,7 @@ export function blankVenue(): AreaObject {
     published: false,
     // Nový objekt: každá mutace půjde živě, jakmile dostane obsah.
     publishedLangs: LANGS.map((l) => l.code),
+    // Nová budova má stejné záložky jako ostatní.
+    pageTabs: makePageTabs(DEFAULT_PAGE_TAB_LABELS),
   }
 }

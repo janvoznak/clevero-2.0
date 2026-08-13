@@ -74,13 +74,13 @@ function onToggleLang(code: LangCode) {
    Fixní záložky budovy + individuální záložky přidružených stránek (per budova).
    Přidružené stránky (form.pageTabs) se přidají za fixní záložky pod svými názvy. */
 const activeSection = ref('basic')
-const baseSections = [
-  { value: 'basic', label: 'Základní informace', icon: 'page' },
-  { value: 'content', label: 'Obsah', icon: 'text' },
-  { value: 'backrefs', label: 'Zařazení a vazby', icon: 'link' },
+/** První záložka se jmenuje podle názvu budovy (kopíruje hlavní záložku na FE webu). */
+const basicTabLabel = computed(() => form.title.cs.trim() || 'Základní informace')
+const baseSections = computed(() => [
+  { value: 'basic', label: basicTabLabel.value, icon: 'page' },
   { value: 'gallery', label: 'Galerie', icon: 'gallery' },
-]
-/** Individuální záložky přidružených stránek (kopírují jejich názvy). */
+])
+/** Individuální záložky přidružených stránek (kopírují záložky na FE webu; obsah = ContentBuilder). */
 const pageTabs = computed(() => form.pageTabs ?? [])
 
 /* ---------- Zajímavá čísla ---------- */
@@ -198,51 +198,52 @@ function onDuplicate() {
                 :value="`pgtab-${i}`"
                 class="-mb-px inline-flex shrink-0 items-center gap-2 rounded-t-md border-b-2 border-transparent px-4 py-2.5 text-[13px] font-600 text-steel-500 outline-none transition-colors hover:bg-steel-100 hover:text-graphite-800 data-[state=active]:border-brand-500 data-[state=active]:bg-brand-50 data-[state=active]:text-brand-700"
               >
-                <Icon name="subpage" :size="16" />
-                {{ p }}
+                <Icon name="text" :size="16" />
+                {{ p.label }}
               </TabsTrigger>
             </TabsList>
 
             <div class="p-5">
               <!-- Sekce: Základní informace -->
-              <TabsContent value="basic" class="space-y-4 outline-none">
-                <div>
-                  <MlFieldHeader label="Název objektu" :lang="activeLang" tag="area-title" required @translate="translateField('title')" />
-                  <input
-                    v-model="form.title[activeLang]"
-                    type="text"
-                    placeholder="Např. Malý svět techniky U6"
-                    class="h-11 w-full rounded-md border border-steel-200 px-3.5 text-[15px] font-500 text-graphite-900 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none"
-                  />
-                </div>
+              <TabsContent value="basic" class="space-y-5 outline-none">
+                <!-- Základní údaje -->
+                <FormSection title="Základní údaje">
+                  <div class="space-y-4">
+                    <div>
+                      <MlFieldHeader label="Název objektu" :lang="activeLang" tag="area-title" required @translate="translateField('title')" />
+                      <input
+                        v-model="form.title[activeLang]"
+                        type="text"
+                        placeholder="Např. Malý svět techniky U6"
+                        class="h-11 w-full rounded-md border border-steel-200 px-3.5 text-[15px] font-500 text-graphite-900 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none"
+                      />
+                    </div>
 
-                <SlugField
-                  v-model="slugText"
-                  :tag="`area-url · ${activeLang.toUpperCase()}`"
-                  @edit="markManual(activeLang)"
-                />
+                    <SlugField
+                      v-model="slugText"
+                      :tag="`area-url · ${activeLang.toUpperCase()}`"
+                      @edit="markManual(activeLang)"
+                    />
 
-                <div>
-                  <MlFieldHeader label="Krátký popis (perex)" :lang="activeLang" tag="area-summary" @translate="translateField('summary')" />
-                  <textarea
-                    v-model="form.summary[activeLang]"
-                    rows="3"
-                    placeholder="Stručná charakteristika objektu do výpisu a náhledů"
-                    class="w-full resize-y rounded-md border border-steel-200 px-3.5 py-2.5 text-[14px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none"
-                  />
-                </div>
+                    <div>
+                      <MlFieldHeader label="Krátký popis (perex)" :lang="activeLang" tag="area-summary" @translate="translateField('summary')" />
+                      <textarea
+                        v-model="form.summary[activeLang]"
+                        rows="3"
+                        placeholder="Stručná charakteristika objektu do výpisu a náhledů"
+                        class="w-full resize-y rounded-md border border-steel-200 px-3.5 py-2.5 text-[14px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none"
+                      />
+                    </div>
 
-                <div class="flex items-center justify-between rounded-md border border-steel-200 px-3 py-2.5">
-                  <AppSwitch v-model="form.accessible" label="Bezbariérový přístup" aria-label="Bezbariérový přístup" />
-                  <span class="field-tag">area-accessible</span>
-                </div>
+                    <div class="flex items-center justify-between rounded-md border border-steel-200 px-3 py-2.5">
+                      <AppSwitch v-model="form.accessible" label="Bezbariérový přístup" aria-label="Bezbariérový přístup" />
+                      <span class="field-tag">area-accessible</span>
+                    </div>
+                  </div>
+                </FormSection>
 
                 <!-- Zajímavá čísla (statistiky budovy) -->
-                <div>
-                  <div class="mb-2 flex items-center justify-between">
-                    <span class="text-[13px] font-600 text-graphite-800">Zajímavá čísla</span>
-                    <span class="field-tag">area-stats</span>
-                  </div>
+                <FormSection title="Zajímavá čísla" tag="area-stats">
                   <div v-if="form.stats.length" class="space-y-2">
                     <div v-for="(s, i) in form.stats" :key="s.id" class="flex items-center gap-2">
                       <input
@@ -275,10 +276,10 @@ function onDuplicate() {
                   >
                     <Icon name="plus" :size="15" /> Přidat číslo
                   </button>
-                </div>
+                </FormSection>
 
-                <!-- Provoz a otevírací doba (sjednoceno do Základních informací) -->
-                <FormSection title="Provozní stav" icon="clock" hint="Nadřazený otevírací době — řídí, co se zobrazí na webu." tag="area-open_state">
+                <!-- Provozní stav -->
+                <FormSection title="Provozní stav" hint="Nadřazený otevírací době — řídí, co se zobrazí na webu." tag="area-open_state">
                   <div class="flex flex-wrap items-center gap-3">
                     <AppSelect v-model="form.openState" :options="OPEN_STATE_OPTIONS" class="w-44" />
                     <span
@@ -289,8 +290,7 @@ function onDuplicate() {
                       {{ OPEN_STATE_META[form.openState].label }}
                     </span>
                   </div>
-                  <p class="mt-2 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
-                    <Icon name="integration" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
+                  <p class="mt-2 text-[11.5px] leading-relaxed text-steel-500">
                     <span v-if="form.openState === 'open'">Na webu se otevřeno/zavřeno řídí otevírací dobou níže.</span>
                     <span v-else-if="form.openState === 'seasonal'">Sezónní provoz — otevírací doba platí v sezóně; mimo sezónu je objekt zavřený. Upřesněte v poznámce.</span>
                     <span v-else>Dočasně uzavřeno — na webu se objekt zobrazí jako zavřený bez ohledu na otevírací dobu. Doplňte poznámku (např. rekonstrukce).</span>
@@ -310,10 +310,9 @@ function onDuplicate() {
                 </FormSection>
 
                 <!-- Otevírací doba — neuplatní se, když je objekt uzavřený -->
-                <FormSection title="Otevírací doba" icon="clock" tag="area-opening_hours">
+                <FormSection title="Otevírací doba" tag="area-opening_hours">
                   <div v-if="form.openState === 'closed'" class="rounded-md border border-danger-500/25 bg-danger-500/5 px-3 py-2.5">
-                    <p class="flex items-start gap-1.5 text-[12px] leading-relaxed text-danger-600">
-                      <Icon name="clock" :size="14" class="mt-0.5 shrink-0" />
+                    <p class="text-[12px] leading-relaxed text-danger-600">
                       Objekt je označen jako <strong>dočasně uzavřený</strong> — otevírací doba se na webu neuplatní. Provoz obnovíte přepnutím stavu výše.
                     </p>
                   </div>
@@ -326,16 +325,9 @@ function onDuplicate() {
                     <p v-else class="mt-3 text-[12.5px] text-steel-400">Otevírací doba se na webu objektu nezobrazí.</p>
                   </template>
                 </FormSection>
-              </TabsContent>
 
-              <!-- Sekce: Obsah (jednotný ContentBuilder — nic dalšího pod ním) -->
-              <TabsContent value="content" class="outline-none">
-                <ContentBuilder v-model="form.contentBlocks" />
-              </TabsContent>
-
-              <!-- Sekce: Zpětné vazby (kdo na objekt odkazuje — odvozené, read-only) -->
-              <TabsContent value="backrefs" class="outline-none">
-                <BackRefsCard :groups="backRefsForArea(form.id)" entity-label="tento objekt" />
+                <!-- Zařazení a vazby (bez ikony, konzistentní karta) -->
+                <BackRefsCard title="Zařazení a vazby" icon="" :groups="backRefsForArea(form.id)" entity-label="tento objekt" />
               </TabsContent>
 
               <!-- Sekce: Galerie -->
@@ -368,20 +360,14 @@ function onDuplicate() {
                 />
               </TabsContent>
 
-              <!-- Sekce: Přidružené stránky budovy (individuální — kopírují názvy stránek) -->
+              <!-- Sekce: Přidružené záložky budovy (kopírují FE web) — obsah přes ContentBuilder -->
               <TabsContent
                 v-for="(p, i) in pageTabs"
                 :key="`pgtabc-${i}`"
                 :value="`pgtab-${i}`"
                 class="outline-none"
               >
-                <div class="rounded-lg border border-dashed border-steel-300 bg-steel-50/40 px-4 py-12 text-center">
-                  <Icon name="subpage" :size="26" class="mx-auto mb-2 text-steel-300" />
-                  <p class="text-[14px] font-700 text-graphite-800">{{ p }}</p>
-                  <p class="mx-auto mt-1 max-w-md text-[12.5px] leading-relaxed text-steel-500">
-                    Přidružená stránka budovy „{{ p }}". Obsah této záložky doplníme podle finálního zadání.
-                  </p>
-                </div>
+                <ContentBuilder v-model="p.contentBlocks" />
               </TabsContent>
             </div>
           </TabsRoot>
