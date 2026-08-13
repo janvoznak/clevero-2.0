@@ -96,6 +96,9 @@ export interface DovEvent {
   tags: string[]
   /** Vazba na objekt v Areálu (ID objektu, '' = nepropojeno). */
   areaId: string
+  /** Akce obsazuje budovu — po dobu konání je uzavřena pro širší veřejnost
+      (soukromá akce, konference, festival). Řídí upozornění „Provoz budov". */
+  closesVenue?: boolean
   /** Související prohlídky (ID z modulu Prohlídky). */
   tourIds: string[]
   /** Připojené fotogalerie (ID z modulu Galerie) — např. „fotky z minulého ročníku". */
@@ -133,6 +136,8 @@ type RawEvent = {
   performers?: string
   tags?: string[]
   areaId?: string
+  /** Akce obsazuje budovu (uzavře ji pro veřejnost po dobu konání). */
+  closesVenue?: boolean
   tourIds?: string[]
   galleryIds?: string[]
   /** Volitelné jazykové mutace názvu (mimo CZ) — pro demonstraci stavů publikace. */
@@ -151,7 +156,9 @@ const RAW_EVENTS: RawEvent[] = [
   { id: 'e-salon', title: 'Letní salón 2', areaId: 'v-galerie', type: 'Výstava', from: '2026-06-23', to: '2026-08-28', summary: 'Přehlídka současné regionální tvorby.', image: imageFor(6), published: true },
 
   // — Vzdělávací programy (konec července) —
-  { id: 'e-tabor', areaId: 'v-u6', title: 'Letní příměstský tábor U6', type: 'Vzdělávací program', from: '2026-07-27', to: '2026-07-31', summary: 'Týdenní tábor plný experimentů ve Světě techniky.', image: imageFor(4), published: true, price: '2 900 Kč', ageLimit: 'Od 6 let', tags: ['Pro školy', 'Rodinné'] },
+  { id: 'e-tabor', areaId: 'v-u6', title: 'Letní příměstský tábor U6', type: 'Vzdělávací program', from: '2026-07-27', to: '2026-07-31', summary: 'Týdenní tábor plný experimentů ve Světě techniky.', image: imageFor(4), published: true, price: '2 900 Kč', ageLimit: 'Od 6 let', tags: ['Pro školy', 'Rodinné'], closesVenue: true },
+  // — Soukromá akce, která už skončila (budova zůstala omylem zavřená → dashboard nabídne otevřít) —
+  { id: 'e-firemniden', areaId: 'v-marycka', title: 'Firemní den — ArcelorMittal', type: 'Soukromá akce', from: '2026-07-25', to: '2026-07-27', summary: 'Soukromá firemní akce — prostor uzavřen pro veřejnost.', image: imageFor(6), published: false, closesVenue: true },
   { id: 'e-scienceshow', areaId: 'v-u6', title: 'Science Show: Živly', type: 'Vzdělávací program', from: '2026-07-29', to: '2026-07-29', time: '15:00', timeTo: '16:00', summary: 'Interaktivní představení o přírodních živlech.', image: imageFor(13), published: true, price: 'Vstup zdarma', duration: '60 min', tags: ['Rodinné', 'Zdarma'] },
   // — Srpen: festivaly a akce (více budov v jeden den) —
   // CZ živě, EN má vyplněný název, ale drží se skryté (připraveno) → amber stav.
@@ -163,7 +170,7 @@ const RAW_EVENTS: RawEvent[] = [
   { id: 'e-afrostrava', title: 'Festival AFROSTRAVA', titleLangs: { en: 'AFROSTRAVA Festival', de: 'AFROSTRAVA Festival' }, publishedLangs: ['cs', 'en'], areaId: 'v-areal', type: 'Festival', from: '2026-08-14', to: '2026-08-15', summary: 'Přehlídka africké hudby, tance a gastronomie.', image: imageFor(7), published: true, tags: ['Hudba', 'Venku', 'Občerstvení'] },
   { id: 'e-lezecka', title: 'Závody na lezecké stěně', areaId: 'v-lezecka', type: 'Sportovní akce', from: '2026-08-15', to: '2026-08-15', time: '10:00', summary: 'Regionální kolo v lezení na obtížnost.', image: imageFor(10), published: true, tags: ['Sport'] },
   { id: 'e-hiphop', areaId: 'v-gong', title: 'HIP HOP ŽIJE OSTRAVA', type: 'Koncert', from: '2026-08-28', to: '2026-08-29', summary: 'Dvoudenní hip-hopový festival v Gongu.', image: imageFor(12), published: true, tags: ['Hudba'] },
-  { id: 'e-konference', title: 'Konference Industry 5.0', areaId: 'v-u6', type: 'Konference', from: '2026-08-20', to: '2026-08-21', summary: 'Odborná konference o budoucnosti průmyslu.', image: imageFor(14), published: false, tags: ['Pro školy'] },
+  { id: 'e-konference', title: 'Konference Industry 5.0', areaId: 'v-u6', type: 'Konference', from: '2026-08-20', to: '2026-08-21', summary: 'Odborná konference o budoucnosti průmyslu.', image: imageFor(14), published: false, tags: ['Pro školy'], closesVenue: true },
 ]
 
 /** Odvození způsobu prodeje z dostupných polí, když RawEvent `ticketMode` neurčuje.
@@ -197,6 +204,7 @@ export const MOCK_EVENTS: DovEvent[] = RAW_EVENTS.map((r) => ({
   performers: r.performers ?? '',
   tags: r.tags ?? [],
   areaId: r.areaId ?? '',
+  closesVenue: r.closesVenue ?? false,
   tourIds: r.tourIds ?? [],
   galleryIds: r.galleryIds ?? [],
   published: r.published,

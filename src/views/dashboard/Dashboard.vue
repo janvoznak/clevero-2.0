@@ -19,6 +19,7 @@ import {
   type AttentionItem,
 } from '@/data/mockDashboard'
 import { MOCK_EVENTS, eventStatus, EVENTS_NOW } from '@/data/mockEvents'
+import { MOCK_VENUES, OPEN_STATE_META, type OpenState } from '@/data/mockVenues'
 import EventTimeline from '@/components/admin/calendar/EventTimeline.vue'
 
 const router = useRouter()
@@ -114,6 +115,65 @@ function openEvent(e: { id: string }) {
   router.push(`/admin/events/${e.id}`)
 }
 
+/* ============================================================
+   Provoz budov — přehled otevřeno/zavřeno + hlídání kolize s akcí.
+   Když v budově probíhá akce, která ji obsazuje (closesVenue), budova by
+   měla být zavřená pro veřejnost; po skončení akce ji zase otevřít.
+   Klient přepíná ručně — dashboard jen upozorní a nabídne akci na klik.
+   ============================================================ */
+interface VenueRow {
+  id: string
+  title: string
+  openState: OpenState
+  closureReason?: 'event' | 'maintenance'
+  closureEventId?: string
+}
+const venues = reactive<VenueRow[]>(
+  MOCK_VENUES.map((v) => ({
+    id: v.id,
+    title: v.title.cs,
+    openState: v.openState,
+    closureReason: v.closureReason,
+    closureEventId: v.closureEventId,
+  })),
+)
+/** Akce, která právě obsazuje budovu (probíhá a uzavírá ji pro veřejnost). */
+function activeClosingEvent(venueId: string) {
+  return MOCK_EVENTS.find((e) => e.areaId === venueId && e.closesVenue && eventStatus(e, EVENTS_NOW) === 'ongoing')
+}
+function eventById(id?: string) {
+  return id ? MOCK_EVENTS.find((e) => e.id === id) : undefined
+}
+type VenueOpsKind = 'needs-close' | 'needs-reopen' | 'closed-event' | 'closed-other' | 'seasonal' | 'open'
+interface VenueOps {
+  v: VenueRow
+  kind: VenueOpsKind
+  eventTitle?: string
+}
+const venueOps = computed<VenueOps[]>(() =>
+  venues.map((v) => {
+    const closing = activeClosingEvent(v.id)
+    // Otevřená budova s probíhající obsazující akcí → má se zavřít.
+    if (v.openState !== 'closed' && closing) return { v, kind: 'needs-close', eventTitle: closing.title.cs }
+    // Zavřená kvůli akci — po jejím skončení nabídnout otevřít.
+    if (v.openState === 'closed' && v.closureReason === 'event') {
+      const ev = eventById(v.closureEventId)
+      const running = !!ev && eventStatus(ev, EVENTS_NOW) === 'ongoing'
+      return running ? { v, kind: 'closed-event', eventTitle: ev?.title.cs } : { v, kind: 'needs-reopen', eventTitle: ev?.title.cs }
+    }
+    if (v.openState === 'closed') return { v, kind: 'closed-other' }
+    if (v.openState === 'seasonal') return { v, kind: 'seasonal' }
+    return { v, kind: 'open' }
+  }),
+)
+const venueAlerts = computed(() => venueOps.value.filter((o) => o.kind === 'needs-close' || o.kind === 'needs-reopen'))
+const venueRest = computed(() => venueOps.value.filter((o) => o.kind !== 'needs-close' && o.kind !== 'needs-reopen'))
+/** Widget stav budovy NEPŘEPÍNÁ (nebezpečné na překlik) — jen upozorní a navede
+    klienta do detailu budovy, kde provozní stav vědomě přepne. */
+function goVenue(id: string) {
+  router.push({ name: 'area-edit', params: { id } })
+}
+
 /* Rychlé akce (zkratky do editorů modulů). */
 const quickActions = [
   { label: 'Nová aktualita', icon: 'news', route: 'news-new' },
@@ -128,7 +188,7 @@ const quickActions = [
    Widgety dashboardu — pořadí + drag&drop řazení (prototyp).
    Sekce s čísly je jeden widget. Přesun tažením za úchyt.
    ============================================================ */
-const widgets = ref<string[]>(['attention', 'stats', 'calendar', 'recent'])
+const widgets = ref<string[]>(['attention', 'venues', 'stats', 'calendar', 'recent'])
 const dragKey = ref<string | null>(null)
 const overKey = ref<string | null>(null)
 function onWidgetDragStart(key: string) {
@@ -284,6 +344,71 @@ function onWidgetDragEnd() {
         <Icon :name="showAllAttention ? 'chevronLeft' : 'chevronDown'" :size="14" />
         {{ showAllAttention ? 'Zobrazit méně' : `Zobrazit vše (${attention.length})` }}
       </button>
+    </section>
+
+    <!-- Widget: Provoz budov (otevřeno/zavřeno + kolize s akcemi) -->
+    <section
+      class="overflow-hidden rounded-2xl border border-steel-200 bg-white shadow-sm transition-[box-shadow,opacity]"
+      :style="{ order: widgets.indexOf('venues') }"
+      :class="[overKey === 'venues' && dragKey && dragKey !== 'venues' ? 'ring-2 ring-brand-400' : '', dragKey === 'venues' ? 'opacity-40' : '']"
+      @dragenter.prevent="dragKey && (overKey = 'venues')"
+      @dragover.prevent
+      @drop="onWidgetDrop('venues')"
+      @dragend="onWidgetDragEnd"
+    >
+      <header class="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-steel-100 px-5 py-3.5">
+        <button draggable="true" class="grid h-6 w-6 shrink-0 cursor-grab place-items-center rounded text-steel-400 transition-colors hover:bg-steel-100 hover:text-graphite-700 active:cursor-grabbing" aria-label="Přesunout widget" @dragstart="onWidgetDragStart('venues')" @click.stop><Icon name="grip" :size="15" /></button>
+        <h2 class="flex items-center gap-2 font-display text-[15px] font-700 text-graphite-900"><Icon name="home" :size="17" class="text-steel-400" /> Provoz budov</h2>
+        <span v-if="venueAlerts.length" class="inline-flex items-center rounded-full bg-amber-500/15 px-2 py-0.5 text-[10.5px] font-700 text-amber-600">{{ venueAlerts.length }} vyžaduje akci</span>
+        <button class="ml-auto inline-flex items-center gap-1 text-[12.5px] font-600 text-steel-500 transition-colors hover:text-brand-600" @click="router.push({ name: 'area-list' })">
+          Otevřít Areál <Icon name="chevronRight" :size="14" />
+        </button>
+      </header>
+
+      <!-- Upozornění: zavřít / otevřít -->
+      <ul v-if="venueAlerts.length" class="divide-y divide-steel-100">
+        <li
+          v-for="o in venueAlerts"
+          :key="o.v.id"
+          class="flex flex-wrap items-center gap-3 px-5 py-3"
+          :class="o.kind === 'needs-close' ? 'bg-amber-50/50' : 'bg-brand-50/40'"
+        >
+          <span
+            class="grid h-8 w-8 shrink-0 place-items-center rounded-md"
+            :class="o.kind === 'needs-close' ? 'bg-amber-500/15 text-amber-600' : 'bg-brand-500/15 text-brand-600'"
+          >
+            <Icon :name="o.kind === 'needs-close' ? 'bell' : 'check'" :size="16" />
+          </span>
+          <div class="min-w-0 flex-1">
+            <p class="truncate text-[13.5px] font-700 text-graphite-900">{{ o.v.title }}</p>
+            <p class="text-[12px] leading-relaxed text-steel-500">
+              <template v-if="o.kind === 'needs-close'">Probíhá akce „{{ o.eventTitle }}" — zavřete budovu pro veřejnost na webu.</template>
+              <template v-else>Akce „{{ o.eventTitle }}" skončila — budovu je potřeba znovu otevřít pro veřejnost.</template>
+            </p>
+          </div>
+          <AppButton variant="secondary" size="sm" @click="goVenue(o.v.id)">
+            Přejít na budovu <Icon name="chevronRight" :size="14" />
+          </AppButton>
+        </li>
+      </ul>
+      <div v-else class="flex items-center gap-2 border-b border-steel-100 px-5 py-3 text-[12.5px] text-steel-500">
+        <Icon name="check" :size="15" class="text-forge-500" /> Všechny budovy jsou ve správném stavu — žádná kolize s akcemi.
+      </div>
+
+      <!-- Přehled všech budov + stav -->
+      <div class="grid grid-cols-1 gap-x-6 gap-y-0.5 px-5 py-3 sm:grid-cols-2 lg:grid-cols-3">
+        <button
+          v-for="o in venueRest"
+          :key="o.v.id"
+          type="button"
+          class="group flex items-center gap-2 rounded border-b border-steel-50 py-1.5 text-left outline-none transition-colors last:border-0 hover:text-brand-600"
+          @click="goVenue(o.v.id)"
+        >
+          <span class="h-2 w-2 shrink-0 rounded-full" :class="OPEN_STATE_META[o.v.openState].dot" />
+          <span class="min-w-0 flex-1 truncate text-[12.5px] text-graphite-700 group-hover:text-brand-600">{{ o.v.title }}</span>
+          <span class="shrink-0 text-[11px] font-600" :class="OPEN_STATE_META[o.v.openState].text">{{ OPEN_STATE_META[o.v.openState].label }}</span>
+        </button>
+      </div>
     </section>
 
     <!-- Widget: Klíčová čísla (celý blok = jeden widget) -->
