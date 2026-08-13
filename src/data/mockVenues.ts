@@ -81,6 +81,11 @@ export interface AreaObject {
   statusNote: ML
   openingHours: OpeningDay[]
   showOpeningHours: boolean
+  /** Důvod uzavření (jen když openState = 'closed'): kvůli akci vs. rekonstrukce.
+      Rozlišuje, jestli má dashboard nabízet „znovu otevřít" po skončení akce. */
+  closureReason?: 'event' | 'maintenance'
+  /** ID akce, kvůli které je budova zavřená (openState='closed', closureReason='event'). */
+  closureEventId?: string
   published: boolean
   /** Zveřejněné jazykové mutace (které se na webu zobrazí). Bez seznamu = všechny vyplněné. */
   publishedLangs?: LangCode[]
@@ -124,6 +129,10 @@ type RawVenue = {
   statusNote?: string
   showOpeningHours: boolean
   published: boolean
+  /** Důvod uzavření (kvůli akci vs. rekonstrukce). */
+  closureReason?: 'event' | 'maintenance'
+  /** ID akce, kvůli které je budova zavřená. */
+  closureEventId?: string
   /** Explicitně zveřejněné mutace (bez seznamu = všechny vyplněné). */
   publishedLangs?: LangCode[]
   stats?: VenueStat[]
@@ -259,7 +268,10 @@ const RAW: RawVenue[] = [
     silhouette: 'areal',
     tags: ['Atraktivity', 'Gastro'],
     accessible: true,
-    openState: 'open',
+    // Zůstala omylem zavřená po skončené soukromé akci → dashboard nabídne otevřít.
+    openState: 'closed',
+    closureReason: 'event',
+    closureEventId: 'e-firemniden',
     showOpeningHours: true,
     published: true,
   },
@@ -324,9 +336,12 @@ const RAW: RawVenue[] = [
     silhouette: 'technika',
     tags: ['Atraktivity'],
     accessible: true,
-    openState: 'open',
+    // Zavřeno kvůli dokončování expozice (ne kvůli akci) → dashboard „nehoní".
+    openState: 'closed',
+    closureReason: 'maintenance',
+    statusNote: 'Otevření nové expozice připravujeme.',
     showOpeningHours: true,
-    published: true,
+    published: false,
   },
 ]
 
@@ -358,6 +373,8 @@ export const MOCK_VENUES: AreaObject[] = RAW.map((r) => ({
   openingHours: defaultOpeningHours(),
   showOpeningHours: r.showOpeningHours,
   published: r.published,
+  closureReason: r.closureReason,
+  closureEventId: r.closureEventId,
   publishedLangs: r.publishedLangs,
   mainPageId: r.mainPageId,
   // Všechny budovy mají stejné záložky (Expozice/Vstupenky/Pro školy), pokud si
