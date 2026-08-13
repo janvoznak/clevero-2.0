@@ -36,7 +36,7 @@ const langLabel = () => LANGS.find((l) => l.code === props.lang)?.label ?? props
       <button
         type="button"
         class="grid h-6 w-6 place-items-center rounded-md text-steel-400 outline-none transition-colors hover:bg-brand-50 hover:text-brand-600"
-        title="Přeložit toto pole do ostatních mutací (AI)"
+        title="Přeložit toto pole do ostatních mutací (DOVík)"
         @click="$emit('translate')"
       >
         <Icon name="sparkles" :size="13" />

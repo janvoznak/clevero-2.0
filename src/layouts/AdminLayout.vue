@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import AppSidebar from '@/components/admin/AppSidebar.vue'
 import AppTopbar from '@/components/admin/AppTopbar.vue'
+import AiAssistant from '@/components/admin/AiAssistant.vue'
 </script>
 
 <template>
@@ -12,5 +13,7 @@ import AppTopbar from '@/components/admin/AppTopbar.vue'
         <RouterView />
       </main>
     </div>
+    <!-- Plovoucí AI asistent (prototyp) — dostupný na každé obrazovce administrace. -->
+    <AiAssistant />
   </div>
 </template>

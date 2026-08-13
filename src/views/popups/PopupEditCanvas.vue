@@ -425,7 +425,7 @@ function translateLang(code: LangCode) {
 const aiTips = computed(() => {
   const t: string[] = []
   const title = form.title[activeLang.value]
-  if (!title) t.push('Začněte výstižným nadpisem — nebo si nechte navrhnout celé okno od AI.')
+  if (!title) t.push('Začněte výstižným nadpisem — nebo si nechte navrhnout celé okno od DOVíka.')
   else if (title.length > 60) t.push('Nadpis je dlouhý; kratší (do ~50 znaků) zaujme víc.')
   if (!form.image) t.push('Fotka zvýší pozornost — vyberte z galerie nebo ji nechte vygenerovat.')
   if (!plainText(form.text[activeLang.value])) t.push('Přidejte 1–2 věty a jasnou výzvu k akci.')
@@ -539,7 +539,7 @@ function fireToast(msg: string) {
         </div>
 
         <!-- AI Composer (sjednocený AI blok) -->
-        <AiPanel title="Vytvořit okno s AI" badge="AI-first" hint="Popiš, co chceš oznámit, a AI vytvoří celé okno.">
+        <AiPanel title="Vytvořit okno s DOVíkem" badge="DOVík" hint="Popiš, co chceš oznámit, a DOVík vytvoří celé okno.">
           <textarea
             v-model="aiPrompt"
             rows="2"

@@ -249,7 +249,7 @@ function onDuplicate() {
       <!-- LEVÝ sloupec -->
       <div class="min-w-0 space-y-5">
         <!-- AI blok -->
-        <AiPanel title="Popsat prohlídku s AI" hint="Ze stručného zadání připraví AI popis, odrážky a časy.">
+        <AiPanel title="Popsat prohlídku s DOVíkem" hint="Ze stručného zadání připraví DOVík popis, odrážky a časy.">
           <div class="flex flex-col gap-2 sm:flex-row">
             <input v-model="aiPrompt" type="text" placeholder="Např. komentovaná prohlídka vysoké pece č.1 s výstupem na Bolt Tower" class="h-10 w-full flex-1 rounded-md border border-steel-200 bg-white px-3 text-[13px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" @keydown.enter.prevent="aiDescribe" />
             <AppButton variant="primary" :disabled="!aiPrompt.trim() || aiWorking" @click="aiDescribe">

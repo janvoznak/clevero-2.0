@@ -21,6 +21,7 @@ import { useMlTranslate } from '@/utils/useMlTranslate'
 import { LANGS, defaultContentBlocks } from '@/data/types'
 import type { LangCode, NewsItem, ML } from '@/data/types'
 import { MOCK_NEWS, publishState, PREDEFINED_TAGS, PREDEFINED_CATEGORIES } from '@/data/mockNews'
+import { consumeNewsDraft } from '@/data/aiAssistant'
 import {
   filledLangsOf,
   publishedLangsOf,
@@ -90,6 +91,21 @@ function clone(): NewsItem {
 }
 
 const form = reactive<NewsItem>(clone())
+
+/* Prototyp: pokud AI asistent připravil koncept, předvyplní nový záznam (jen CS —
+   cizí mutace se doplní přes AI překlad v pravém panelu). */
+if (!isEdit.value) {
+  const draft = consumeNewsDraft()
+  if (draft) {
+    form.title.cs = draft.title
+    form.summary.cs = draft.summary
+    form.text.cs = draft.text
+    if (draft.tags.length) form.tags = [...draft.tags]
+    if (draft.categories.length) form.categories = [...draft.categories]
+    if (draft.dateFrom) form.dateFrom = draft.dateFrom
+  }
+}
+
 const activeLang = ref<LangCode>('cs')
 const areaModel = computed({
   get: () => form.areaId || AREA_NONE,

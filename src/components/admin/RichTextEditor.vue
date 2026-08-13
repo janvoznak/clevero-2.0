@@ -117,7 +117,7 @@ function aiGenerate() {
             type="button"
             class="inline-flex items-center gap-1.5 rounded-md bg-brand-50 px-2.5 py-1 text-[12px] font-600 text-brand-700 outline-none transition-colors hover:bg-brand-100 data-[state=open]:bg-brand-100"
           >
-            <Icon name="sparkles" :size="14" /> Napsat s AI
+            <Icon name="sparkles" :size="14" /> Napsat s DOVíkem
           </button>
         </PopoverTrigger>
         <PopoverPortal>
@@ -131,10 +131,10 @@ function aiGenerate() {
               <span class="grid h-7 w-7 place-items-center rounded-md bg-brand-50 text-brand-600">
                 <Icon name="sparkles" :size="15" />
               </span>
-              <p class="text-[13px] font-700 text-graphite-900">Napsat text přes AI</p>
+              <p class="text-[13px] font-700 text-graphite-900">Napsat text s DOVíkem</p>
             </div>
             <p class="mb-2.5 text-[11.5px] leading-relaxed text-steel-500">
-              Zadejte téma nebo pokyn a AI navrhne text. <span class="text-steel-400">(prototyp)</span>
+              Zadejte téma nebo pokyn a DOVík navrhne text. <span class="text-steel-400">(prototyp)</span>
             </p>
             <textarea
               v-model="aiPrompt"
