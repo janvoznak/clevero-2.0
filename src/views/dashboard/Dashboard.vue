@@ -272,7 +272,7 @@ function onWidgetDragEnd() {
         <button draggable="true" class="grid h-6 w-6 shrink-0 cursor-grab place-items-center rounded text-steel-400 transition-colors hover:bg-steel-100 hover:text-graphite-700 active:cursor-grabbing" aria-label="Přesunout widget" @dragstart="onWidgetDragStart('attention')" @click.stop><Icon name="grip" :size="15" /></button>
         <span class="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-amber-500/15 text-amber-600"><Icon name="bell" :size="15" /></span>
         <h2 class="font-display text-[14px] font-700 text-graphite-900">Vyžaduje pozornost</h2>
-        <span class="flex items-center gap-1 font-mono text-[10.5px] text-steel-400"><Icon name="sparkles" :size="11" class="text-brand-500" /> AI</span>
+        <span class="flex items-center gap-1 font-mono text-[10.5px] text-steel-400"><Icon name="sparkles" :size="11" class="text-brand-500" /> DOVík</span>
         <span class="ml-auto flex items-center gap-2">
           <span v-if="actionCount" class="inline-flex items-center rounded-full bg-danger-500/10 px-2 py-0.5 text-[10.5px] font-700 text-danger-600">{{ actionCount }} nutné</span>
           <span class="font-mono text-[11px] text-steel-400">{{ attention.length }}</span>
@@ -326,7 +326,7 @@ function onWidgetDragEnd() {
               <div class="mt-2.5 flex flex-wrap items-center justify-between gap-2">
                 <p class="inline-flex items-start gap-1.5 rounded-md bg-brand-50 px-2.5 py-1.5 text-[12px] leading-relaxed text-graphite-700">
                   <Icon name="sparkles" :size="14" class="mt-0.5 shrink-0 text-brand-500" />
-                  <span><span class="font-700 text-brand-700">AI návrh:</span> {{ a.ai }}</span>
+                  <span><span class="font-700 text-brand-700">DOVík radí:</span> {{ a.ai }}</span>
                 </p>
                 <button class="text-[11.5px] font-500 text-steel-400 transition-colors hover:text-steel-600" @click="hideAttention(a)">Skrýt podnět</button>
               </div>

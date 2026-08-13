@@ -182,15 +182,15 @@ function onDuplicate() {
           <div>
             <MlFieldHeader label="Odpověď" :lang="activeLang" tag="faq-answer" @translate="translateField('answer')" />
             <p class="mb-2 text-[11.5px] text-steel-500">
-              Napište odpověď vlastními slovy — klidně jen v bodech. AI ji níže umí přepsat do souvislých vět.
+              Napište odpověď vlastními slovy — klidně jen v bodech. DOVík ji níže umí přepsat do souvislých vět.
             </p>
             <RichTextEditor v-model="form.answer[activeLang]" />
           </div>
 
           <!-- AI: stylizace ručně připravené odpovědi (sjednocený AI blok) -->
           <AiPanel
-            title="Upravit odpověď do souvislých vět (AI)"
-            hint="Přeformuluje vaši odpověď — AI nový obsah nevymýšlí, jen stylizuje to, co jste napsali."
+            title="Upravit odpověď do souvislých vět (DOVík)"
+            hint="Přeformuluje vaši odpověď — DOVík nový obsah nevymýšlí, jen stylizuje to, co jste napsali."
             class="mt-4"
           >
             <div class="flex flex-wrap items-center gap-3">

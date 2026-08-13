@@ -16,6 +16,7 @@ import LangBar from '@/components/admin/LangBar.vue'
 import MlFieldHeader from '@/components/admin/MlFieldHeader.vue'
 import { useMlTranslate } from '@/utils/useMlTranslate'
 import AiPanel from '@/components/admin/AiPanel.vue'
+import DovikUrlImport from '@/components/admin/DovikUrlImport.vue'
 import RelationPicker from '@/components/admin/RelationPicker.vue'
 import GalleryField from '@/components/admin/GalleryField.vue'
 import ContentBuilder from '@/components/admin/ContentBuilder.vue'
@@ -259,26 +260,16 @@ function onDuplicate() {
       <!-- LEVÝ sloupec -->
       <div class="min-w-0 space-y-5">
         <!-- AI import z odkazu (sjednocený AI blok) -->
-        <AiPanel title="Založit akci z odkazu" badge="AI-first" hint="Z odkazu na akci připraví AI celý obsah a vyplní pole.">
-          <div class="flex flex-col gap-2 sm:flex-row">
-            <div class="relative flex-1">
-              <Icon name="link" :size="15" class="absolute left-3 top-1/2 -translate-y-1/2 text-steel-400" />
-              <input
-                v-model="importUrl"
-                type="text"
-                placeholder="Vložte odkaz na akci konanou v DOV, např. https://racethestreets.eu/cs/udalosti/ostrava-2026"
-                class="h-10 w-full rounded-md border border-steel-200 bg-white pl-9 pr-3 text-[13px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none"
-                @keydown.enter.prevent="aiImport"
-              />
-            </div>
-            <AppButton variant="primary" :disabled="!importUrl.trim() || importing" @click="aiImport">
-              <Icon name="sparkles" :size="15" :class="importing && 'animate-pulse'" />
-              {{ importing ? 'Načítám…' : 'Načíst přes AI' }}
-            </AppButton>
-          </div>
+        <AiPanel title="Založit akci z odkazu" badge="DOVík" hint="Z odkazu na akci připraví DOVík celý obsah a vyplní pole.">
+          <DovikUrlImport
+            v-model="importUrl"
+            :busy="importing"
+            placeholder="Vložte odkaz na akci konanou v DOV, např. https://racethestreets.eu/cs/udalosti/ostrava-2026"
+            @submit="aiImport"
+          />
           <p class="mt-2 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
             <Icon name="sparkles" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
-            AI z odkazu připraví název, popis, termín, místo, vstupné, věkové omezení, štítky i plakát. Vše pak zkontrolujete a upravíte.
+            DOVík z odkazu připraví název, popis, termín, místo, vstupné, věkové omezení, štítky i plakát. Vše pak zkontrolujete a upravíte.
           </p>
         </AiPanel>
 

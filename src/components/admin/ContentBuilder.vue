@@ -8,12 +8,43 @@
  * Náhled řídí sdílená komponenta GraphicPattern (princip 0b).
  */
 import { computed, ref } from 'vue'
+import { PopoverRoot, PopoverTrigger, PopoverPortal, PopoverContent, PopoverClose } from 'reka-ui'
 import Icon from '@/components/ui/Icon.vue'
+import AppButton from '@/components/ui/AppButton.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import GraphicPattern from '@/components/admin/GraphicPattern.vue'
 import { GRAPHIC_PATTERN_GROUPS, type ContentBlock } from '@/data/mockPages'
 
 const model = defineModel<ContentBlock[]>({ default: () => [] })
+
+/* ---------- DOVík: naskládat rozložení z tématu (prototyp — bez reálné AI) ----------
+   Podle klíčových slov v zadání navrhne sadu bloků. Nahradí aktuální plátno
+   novým návrhem; uživatel ho pak upraví, doplní a přeuspořádá. */
+const dovikOpen = ref(false)
+const dovikPrompt = ref('')
+const dovikBusy = ref(false)
+function dovikBuild() {
+  if (dovikBusy.value) return
+  dovikBusy.value = true
+  window.setTimeout(() => {
+    const n = dovikPrompt.value
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+    let kinds = ['hero', 'lead', 'text-image', 'gallery', 'cta']
+    if (/kontakt|adres|najdete|mapa|oteviraci/.test(n)) kinds = ['hero', 'lead', 'contact', 'hours', 'map']
+    else if (/prohl|akce|festival|program|zazit|koncert/.test(n)) kinds = ['hero', 'lead', 'text-image', 'gallery', 'hours', 'cta']
+    else if (/o nas|histor|pribeh|tym/.test(n)) kinds = ['hero', 'lead', 'text-image', 'quote', 'gallery']
+    let s = 0
+    model.value = kinds.map((kind) => {
+      s += 1
+      return { id: `cb-dovik-${s}-${kind}`, kind }
+    })
+    dovikBusy.value = false
+    dovikOpen.value = false
+    dovikPrompt.value = ''
+  }, 1500)
+}
 
 /* ---------- Paleta vzorů (plovoucí panel) ---------- */
 const paletteOpen = ref(true)
@@ -92,6 +123,52 @@ function resetDnd() {
         <Icon name="dashboard" :size="16" />
         Zobrazit grafické vzory
       </button>
+
+      <!-- DOVík: naskládat rozložení z tématu (prototyp) -->
+      <PopoverRoot v-model:open="dovikOpen">
+        <PopoverTrigger as-child>
+          <button
+            type="button"
+            class="inline-flex items-center gap-2 rounded-md border border-brand-300 bg-brand-50 px-3 py-2 text-[13px] font-600 text-brand-700 outline-none transition-colors hover:bg-brand-100 data-[state=open]:bg-brand-100"
+          >
+            <Icon name="sparkles" :size="16" /> Naskládat s DOVíkem
+          </button>
+        </PopoverTrigger>
+        <PopoverPortal>
+          <PopoverContent
+            side="bottom"
+            align="start"
+            :side-offset="8"
+            class="z-50 w-[340px] rounded-xl border border-steel-200 bg-white p-4 shadow-2xl"
+          >
+            <div class="mb-1.5 flex items-center gap-2">
+              <span class="grid h-7 w-7 place-items-center rounded-md bg-brand-500 text-white"><Icon name="sparkles" :size="15" /></span>
+              <p class="text-[13px] font-700 text-graphite-900">Naskládat obsah s DOVíkem</p>
+            </div>
+            <p class="mb-2.5 text-[11.5px] leading-relaxed text-steel-500">
+              Popište, o čem stránka je, a DOVík navrhne rozložení bloků. Ty pak upravíte, doplníte a přeuspořádáte.
+              <span class="text-steel-400">(prototyp)</span>
+            </p>
+            <textarea
+              v-model="dovikPrompt"
+              rows="3"
+              placeholder="Např. stránka o noční prohlídce dolu Hlubina — úvod, fotky, program a odkaz na rezervaci…"
+              class="mb-2.5 w-full resize-y rounded-md border border-steel-200 px-3 py-2 text-[13px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none"
+            />
+            <div class="flex justify-end gap-2">
+              <PopoverClose as-child><AppButton variant="secondary" size="sm">Zavřít</AppButton></PopoverClose>
+              <AppButton variant="primary" size="sm" :disabled="dovikBusy" @click="dovikBuild">
+                <Icon name="sparkles" :size="14" :class="dovikBusy && 'animate-pulse'" />
+                {{ dovikBusy ? 'Skládám…' : 'Naskládat' }}
+              </AppButton>
+            </div>
+            <p v-if="model.length" class="mt-2.5 flex items-start gap-1.5 rounded-md bg-amber-50 px-2.5 py-1.5 text-[11px] leading-relaxed text-amber-700">
+              <Icon name="help" :size="13" class="mt-0.5 shrink-0" /> Nahradí aktuální rozložení ({{ model.length }} {{ model.length === 1 ? 'blok' : 'bloků' }}) novým návrhem.
+            </p>
+          </PopoverContent>
+        </PopoverPortal>
+      </PopoverRoot>
+
       <span class="text-[12px] text-steel-400">
         {{ model.length }} {{ model.length === 1 ? 'prvek' : model.length >= 2 && model.length <= 4 ? 'prvky' : 'prvků' }} na stránce
       </span>

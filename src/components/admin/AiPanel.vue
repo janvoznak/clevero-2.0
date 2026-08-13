@@ -20,7 +20,7 @@ const props = withDefaults(
     /** Rozbalit hned po načtení. */
     defaultOpen?: boolean
   }>(),
-  { hint: '', badge: 'AI', icon: 'sparkles', defaultOpen: false },
+  { hint: '', badge: 'DOVík', icon: 'sparkles', defaultOpen: false },
 )
 
 const open = ref(props.defaultOpen)

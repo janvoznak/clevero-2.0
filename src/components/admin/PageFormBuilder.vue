@@ -9,6 +9,7 @@ import { computed, ref } from 'vue'
 import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
+import AiPanel from '@/components/admin/AiPanel.vue'
 import type { FormTemplate, FormFieldType } from '@/data/mockPages'
 
 const props = defineProps<{ templates: FormTemplate[] }>()
@@ -111,13 +112,8 @@ const inputPreview = 'pointer-events-none h-9 w-full rounded-md border border-st
 
 <template>
   <div class="space-y-5">
-    <!-- AI vytvoření formuláře (prototyp) -->
-    <div class="rounded-md border border-brand-500/20 bg-brand-50 p-4">
-      <div class="mb-1 flex items-center gap-2">
-        <Icon name="sparkles" :size="18" class="text-brand-500" />
-        <p class="text-[13px] font-600 text-graphite-800">Vytvořit formulář s AI</p>
-      </div>
-      <p class="mb-2.5 text-[12px] text-steel-500">Popište, jaký formulář potřebujete — AI navrhne pole, která pak upravíte.</p>
+    <!-- DOVík: návrh formuláře z popisu (sjednocený AI panel) -->
+    <AiPanel title="Vytvořit formulář s DOVíkem" hint="Popište, jaký formulář potřebujete — DOVík navrhne pole, která pak upravíte.">
       <div class="flex flex-wrap gap-2">
         <input
           v-model="prompt"
@@ -131,7 +127,7 @@ const inputPreview = 'pointer-events-none h-9 w-full rounded-md border border-st
           {{ generating ? 'Generuji…' : 'Vygenerovat' }}
         </AppButton>
       </div>
-    </div>
+    </AiPanel>
 
     <!-- Výběr ze šablon -->
     <div>
@@ -179,7 +175,7 @@ const inputPreview = 'pointer-events-none h-9 w-full rounded-md border border-st
         <div class="flex items-center gap-2">
           <Icon name="reference" :size="16" class="text-brand-500" />
           <p class="text-[13px] font-700 text-graphite-900">
-            {{ model === 'ft-ai' ? 'Návrh AI' : selectedTemplate?.name ?? 'Formulář' }}
+            {{ model === 'ft-ai' ? 'Návrh DOVíka' : selectedTemplate?.name ?? 'Formulář' }}
           </p>
           <span v-if="edited" class="rounded bg-amber-500/15 px-1.5 py-0.5 text-[10.5px] font-600 text-amber-600">upraveno</span>
         </div>
@@ -281,7 +277,7 @@ const inputPreview = 'pointer-events-none h-9 w-full rounded-md border border-st
 
     <!-- Prázdný stav -->
     <p v-else class="rounded-md border border-dashed border-steel-300 bg-steel-50 p-6 text-center text-[12.5px] text-steel-500">
-      Zatím není vybrán žádný formulář. Vyberte šablonu výše, nebo nechte návrh vytvořit AI — pole pak můžete libovolně upravit.
+      Zatím není vybrán žádný formulář. Vyberte šablonu výše, nebo si nechte návrh připravit od DOVíka — pole pak můžete libovolně upravit.
     </p>
   </div>
 </template>

@@ -75,7 +75,7 @@ const DOT: Record<'live' | 'ready' | 'empty', { cls: string; title: string }> = 
             type="button"
             class="grid h-8 w-7 place-items-center outline-none transition-colors hover:bg-brand-50"
             :class="model === l.code ? 'text-brand-500 hover:text-brand-600' : 'text-steel-400 hover:text-brand-600'"
-            :title="`Přeložit ${l.label} z češtiny (AI)`"
+            :title="`Přeložit ${l.label} z češtiny (DOVík)`"
             @click="$emit('translate', l.code)"
           >
             <Icon name="sparkles" :size="13" :class="translating === l.code && 'animate-pulse text-brand-600'" />
