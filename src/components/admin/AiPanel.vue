@@ -7,6 +7,7 @@
  */
 import { ref } from 'vue'
 import Icon from '@/components/ui/Icon.vue'
+import DovikAvatar from '@/components/admin/DovikAvatar.vue'
 
 const props = withDefaults(
   defineProps<{
@@ -15,12 +16,10 @@ const props = withDefaults(
     hint?: string
     /** Text odznaku vpravo v hlavičce. */
     badge?: string
-    /** Ikona bloku. */
-    icon?: string
     /** Rozbalit hned po načtení. */
     defaultOpen?: boolean
   }>(),
-  { hint: '', badge: 'DOVík', icon: 'sparkles', defaultOpen: false },
+  { hint: '', badge: 'DOVík', defaultOpen: false },
 )
 
 const open = ref(props.defaultOpen)
@@ -35,8 +34,8 @@ const open = ref(props.defaultOpen)
       :aria-expanded="open"
       @click="open = !open"
     >
-      <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-brand-500 text-white shadow-sm">
-        <Icon :name="icon" :size="16" />
+      <span class="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-brand-100">
+        <DovikAvatar :size="34" />
       </span>
       <span class="min-w-0 flex-1">
         <span class="flex items-center gap-2">

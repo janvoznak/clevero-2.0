@@ -3,6 +3,7 @@ import { computed, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import { QUICK_CREATE } from '@/data/quickCreate'
 import {
   VISITS_SPARK,
   VISITS_TODAY,
@@ -174,15 +175,7 @@ function goVenue(id: string) {
   router.push({ name: 'area-edit', params: { id } })
 }
 
-/* Rychlé akce (zkratky do editorů modulů). */
-const quickActions = [
-  { label: 'Nová aktualita', icon: 'news', route: 'news-new' },
-  { label: 'Nový pop-up', icon: 'popup', route: 'popup-new' },
-  { label: 'Nový dotaz FAQ', icon: 'faq', route: 'faq-new' },
-  { label: 'Nová galerie', icon: 'gallery', route: 'gallery-new' },
-  { label: 'Nová prohlídka', icon: 'ticket', route: 'tour-new' },
-  { label: 'Nová akce', icon: 'calendar', route: 'event-new' },
-]
+/* Rychlé akce = sdílený zdroj QUICK_CREATE (stejné jako „Nový záznam" v sidebaru). */
 
 /* ============================================================
    Widgety dashboardu — pořadí + drag&drop řazení (prototyp).
@@ -240,7 +233,7 @@ function onWidgetDragEnd() {
 
         <div class="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           <button
-            v-for="q in quickActions"
+            v-for="q in QUICK_CREATE"
             :key="q.route"
             class="group flex items-center gap-2.5 rounded-xl bg-white/10 px-3.5 py-3 text-left text-white ring-1 ring-white/15 backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:bg-white hover:text-brand-700 hover:shadow-lg focus-visible:ring-4 focus-visible:ring-white/40"
             @click="router.push({ name: q.route })"

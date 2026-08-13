@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRouter, type RouteLocationRaw } from 'vue-router'
+import { useRouter } from 'vue-router'
 import {
   DialogRoot,
   DialogTrigger,
@@ -12,30 +12,15 @@ import {
   DialogClose,
 } from 'reka-ui'
 import Icon from '@/components/ui/Icon.vue'
+import { QUICK_CREATE, type QuickCreateAction } from '@/data/quickCreate'
 
 const router = useRouter()
 const open = ref(false)
 
-interface RecordType {
-  label: string
-  icon: string
-  color: string
-  to: RouteLocationRaw
-}
-
-/** Typy záznamů = obsahové moduly. Zatím funkční jen Aktualita. */
-const RECORD_TYPES: RecordType[] = [
-  { label: 'Aktualita', icon: 'news', color: '#ee703d', to: { name: 'news-new' } },
-  { label: 'Blog', icon: 'blog', color: '#3b6fb0', to: '/admin/blog' },
-  { label: 'Stránka', icon: 'page', color: '#7b5ea7', to: '/admin/pages' },
-  { label: 'FAQ', icon: 'faq', color: '#d98a15', to: '/admin/faq' },
-  { label: 'Galerie', icon: 'gallery', color: '#15916a', to: '/admin/galleries' },
-  { label: 'Reference', icon: 'reference', color: '#0e8a8a', to: '/admin/references' },
-]
-
-function go(m: RecordType) {
+/* Sada = sdílený zdroj QUICK_CREATE (stejné jako „Rychlé akce" na dashboardu). */
+function go(m: QuickCreateAction) {
   open.value = false
-  router.push(m.to)
+  router.push({ name: m.route })
 }
 </script>
 
@@ -70,13 +55,14 @@ function go(m: RecordType) {
 
         <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <button
-            v-for="m in RECORD_TYPES"
-            :key="m.label"
-            class="group flex flex-col items-center justify-center gap-3 rounded-xl border p-6 text-center outline-none transition-all hover:-translate-y-0.5 hover:shadow-lg focus-visible:-translate-y-0.5 focus-visible:shadow-lg"
-            :style="{ backgroundColor: m.color + '0f', borderColor: m.color + '2e' }"
+            v-for="m in QUICK_CREATE"
+            :key="m.route"
+            class="group flex flex-col items-center justify-center gap-3 rounded-xl border border-steel-200 bg-white p-6 text-center outline-none transition-all hover:-translate-y-0.5 hover:border-brand-300 hover:bg-brand-50/40 hover:shadow-lg focus-visible:-translate-y-0.5 focus-visible:border-brand-300 focus-visible:shadow-lg"
             @click="go(m)"
           >
-            <Icon :name="m.icon" :size="26" :style="{ color: m.color }" />
+            <span class="grid h-12 w-12 place-items-center rounded-xl bg-brand-50 text-brand-600 transition-colors group-hover:bg-brand-100">
+              <Icon :name="m.icon" :size="24" />
+            </span>
             <span class="text-[14px] font-600 leading-tight text-graphite-800">{{ m.label }}</span>
           </button>
         </div>

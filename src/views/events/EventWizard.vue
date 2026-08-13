@@ -12,6 +12,7 @@ import RelationPicker from '@/components/admin/RelationPicker.vue'
 import GalleryField from '@/components/admin/GalleryField.vue'
 import ContentBuilder from '@/components/admin/ContentBuilder.vue'
 import DovikUrlImport from '@/components/admin/DovikUrlImport.vue'
+import DovikChoiceTiles from '@/components/admin/DovikChoiceTiles.vue'
 import { SOURCE_LANG, defaultContentBlocks } from '@/data/types'
 import type { ML } from '@/data/types'
 import {
@@ -221,62 +222,26 @@ const canFinish = computed(() => !!form.title.cs.trim() && !!form.from && !!form
     <!-- Obsah kroku -->
     <div class="mx-auto max-w-[780px] px-6 py-8">
       <!-- KROK 1: Založení — dvě dlaždice (DOVík zrychleně vs. ručně) -->
-      <div v-if="step === 0" class="space-y-6">
-        <div class="text-center">
-          <h2 class="font-display text-[22px] font-800 tracking-tight text-graphite-900">Jak akci založíme?</h2>
-          <p class="mt-1.5 text-[14px] text-steel-500">Vyberte způsob — zrychleně s DOVíkem z odkazu, nebo ručně krok po kroku.</p>
-        </div>
-
-        <div class="grid items-stretch gap-4 sm:grid-cols-2">
-          <!-- Dlaždice A: Zrychleně s DOVíkem -->
-          <div class="flex flex-col overflow-hidden rounded-2xl border-2 border-brand-300 bg-gradient-to-br from-brand-50 to-white p-5 shadow-sm">
-            <div class="mb-3 flex items-center gap-3">
-              <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-brand-500 text-white shadow-sm"><Icon name="sparkles" :size="22" /></span>
-              <div>
-                <div class="flex items-center gap-2">
-                  <h3 class="font-display text-[16px] font-700 text-graphite-900">Založit zrychleně</h3>
-                  <span class="rounded bg-white px-1.5 py-0.5 font-mono text-[10px] text-brand-600">DOVík</span>
-                </div>
-                <p class="text-[12.5px] text-steel-500">DOVík z odkazu připraví návrh.</p>
-              </div>
-            </div>
-            <p class="mb-3 text-[13px] leading-relaxed text-graphite-700">
-              Vložte odkaz na akci a DOVík vyplní název, termín, místo, vstupné, štítky i plakát. Vše pak zkontrolujete.
-            </p>
-            <div class="mt-auto">
-              <DovikUrlImport
-                v-model="importUrl"
-                :busy="importing"
-                stack
-                placeholder="Např. https://racethestreets.eu/cs/udalosti/ostrava-2026"
-                @submit="aiImport"
-              />
-            </div>
-          </div>
-
-          <!-- Dlaždice B: Ručně (bez AI) -->
-          <button
-            type="button"
-            class="group flex flex-col rounded-2xl border-2 border-steel-200 bg-white p-5 text-left transition-colors hover:border-brand-300 hover:bg-brand-50/30"
-            @click="go(1)"
-          >
-            <div class="mb-3 flex items-center gap-3">
-              <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-steel-100 text-steel-500 transition-colors group-hover:bg-brand-100 group-hover:text-brand-600"><Icon name="edit" :size="22" /></span>
-              <div>
-                <h3 class="font-display text-[16px] font-700 text-graphite-900">Založit ručně</h3>
-                <p class="text-[12.5px] text-steel-500">Bez DOVíka, krok po kroku.</p>
-              </div>
-            </div>
-            <p class="mb-3 text-[13px] leading-relaxed text-graphite-700">
-              Projděte průvodce sami — obsah, termín a místo, detaily a náhled. Plnou kontrolu máte vy.
-            </p>
-            <span class="mt-auto inline-flex items-center gap-1.5 text-[13px] font-600 text-brand-600">
-              Začít ručně <Icon name="chevronRight" :size="16" class="transition-transform group-hover:translate-x-0.5" />
-            </span>
-          </button>
-        </div>
-
-        <p class="text-center text-[11.5px] text-steel-400">Po přípravě přes DOVíka vás vezmeme rovnou na náhled ke kontrole — vše půjde upravit.</p>
+      <div v-if="step === 0">
+        <DovikChoiceTiles
+          title="Jak akci založíme?"
+          subtitle="Vyberte způsob — zrychleně s DOVíkem z odkazu, nebo ručně krok po kroku."
+          dovik-hint="DOVík z odkazu připraví návrh."
+          dovik-lead="Vložte odkaz na akci a DOVík vyplní název, termín, místo, vstupné, štítky i plakát. Vše pak zkontrolujete."
+          manual-lead="Projděte průvodce sami — obsah, termín a místo, detaily a náhled. Plnou kontrolu máte vy."
+          note="Po přípravě přes DOVíka vás vezmeme rovnou na náhled ke kontrole — vše půjde upravit."
+          @manual="go(1)"
+        >
+          <template #dovik>
+            <DovikUrlImport
+              v-model="importUrl"
+              :busy="importing"
+              stack
+              placeholder="Např. https://racethestreets.eu/cs/udalosti/ostrava-2026"
+              @submit="aiImport"
+            />
+          </template>
+        </DovikChoiceTiles>
       </div>
 
       <!-- KROK 2: Obsah -->

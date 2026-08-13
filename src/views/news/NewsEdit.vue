@@ -21,7 +21,8 @@ import { useMlTranslate } from '@/utils/useMlTranslate'
 import { LANGS, defaultContentBlocks } from '@/data/types'
 import type { LangCode, NewsItem, ML } from '@/data/types'
 import { MOCK_NEWS, publishState, PREDEFINED_TAGS, PREDEFINED_CATEGORIES } from '@/data/mockNews'
-import { consumeNewsDraft } from '@/data/aiAssistant'
+import { consumeNewsDraft, newsDraftFromText, type NewsDraft } from '@/data/aiAssistant'
+import DovikChoiceTiles from '@/components/admin/DovikChoiceTiles.vue'
 import {
   filledLangsOf,
   publishedLangsOf,
@@ -29,7 +30,8 @@ import {
   toggleLangPublish,
 } from '@/utils/langPublish'
 import { tourOptionsList } from '@/data/mockTours'
-import { PLACE_OPTIONS } from '@/data/mockVenues'
+import { PLACE_OPTIONS, areaPlace } from '@/data/mockVenues'
+import DovikSocialPost from '@/components/admin/DovikSocialPost.vue'
 
 const tourItems = tourOptionsList()
 
@@ -92,18 +94,34 @@ function clone(): NewsItem {
 
 const form = reactive<NewsItem>(clone())
 
-/* Prototyp: pokud AI asistent připravil koncept, předvyplní nový záznam (jen CS —
-   cizí mutace se doplní přes AI překlad v pravém panelu). */
-if (!isEdit.value) {
-  const draft = consumeNewsDraft()
-  if (draft) {
-    form.title.cs = draft.title
-    form.summary.cs = draft.summary
-    form.text.cs = draft.text
-    if (draft.tags.length) form.tags = [...draft.tags]
-    if (draft.categories.length) form.categories = [...draft.categories]
-    if (draft.dateFrom) form.dateFrom = draft.dateFrom
-  }
+/* Aplikace konceptu od DOVíka (jen CS — cizí mutace se doplní přes AI překlad). */
+function applyDraft(draft: NewsDraft) {
+  form.title.cs = draft.title
+  form.summary.cs = draft.summary
+  form.text.cs = draft.text
+  if (draft.tags.length) form.tags = [...draft.tags]
+  if (draft.categories.length) form.categories = [...draft.categories]
+  if (draft.dateFrom) form.dateFrom = draft.dateFrom
+}
+
+/* Handoff z plovoucího DOVíka (chat → editor): pokud přinesl koncept, rovnou vyplní. */
+const chatDraft = isEdit.value ? null : consumeNewsDraft()
+if (chatDraft) applyDraft(chatDraft)
+
+/* Nová aktualita bez konceptu z chatu → nejdřív nabídneme volbu (dvě dlaždice). */
+const showChooser = ref(!isEdit.value && !chatDraft)
+
+/* Dlaždice „Založit zrychleně s DOVíkem" — z tématu sestaví koncept (fake engine). */
+const dovikTopic = ref('')
+const dovikBusy = ref(false)
+function dovikCreate() {
+  if (!dovikTopic.value.trim() || dovikBusy.value) return
+  dovikBusy.value = true
+  window.setTimeout(() => {
+    applyDraft(newsDraftFromText(dovikTopic.value))
+    dovikBusy.value = false
+    showChooser.value = false
+  }, 900)
 }
 
 const activeLang = ref<LangCode>('cs')
@@ -120,6 +138,7 @@ const sections = [
   { value: 'relations', label: 'Zařazení a vazby', icon: 'layers' },
   { value: 'gallery', label: 'Fotogalerie', icon: 'gallery' },
   { value: 'attachments', label: 'Přílohy', icon: 'paperclip' },
+  { value: 'promo', label: 'Propagace', icon: 'share' },
 ]
 
 /** Indikátor vyplněnosti jazyka (podle nadpisu). */
@@ -180,6 +199,18 @@ function onDuplicate() {
 /* ---------- AI překlad mutací (prototyp) — sdílené řešení ---------- */
 const mlFields: (keyof NewsItem)[] = ['title', 'summary']
 const { translating, toast, translateLang, translateField } = useMlTranslate(form, mlFields)
+
+/* Propagace na FB — banner/text z aktuality (obrázek = OG nebo hlavní fotka). */
+const promoPlace = computed(() => (form.areaId ? areaPlace(form.areaId) : undefined))
+const promoImage = computed(() => form.ogImage || form.gallery.find((g) => g.isMain)?.src || form.gallery[0]?.src || '')
+function fmtPromoDate(iso: string | null): string {
+  return iso ? new Date(iso).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'numeric', year: 'numeric' }) : ''
+}
+const promoDate = computed(() => {
+  if (!form.dateFrom) return ''
+  const f = fmtPromoDate(form.dateFrom)
+  return !form.dateTo || form.dateTo === form.dateFrom ? f : `${f} – ${fmtPromoDate(form.dateTo)}`
+})
 </script>
 
 <template>
@@ -205,37 +236,69 @@ const { translating, toast, translateLang, translateField } = useMlTranslate(for
           </h1>
         </div>
 
-        <!-- Jazykové mutace — jediné místo (horní lišta), ✨ = AI překlad mutace -->
-        <LangBar
-          v-model="activeLang"
-          :filled="filledLangs"
-          :published="liveLangs"
-          :translating="translating"
-          class="hidden lg:block"
-          @translate="translateLang"
-        />
+        <!-- Akce hlavičky jen v editoru (ne během výběru způsobu založení) -->
+        <template v-if="!showChooser">
+          <!-- Jazykové mutace — jediné místo (horní lišta), ✨ = AI překlad mutace -->
+          <LangBar
+            v-model="activeLang"
+            :filled="filledLangs"
+            :published="liveLangs"
+            :translating="translating"
+            class="hidden lg:block"
+            @translate="translateLang"
+          />
 
-        <div class="h-6 w-px bg-steel-200" />
-        <DetailActions
-          :name="form.title.cs"
-          entity="aktualitu"
-          :is-edit="isEdit"
-          :saved="saved"
-          @save="save"
-          @save-back="saveBack"
-          @duplicate="onDuplicate"
-          @delete="router.push({ name: 'news-list' })"
-        />
+          <div class="h-6 w-px bg-steel-200" />
+          <DetailActions
+            :name="form.title.cs"
+            entity="aktualitu"
+            :is-edit="isEdit"
+            :saved="saved"
+            @save="save"
+            @save-back="saveBack"
+            @duplicate="onDuplicate"
+            @delete="router.push({ name: 'news-list' })"
+          />
+        </template>
       </div>
 
       <!-- Jazykové mutace (mobil / <lg) -->
-      <div class="px-8 pb-3 lg:hidden">
+      <div v-if="!showChooser" class="px-8 pb-3 lg:hidden">
         <LangBar v-model="activeLang" :filled="filledLangs" :published="liveLangs" :translating="translating" @translate="translateLang" />
       </div>
     </div>
 
+    <!-- Gate: dvě dlaždice (jen nová aktualita bez konceptu z chatu) -->
+    <div v-if="showChooser" class="mx-auto max-w-[780px] px-6 py-10">
+      <DovikChoiceTiles
+        title="Jak aktualitu založíme?"
+        subtitle="Vyberte způsob — zrychleně s DOVíkem z tématu, nebo ručně."
+        dovik-hint="DOVík připraví koncept z tématu."
+        dovik-lead="Napište, o čem aktualita je, a DOVík navrhne nadpis, perex, text i štítky. Vše pak upravíte a dopřeložíte."
+        manual-hint="Bez DOVíka, prázdný formulář."
+        manual-lead="Vyplňte aktualitu sami od začátku — nadpis, perex, obsah, štítky i publikaci."
+        note="DOVík termín nevyplňuje — doplňte ho prosím sami. Cizí jazyky pak dopřeložíte jedním tlačítkem."
+        @manual="showChooser = false"
+      >
+        <template #dovik>
+          <div class="space-y-2">
+            <textarea
+              v-model="dovikTopic"
+              rows="3"
+              placeholder="Např. blíží se festival Colours of Ostrava 2027"
+              class="w-full resize-y rounded-md border border-steel-200 bg-white px-3 py-2 text-[13.5px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none"
+            />
+            <AppButton variant="primary" class="w-full" :disabled="!dovikTopic.trim() || dovikBusy" @click="dovikCreate">
+              <Icon name="sparkles" :size="16" :class="dovikBusy && 'animate-pulse'" />
+              {{ dovikBusy ? 'DOVík připravuje…' : 'Připravit s DOVíkem' }}
+            </AppButton>
+          </div>
+        </template>
+      </DovikChoiceTiles>
+    </div>
+
     <!-- Two-column body -->
-    <div class="grid grid-cols-1 gap-6 px-8 py-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+    <div v-else class="grid grid-cols-1 gap-6 px-8 py-6 xl:grid-cols-[minmax(0,1fr)_360px]">
       <!-- LEVÝ sloupec: obsah v záložkách sekcí (Reka Tabs, podtržený styl) -->
       <div class="min-w-0">
         <div class="rounded-lg border border-steel-200 bg-white">
@@ -353,6 +416,19 @@ const { translating, toast, translateLang, translateField } = useMlTranslate(for
                   <span class="field-tag rounded bg-steel-100 px-1.5 py-0.5">news-attachments · ML</span>
                 </p>
                 <AttachmentsManager v-model="form.attachments" :lang="activeLang" />
+              </TabsContent>
+
+              <!-- Sekce: Propagace (DOVík → FB koncept) -->
+              <TabsContent value="promo" class="outline-none">
+                <DovikSocialPost
+                  :title="form.title.cs"
+                  :date-label="promoDate"
+                  :place-label="promoPlace?.title.cs ?? ''"
+                  :place-color="promoPlace?.color"
+                  :image="promoImage"
+                  :summary="form.summary.cs"
+                  :tags="form.tags"
+                />
               </TabsContent>
 
             </div>

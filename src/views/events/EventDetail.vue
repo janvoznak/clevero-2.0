@@ -17,6 +17,7 @@ import MlFieldHeader from '@/components/admin/MlFieldHeader.vue'
 import { useMlTranslate } from '@/utils/useMlTranslate'
 import AiPanel from '@/components/admin/AiPanel.vue'
 import DovikUrlImport from '@/components/admin/DovikUrlImport.vue'
+import DovikSocialPost from '@/components/admin/DovikSocialPost.vue'
 import RelationPicker from '@/components/admin/RelationPicker.vue'
 import GalleryField from '@/components/admin/GalleryField.vue'
 import ContentBuilder from '@/components/admin/ContentBuilder.vue'
@@ -112,6 +113,16 @@ const typeOptions = EVENT_TYPES.map((t) => ({ value: t, label: t }))
 const placeOptions = PLACE_OPTIONS
 const place = computed(() => areaPlace(form.areaId))
 
+/* Termín pro propagaci (FB banner/text). */
+function fmtPromoD(iso: string): string {
+  return iso ? new Date(iso + 'T00:00:00').toLocaleDateString('cs-CZ', { day: 'numeric', month: 'numeric', year: 'numeric' }) : ''
+}
+const promoDate = computed(() => {
+  if (!form.from) return ''
+  const f = fmtPromoD(form.from)
+  return !form.to || form.to === form.from ? f : `${f} – ${fmtPromoD(form.to)}`
+})
+
 /* Věkové omezení = dropdown; sentinel pro „bez omezení" (Reka Select nechce ''). */
 const AGE_NONE = '__none__'
 const ageLimitOptions = [{ value: AGE_NONE, label: 'Bez omezení' }, ...AGE_LIMIT_OPTIONS]
@@ -135,6 +146,7 @@ const sections = [
   { value: 'when', label: 'Termín a místo', icon: 'calendar' },
   { value: 'tickets', label: 'Vstupenky a detaily', icon: 'ticket' },
   { value: 'gallery', label: 'Galerie', icon: 'gallery' },
+  { value: 'promo', label: 'Propagace', icon: 'share' },
 ]
 
 /* ---------- Toast ---------- */
@@ -515,6 +527,22 @@ function onDuplicate() {
                   v-model:photos="form.gallery"
                   link-tag="event-gallery_ids"
                   photos-tag="event-gallery"
+                />
+              </TabsContent>
+
+              <!-- Sekce: Propagace (DOVík → FB koncept) -->
+              <TabsContent value="promo" class="outline-none">
+                <DovikSocialPost
+                  :title="form.title.cs"
+                  :subtitle="form.subtitle.cs"
+                  :date-label="promoDate"
+                  :place-label="place?.title.cs ?? ''"
+                  :place-color="place?.color"
+                  :image="form.image"
+                  :summary="form.summary.cs"
+                  :type-label="form.type"
+                  :price="form.price"
+                  :tags="form.tags"
                 />
               </TabsContent>
             </div>
