@@ -170,23 +170,29 @@ const HELP: { match: RegExp; answer: string }[] = [
   },
 ]
 
+/** Z textu (téma nebo celá věta) sestaví koncept aktuality. Sdílené DOVíkovým
+    chatem i dlaždicí „Založit zrychleně" v editoru Aktualit → stejný výsledek. */
+export function newsDraftFromText(input: string): NewsDraft {
+  const topic = extractTopic(input)
+  const title = craftTitle(topic)
+  return {
+    title,
+    summary: `${title}. Podrobný program a další informace zveřejníme již brzy.`,
+    text:
+      `<p>${title}. Na tuto událost se můžete těšit v areálu Dolní Vítkovice — ` +
+      `sledujte náš web, kde postupně doplníme program, časy a informace ke vstupenkám.</p>`,
+    tags: inferTags(topic),
+    categories: ['DOV'],
+    dateFrom: null,
+  }
+}
+
 /** Hlavní vstup enginu: text uživatele → odpověď asistenta (fake). */
 export function respondTo(input: string): AssistantReply {
   const n = norm(input)
 
   if (isCreateNewsIntent(n)) {
-    const topic = extractTopic(input)
-    const title = craftTitle(topic)
-    const draft: NewsDraft = {
-      title,
-      summary: `${title}. Podrobný program a další informace zveřejníme již brzy.`,
-      text:
-        `<p>${title}. Na tuto událost se můžete těšit v areálu Dolní Vítkovice — ` +
-        `sledujte náš web, kde postupně doplníme program, časy a informace ke vstupenkám.</p>`,
-      tags: inferTags(topic),
-      categories: ['DOV'],
-      dateFrom: null,
-    }
+    const draft = newsDraftFromText(input)
     return {
       text:
         'Připravil jsem koncept aktuality. Zkontrolujte pole níže a otevřete ho v editoru — ' +
