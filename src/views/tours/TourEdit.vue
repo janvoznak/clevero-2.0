@@ -108,7 +108,7 @@ const sections = [
   { value: 'content', label: 'Obsah', icon: 'text' },
   { value: 'pricing', label: 'Kontakt a platba', icon: 'mail' },
   { value: 'colosseum', label: 'Dostupnost a Colosseum', icon: 'integration' },
-  { value: 'gallery', label: 'Fotogalerie', icon: 'gallery' },
+  { value: 'gallery', label: 'Galerie', icon: 'gallery' },
 ]
 
 /* ---------- „Co vás čeká" (highlights) ---------- */

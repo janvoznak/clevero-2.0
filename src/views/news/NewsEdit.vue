@@ -136,7 +136,7 @@ const sections = [
   { value: 'basic', label: 'Základní informace', icon: 'news' },
   { value: 'content', label: 'Obsah', icon: 'text' },
   { value: 'relations', label: 'Zařazení a vazby', icon: 'layers' },
-  { value: 'gallery', label: 'Fotogalerie', icon: 'gallery' },
+  { value: 'gallery', label: 'Galerie', icon: 'gallery' },
   { value: 'attachments', label: 'Přílohy', icon: 'paperclip' },
   { value: 'promo', label: 'Propagace', icon: 'share' },
 ]

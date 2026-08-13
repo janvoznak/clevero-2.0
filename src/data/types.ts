@@ -44,6 +44,8 @@ export interface Attachment {
 export interface ContentBlock {
   id: string
   kind: string
+  /** Text bloku rozepsaný DOVíkem (jinak náhled používá zástupný text). */
+  text?: string
 }
 /** Výchozí sada bloků pro nový obsah — ContentBuilder nezačíná prázdný. */
 export function defaultContentBlocks(): ContentBlock[] {

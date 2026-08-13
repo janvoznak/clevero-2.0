@@ -6,7 +6,7 @@
  */
 import Icon from '@/components/ui/Icon.vue'
 
-defineProps<{ kind: string }>()
+defineProps<{ kind: string; text?: string }>()
 
 const LOREM =
   'Areál Dolních Vítkovic patří k unikátním průmyslovým památkám Evropy. Bývalý těžní a hutní komplex se proměnil v živé centrum kultury, vzdělávání a společenského dění.'
@@ -32,18 +32,18 @@ const textClass = 'text-[13px] leading-relaxed text-steel-600 text-justify'
     </div>
 
     <!-- Odstavec textu -->
-    <p v-else-if="kind === 'paragraph'" :class="textClass">{{ LOREM }} {{ LOREM }}</p>
+    <p v-else-if="kind === 'paragraph'" :class="textClass">{{ text?.trim() ? text : `${LOREM} ${LOREM}` }}</p>
 
     <!-- Nadpis 1 + text -->
     <div v-else-if="kind === 'h1-text'">
       <h1 class="text-[22px] font-700">Nadpis první úrovně</h1>
-      <p class="mt-2" :class="textClass">{{ LOREM }}</p>
+      <p class="mt-2" :class="textClass">{{ text?.trim() ? text : LOREM }}</p>
     </div>
 
     <!-- Nadpis 2 + text -->
     <div v-else-if="kind === 'h2-text'">
       <h2 class="text-[18px] font-700">Nadpis druhé úrovně</h2>
-      <p class="mt-2" :class="textClass">{{ LOREM }}</p>
+      <p class="mt-2" :class="textClass">{{ text?.trim() ? text : LOREM }}</p>
     </div>
 
     <!-- Obrázek -->
@@ -65,7 +65,7 @@ const textClass = 'text-[13px] leading-relaxed text-steel-600 text-justify'
 
     <!-- Perex (lead) -->
     <p v-else-if="kind === 'lead'" class="text-[16px] font-500 leading-relaxed text-graphite-700">
-      {{ LEAD }}
+      {{ text?.trim() ? text : LEAD }}
     </p>
 
     <!-- Text s obrázkem -->
@@ -75,7 +75,7 @@ const textClass = 'text-[13px] leading-relaxed text-steel-600 text-justify'
       </div>
       <div>
         <h3 class="text-[17px] font-700">Historie i současnost</h3>
-        <p class="mt-2" :class="textClass">{{ LOREM }}</p>
+        <p class="mt-2" :class="textClass">{{ text?.trim() ? text : LOREM }}</p>
       </div>
     </div>
 
@@ -84,7 +84,7 @@ const textClass = 'text-[13px] leading-relaxed text-steel-600 text-justify'
       v-else-if="kind === 'quote'"
       class="border-l-4 border-brand-400 pl-4 text-[15px] italic leading-relaxed text-graphite-700"
     >
-      „{{ QUOTE }}"
+      „{{ text?.trim() ? text : QUOTE }}"
     </blockquote>
 
     <!-- Tlačítko -->

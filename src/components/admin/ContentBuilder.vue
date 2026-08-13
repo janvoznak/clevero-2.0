@@ -4,7 +4,8 @@
  * Skládání stránky z hotových „grafických vzorů" (jako ContentBuilder.js):
  *  - prázdné plátno s výzvou k vložení obsahu,
  *  - plovoucí panel „Grafické vzory" (vlevo) s kategoriemi a náhledy vzorů,
- *  - přidávání, přetahování (reorder) a mazání vzorů.
+ *  - přidávání, přetahování (reorder) a mazání vzorů,
+ *  - u textových bloků DOVík rozepíše hrubé zadání do souvislých vět.
  * Náhled řídí sdílená komponenta GraphicPattern (princip 0b).
  */
 import { computed, ref } from 'vue'
@@ -13,37 +14,49 @@ import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import GraphicPattern from '@/components/admin/GraphicPattern.vue'
+import DovikAvatar from '@/components/admin/DovikAvatar.vue'
 import { GRAPHIC_PATTERN_GROUPS, type ContentBlock } from '@/data/mockPages'
 
 const model = defineModel<ContentBlock[]>({ default: () => [] })
 
-/* ---------- DOVík: naskládat rozložení z tématu (prototyp — bez reálné AI) ----------
-   Podle klíčových slov v zadání navrhne sadu bloků. Nahradí aktuální plátno
-   novým návrhem; uživatel ho pak upraví, doplní a přeuspořádá. */
-const dovikOpen = ref(false)
-const dovikPrompt = ref('')
-const dovikBusy = ref(false)
-function dovikBuild() {
-  if (dovikBusy.value) return
-  dovikBusy.value = true
+/* ---------- DOVík u textového bloku: rozepsat hrubé zadání do vět (prototyp) ----------
+   Klient si bloky skládá sám; u textových bloků pomůže DOVík text rozepsat do
+   souvislých vět. Žádná reálná AI — deterministické rozvedení (viz STANDARDY §11a). */
+const TEXT_KINDS = new Set(['paragraph', 'lead', 'h1-text', 'h2-text', 'text-image', 'quote'])
+function isTextKind(kind: string): boolean {
+  return TEXT_KINDS.has(kind)
+}
+
+const aiOpenId = ref('')
+const aiPrompt = ref('')
+const aiBusy = ref(false)
+function openAi(id: string) {
+  aiOpenId.value = id
+  aiPrompt.value = ''
+}
+function expandBrief(brief: string, kind: string): string {
+  const topic = (brief.trim() || 'Dolní Vítkovice').replace(/\s+/g, ' ')
+  const cap = topic.charAt(0).toUpperCase() + topic.slice(1)
+  if (kind === 'quote') return `${cap} — místo, kde industriální minulost potkává živou současnost.`
+  if (kind === 'lead')
+    return `${cap}. Zveme vás do areálu Dolních Vítkovic, kde se snoubí jedinečná industriální architektura s pestrým programem pro celou rodinu.`
+  return (
+    `${cap}. Areál Dolních Vítkovic patří k unikátním průmyslovým památkám Evropy — bývalý těžní a hutní ` +
+    `komplex se proměnil v živé centrum kultury, vzdělávání a zábavy. Přijďte se přesvědčit, že z industriální ` +
+    `minulosti může vyrůst živé místo pro budoucnost.`
+  )
+}
+function aiWrite(block: ContentBlock) {
+  if (aiBusy.value) return
+  aiBusy.value = true
+  const brief = aiPrompt.value
   window.setTimeout(() => {
-    const n = dovikPrompt.value
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-    let kinds = ['hero', 'lead', 'text-image', 'gallery', 'cta']
-    if (/kontakt|adres|najdete|mapa|oteviraci/.test(n)) kinds = ['hero', 'lead', 'contact', 'hours', 'map']
-    else if (/prohl|akce|festival|program|zazit|koncert/.test(n)) kinds = ['hero', 'lead', 'text-image', 'gallery', 'hours', 'cta']
-    else if (/o nas|histor|pribeh|tym/.test(n)) kinds = ['hero', 'lead', 'text-image', 'quote', 'gallery']
-    let s = 0
-    model.value = kinds.map((kind) => {
-      s += 1
-      return { id: `cb-dovik-${s}-${kind}`, kind }
-    })
-    dovikBusy.value = false
-    dovikOpen.value = false
-    dovikPrompt.value = ''
-  }, 1500)
+    const text = expandBrief(brief, block.kind)
+    model.value = model.value.map((b) => (b.id === block.id ? { ...b, text } : b))
+    aiBusy.value = false
+    aiOpenId.value = ''
+    aiPrompt.value = ''
+  }, 1200)
 }
 
 /* ---------- Paleta vzorů (plovoucí panel) ---------- */
@@ -124,53 +137,11 @@ function resetDnd() {
         Zobrazit grafické vzory
       </button>
 
-      <!-- DOVík: naskládat rozložení z tématu (prototyp) -->
-      <PopoverRoot v-model:open="dovikOpen">
-        <PopoverTrigger as-child>
-          <button
-            type="button"
-            class="inline-flex items-center gap-2 rounded-md border border-brand-300 bg-brand-50 px-3 py-2 text-[13px] font-600 text-brand-700 outline-none transition-colors hover:bg-brand-100 data-[state=open]:bg-brand-100"
-          >
-            <Icon name="sparkles" :size="16" /> Naskládat s DOVíkem
-          </button>
-        </PopoverTrigger>
-        <PopoverPortal>
-          <PopoverContent
-            side="bottom"
-            align="start"
-            :side-offset="8"
-            class="z-50 w-[340px] rounded-xl border border-steel-200 bg-white p-4 shadow-2xl"
-          >
-            <div class="mb-1.5 flex items-center gap-2">
-              <span class="grid h-7 w-7 place-items-center rounded-md bg-brand-500 text-white"><Icon name="sparkles" :size="15" /></span>
-              <p class="text-[13px] font-700 text-graphite-900">Naskládat obsah s DOVíkem</p>
-            </div>
-            <p class="mb-2.5 text-[11.5px] leading-relaxed text-steel-500">
-              Popište, o čem stránka je, a DOVík navrhne rozložení bloků. Ty pak upravíte, doplníte a přeuspořádáte.
-              <span class="text-steel-400">(prototyp)</span>
-            </p>
-            <textarea
-              v-model="dovikPrompt"
-              rows="3"
-              placeholder="Např. stránka o noční prohlídce dolu Hlubina — úvod, fotky, program a odkaz na rezervaci…"
-              class="mb-2.5 w-full resize-y rounded-md border border-steel-200 px-3 py-2 text-[13px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none"
-            />
-            <div class="flex justify-end gap-2">
-              <PopoverClose as-child><AppButton variant="secondary" size="sm">Zavřít</AppButton></PopoverClose>
-              <AppButton variant="primary" size="sm" :disabled="dovikBusy" @click="dovikBuild">
-                <Icon name="sparkles" :size="14" :class="dovikBusy && 'animate-pulse'" />
-                {{ dovikBusy ? 'Skládám…' : 'Naskládat' }}
-              </AppButton>
-            </div>
-            <p v-if="model.length" class="mt-2.5 flex items-start gap-1.5 rounded-md bg-amber-50 px-2.5 py-1.5 text-[11px] leading-relaxed text-amber-700">
-              <Icon name="help" :size="13" class="mt-0.5 shrink-0" /> Nahradí aktuální rozložení ({{ model.length }} {{ model.length === 1 ? 'blok' : 'bloků' }}) novým návrhem.
-            </p>
-          </PopoverContent>
-        </PopoverPortal>
-      </PopoverRoot>
-
       <span class="text-[12px] text-steel-400">
         {{ model.length }} {{ model.length === 1 ? 'prvek' : model.length >= 2 && model.length <= 4 ? 'prvky' : 'prvků' }} na stránce
+      </span>
+      <span class="ml-auto inline-flex items-center gap-1.5 text-[11.5px] text-steel-400">
+        <Icon name="sparkles" :size="13" class="text-brand-500" /> U textových bloků najeď myší → DOVík text rozepíše
       </span>
     </div>
 
@@ -198,7 +169,56 @@ function resetDnd() {
           <!-- Ovládání vzoru (hover) -->
           <div
             class="absolute right-2 top-2 z-10 flex items-center gap-1 rounded-md border border-steel-200 bg-white/95 p-0.5 opacity-0 shadow-sm backdrop-blur transition-opacity group-hover:opacity-100"
+            :class="aiOpenId === block.id ? 'opacity-100' : ''"
           >
+            <!-- DOVík: rozepsat text bloku (jen textové vzory) -->
+            <PopoverRoot
+              v-if="isTextKind(block.kind)"
+              :open="aiOpenId === block.id"
+              @update:open="(v) => (v ? openAi(block.id) : (aiOpenId = ''))"
+            >
+              <PopoverTrigger as-child>
+                <button
+                  type="button"
+                  draggable="false"
+                  class="grid h-6 w-6 place-items-center overflow-hidden rounded outline-none ring-brand-200 transition-shadow hover:ring-1 data-[state=open]:ring-1"
+                  title="Rozepsat s DOVíkem"
+                  @dragstart.prevent
+                >
+                  <DovikAvatar :size="20" />
+                </button>
+              </PopoverTrigger>
+              <PopoverPortal>
+                <PopoverContent
+                  side="left"
+                  align="start"
+                  :side-offset="10"
+                  class="z-50 w-80 rounded-xl border border-steel-200 bg-white p-4 shadow-2xl"
+                >
+                  <div class="mb-2 flex items-center gap-2">
+                    <span class="grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded-lg bg-white ring-1 ring-brand-100"><DovikAvatar :size="30" /></span>
+                    <div>
+                      <p class="text-[13px] font-700 text-graphite-900">Rozepsat s DOVíkem</p>
+                      <p class="text-[10.5px] text-steel-500">Z hrubého zadání sepíše souvislý text.</p>
+                    </div>
+                  </div>
+                  <textarea
+                    v-model="aiPrompt"
+                    rows="3"
+                    placeholder="Hrubé zadání — o čem má blok být, klidně jen v bodech…"
+                    class="mb-2.5 w-full resize-y rounded-md border border-steel-200 px-3 py-2 text-[13px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none"
+                  />
+                  <div class="flex justify-end gap-2">
+                    <PopoverClose as-child><AppButton variant="secondary" size="sm">Zavřít</AppButton></PopoverClose>
+                    <AppButton variant="primary" size="sm" :disabled="aiBusy" @click="aiWrite(block)">
+                      <Icon name="sparkles" :size="14" :class="aiBusy && 'animate-pulse'" />
+                      {{ aiBusy ? 'Píšu…' : 'Rozepsat' }}
+                    </AppButton>
+                  </div>
+                </PopoverContent>
+              </PopoverPortal>
+            </PopoverRoot>
+
             <span
               class="grid h-6 w-6 cursor-grab place-items-center rounded text-steel-400 hover:text-graphite-700"
               title="Přetáhnout"
@@ -217,7 +237,7 @@ function resetDnd() {
 
           <!-- Náhled vzoru -->
           <div class="rounded-md px-4 py-4 transition-colors group-hover:bg-steel-50/50">
-            <GraphicPattern :kind="block.kind" />
+            <GraphicPattern :kind="block.kind" :text="block.text" />
           </div>
         </div>
       </div>

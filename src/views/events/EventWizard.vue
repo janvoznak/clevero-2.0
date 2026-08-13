@@ -394,7 +394,7 @@ const canFinish = computed(() => !!form.title.cs.trim() && !!form.from && !!form
         </div>
 
         <div class="rounded-2xl border border-steel-200 bg-white p-5">
-          <h3 class="mb-3 flex items-center gap-2 text-[13px] font-700 text-graphite-900"><Icon name="gallery" :size="15" class="text-steel-400" /> Fotogalerie</h3>
+          <h3 class="mb-3 flex items-center gap-2 text-[13px] font-700 text-graphite-900"><Icon name="gallery" :size="15" class="text-steel-400" /> Galerie</h3>
           <GalleryField
             v-model:galleries="form.galleryIds"
             v-model:photos="form.gallery"
