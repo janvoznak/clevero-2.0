@@ -68,7 +68,7 @@ watch(coverImage, (c) => { form.image = c?.src ?? '' }, { immediate: true })
 const activeSection = ref('info')
 const sections = [
   { value: 'info', label: 'Základní informace', icon: 'page' },
-  { value: 'gallery', label: 'Fotogalerie', icon: 'gallery' },
+  { value: 'gallery', label: 'Galerie', icon: 'gallery' },
   { value: 'tours', label: 'Prohlídky v kategorii', icon: 'ticket' },
 ]
 function langFilled(code: LangCode): boolean {

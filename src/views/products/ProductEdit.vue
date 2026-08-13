@@ -84,7 +84,7 @@ const sections = [
   { value: 'basic', label: 'Základní informace', icon: 'box' },
   { value: 'content', label: 'Obsah', icon: 'text' },
   { value: 'commerce', label: 'Napojení a prodej', icon: 'integration' },
-  { value: 'gallery', label: 'Fotogalerie', icon: 'gallery' },
+  { value: 'gallery', label: 'Galerie', icon: 'gallery' },
 ]
 
 /** Zobrazený název pro danou mutaci (override, jinak Colosseum název u CZ). */

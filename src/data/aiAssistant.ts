@@ -159,7 +159,7 @@ const HELP: { match: RegExp; answer: string }[] = [
   {
     match: /(galeri|fotogaleri|fotk|obrazk|obrázk|foto)/,
     answer:
-      'V editoru aktuality přepněte na záložku „Fotogalerie" a nahrajte snímky (drag&drop mění pořadí, hvězda označí hlavní obrázek). ' +
+      'V editoru aktuality přepněte na záložku „Galerie" a nahrajte snímky (drag&drop mění pořadí, hvězda označí hlavní obrázek). ' +
       'Rozsáhlejší galerie se spravují v modulu Galerie a připojují se přes vazbu.',
   },
   {
