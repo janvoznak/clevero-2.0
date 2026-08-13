@@ -14,6 +14,7 @@ import { TooltipProvider, TooltipRoot, TooltipTrigger, TooltipContent, TooltipPo
 import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import TagChip from '@/components/ui/TagChip.vue'
+import DovikAvatar from '@/components/admin/DovikAvatar.vue'
 import {
   respondTo,
   stageNewsDraft,
@@ -101,8 +102,8 @@ function toggle() {
       >
         <!-- Hlavička -->
         <header class="flex items-center gap-3 bg-brand-500 px-4 py-3 text-white">
-          <span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-white/15">
-            <Icon name="sparkles" :size="18" />
+          <span class="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-white/30">
+            <DovikAvatar :size="36" />
           </span>
           <span class="min-w-0 flex-1">
             <span class="block text-[14px] font-700 leading-tight">DOVík</span>
@@ -122,9 +123,10 @@ function toggle() {
         <div ref="scroller" class="scroll-thin flex-1 space-y-3 overflow-y-auto bg-steel-50/60 px-4 py-4">
           <template v-for="m in messages" :key="m.id">
             <!-- Bublina -->
-            <div class="flex" :class="m.role === 'user' ? 'justify-end' : 'justify-start'">
+            <div class="flex items-end gap-2" :class="m.role === 'user' ? 'justify-end' : 'justify-start'">
+              <DovikAvatar v-if="m.role === 'assistant'" :size="24" class="mb-0.5 shrink-0" />
               <div
-                class="max-w-[85%] rounded-lg px-3 py-2 text-[13px] leading-relaxed shadow-sm"
+                class="max-w-[82%] rounded-lg px-3 py-2 text-[13px] leading-relaxed shadow-sm"
                 :class="
                   m.role === 'user'
                     ? 'bg-brand-500 text-white'
@@ -178,7 +180,8 @@ function toggle() {
           </template>
 
           <!-- Typing indikátor -->
-          <div v-if="thinking" class="flex justify-start">
+          <div v-if="thinking" class="flex items-end gap-2 justify-start">
+            <DovikAvatar :size="24" class="mb-0.5 shrink-0" />
             <div class="flex items-center gap-1 rounded-lg border border-steel-200 bg-white px-3 py-2.5 shadow-sm">
               <span class="h-1.5 w-1.5 animate-bounce rounded-full bg-steel-400 [animation-delay:-0.2s]" />
               <span class="h-1.5 w-1.5 animate-bounce rounded-full bg-steel-400 [animation-delay:-0.1s]" />
@@ -236,7 +239,7 @@ function toggle() {
               leave-to-class="opacity-0 -rotate-45"
             >
               <Icon v-if="open" name="chevronDown" :size="24" :key="'close'" />
-              <Icon v-else name="chat" :size="24" :key="'open'" />
+              <DovikAvatar v-else bare :size="34" :key="'open'" />
             </Transition>
           </button>
         </TooltipTrigger>
