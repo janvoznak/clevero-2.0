@@ -1,3 +1,4 @@
+import { reactive } from 'vue'
 import { LANGS } from './types'
 import type { ML, LangCode, Tag } from './types'
 
@@ -17,25 +18,36 @@ function emptyML(): ML {
   return { cs: '', en: '', de: '', pl: '' }
 }
 
-/* ---------- Kategorie dotazů (pevná množina, sdílí vzhled se štítky) ---------- */
-export const FAQ_CATEGORIES: Tag[] = [
+/* ---------- Kategorie dotazů (sdílí vzhled se štítky) ----------
+   Reaktivní seznam — nové kategorie lze přidat rovnou z detailu FAQ
+   (viz `registerFaqCategory`), projeví se ve výpisu i ve filtrech. */
+export const FAQ_CATEGORIES = reactive<Tag[]>([
   { label: 'Vstupenky a rezervace', color: '#ee703d' },
   { label: 'Otevírací doba', color: '#3b6fb0' },
   { label: 'Doprava a parkování', color: '#15916a' },
   { label: 'Prohlídky', color: '#7b5ea7' },
   { label: 'Akce a program', color: '#d98a15' },
   { label: 'Služby a zázemí', color: '#0e8a8a' },
-]
+])
 
-export const FAQ_CATEGORY_OPTIONS = FAQ_CATEGORIES.map((c) => ({ value: c.label, label: c.label }))
+/** Stabilní paleta pro barvu nově vytvořených kategorií (nezávislá na délce seznamu). */
+const CATEGORY_PALETTE = ['#ee703d', '#3b6fb0', '#15916a', '#7b5ea7', '#d98a15', '#0e8a8a', '#b5573b', '#2f6f9e']
 
-/** Barva kategorie — z předdefinovaných, jinak stabilní fallback z palety. */
+/** Barva kategorie — z registrovaných, jinak stabilní fallback z palety. */
 export function faqCategoryColor(label: string): string {
   const found = FAQ_CATEGORIES.find((c) => c.label.toLowerCase() === label.toLowerCase())
   if (found) return found.color
   let h = 0
   for (let i = 0; i < label.length; i++) h = (h * 31 + label.charCodeAt(i)) >>> 0
-  return FAQ_CATEGORIES[h % FAQ_CATEGORIES.length].color
+  return CATEGORY_PALETTE[h % CATEGORY_PALETTE.length]
+}
+
+/** Zaregistruje novou kategorii (z detailu FAQ). Idempotentní — case-insensitive. */
+export function registerFaqCategory(label: string): void {
+  const name = label.trim()
+  if (!name) return
+  if (FAQ_CATEGORIES.some((c) => c.label.toLowerCase() === name.toLowerCase())) return
+  FAQ_CATEGORIES.push({ label: name, color: faqCategoryColor(name) })
 }
 
 /* ---------- Entita ---------- */

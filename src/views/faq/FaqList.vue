@@ -28,9 +28,8 @@ import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import ClearFiltersButton from '@/components/ui/ClearFiltersButton.vue'
-import TagChip from '@/components/ui/TagChip.vue'
 import RowActionsMenu from '@/components/admin/RowActionsMenu.vue'
-import { MOCK_FAQ, FAQ_CATEGORY_OPTIONS, faqCategoryColor, type FaqItem } from '@/data/mockFaq'
+import { MOCK_FAQ, FAQ_CATEGORIES, faqCategoryColor, type FaqItem } from '@/data/mockFaq'
 import { LANGS } from '@/data/types'
 import type { LangCode } from '@/data/types'
 import { langPublishState, LANG_PUBLISH_META, filledLangsOf } from '@/utils/langPublish'
@@ -39,13 +38,17 @@ const router = useRouter()
 
 /* ---------- Filtry ----------
    Těžiště je fulltext v otázce (a odpovědi) — u FAQ hledá redaktor konkrétní
-   dotaz podle znění, ne podle abecedy. Pořadí v rámci kategorie je pevné
-   (řídí se polem order v detailu), proto tu žádné „řazení" není. */
+   dotaz podle znění, ne podle abecedy. Výpis je seskupený po kategoriích a
+   pořadí v rámci kategorie se mění přetažením řádku za úchyt (viz `groups`
+   + drag handlery níže); pole `order` je jen odvozené číslo pozice. */
 const search = ref('')
 const filterCategory = ref('all')
 const filterStatus = ref('all')
 
-const categoryOptions = [{ value: 'all', label: 'Všechny kategorie' }, ...FAQ_CATEGORY_OPTIONS]
+const categoryOptions = computed(() => [
+  { value: 'all', label: 'Všechny kategorie' },
+  ...FAQ_CATEGORIES.map((c) => ({ value: c.label, label: c.label })),
+])
 const statusOptions = [
   { value: 'all', label: 'Všechny stavy' },
   { value: 'published', label: 'Zveřejněno' },
@@ -91,6 +94,74 @@ const visible = computed(() => {
   })
   return [...list].sort((a, b) => a.order - b.order)
 })
+
+/* ---------- Seskupení po kategoriích + řazení přetažením ----------
+   Pořadí je per-kategorie, takže výpis dělíme na sekce podle kategorie a v
+   každé sekci se řadí samostatně. */
+
+/** Řazení přetažením dává smysl jen nad úplným seznamem kategorie — při
+    hledání nebo filtru stavu je vidět jen podmnožina, takže úchyty schováme. */
+const canReorder = computed(
+  () => search.value.trim() === '' && filterStatus.value === 'all',
+)
+
+/** Sekce výpisu: kategorie (v pořadí dle FAQ_CATEGORIES) + její otázky dle order. */
+const groups = computed(() => {
+  const byCat = new Map<string, FaqItem[]>()
+  for (const f of visible.value) {
+    if (!byCat.has(f.category)) byCat.set(f.category, [])
+    byCat.get(f.category)!.push(f)
+  }
+  const rank = FAQ_CATEGORIES.map((c) => c.label)
+  const cats = [...byCat.keys()].sort((a, b) => {
+    const ia = rank.indexOf(a), ib = rank.indexOf(b)
+    return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib)
+  })
+  return cats.map((category) => ({
+    category,
+    color: faqCategoryColor(category),
+    items: byCat.get(category)!.slice().sort((a, b) => a.order - b.order),
+  }))
+})
+
+/* Drag & drop (nativní HTML5, stejný vzor jako widgety na Dashboardu). */
+const dragId = ref<string | null>(null)
+const dragCat = ref<string | null>(null)
+const overId = ref<string | null>(null)
+
+function onDragStart(f: FaqItem, e: DragEvent) {
+  dragId.value = f.id
+  dragCat.value = f.category
+  if (e.dataTransfer) {
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', f.id) // Firefox potřebuje data
+  }
+}
+function onDragOver(f: FaqItem) {
+  // Drop povolíme jen v rámci téže kategorie.
+  if (dragId.value && dragCat.value === f.category) overId.value = f.id
+}
+function onDrop(f: FaqItem) {
+  const id = dragId.value
+  if (id && dragCat.value === f.category && id !== f.id) {
+    const catItems = rows.value
+      .filter((x) => x.category === f.category)
+      .sort((a, b) => a.order - b.order)
+    const from = catItems.findIndex((x) => x.id === id)
+    const to = catItems.findIndex((x) => x.id === f.id)
+    if (from >= 0 && to >= 0) {
+      const [moved] = catItems.splice(from, 1)
+      catItems.splice(to, 0, moved)
+      catItems.forEach((x, i) => (x.order = i + 1)) // přečíslování pozic
+    }
+  }
+  onDragEnd()
+}
+function onDragEnd() {
+  dragId.value = null
+  dragCat.value = null
+  overId.value = null
+}
 
 /** Dotaz je zveřejněný, když má aspoň jednu živou (zveřejněnou a vyplněnou) mutaci.
     Stav publikace nesou jazykové mutace — samostatný master přepínač proto nemá smysl. */
@@ -259,9 +330,9 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
       </div>
     </Transition>
 
-    <!-- Accordion (klik na otázku rozbalí odpověď) -->
+    <!-- Výpis: seskupeno po kategoriích; v každé sekci řazení přetažením za úchyt -->
     <div class="overflow-hidden rounded-lg border border-steel-200 bg-white">
-      <!-- Záhlaví: vybrat vše -->
+      <!-- Záhlaví: vybrat vše + nápověda k řazení -->
       <div class="flex items-center gap-3 border-b border-steel-200 bg-steel-50 px-4 py-2.5 text-[11px] font-600 uppercase tracking-wider text-steel-500">
         <CheckboxRoot
           :model-value="allSelected"
@@ -272,77 +343,107 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
           <CheckboxIndicator class="text-white"><Icon name="check" :size="12" /></CheckboxIndicator>
         </CheckboxRoot>
         <span>Otázka</span>
+        <span
+          v-if="visible.length && !canReorder"
+          class="ml-auto inline-flex items-center gap-1 font-500 normal-case tracking-normal text-steel-400"
+        >
+          <Icon name="grip" :size="13" /> Řazení přetažením je dostupné bez hledání a filtru stavu
+        </span>
       </div>
 
-      <AccordionRoot v-if="visible.length" v-model="openItems" type="multiple" class="divide-y divide-steel-100">
-        <AccordionItem
-          v-for="f in visible"
-          :key="f.id"
-          :value="f.id"
-          class="transition-colors"
-          :class="selected.has(f.id) && 'bg-brand-50/40'"
-        >
-          <!-- Řádek otázky -->
-          <div class="flex items-center gap-3 px-4 py-2.5">
-            <CheckboxRoot
-              :model-value="selected.has(f.id)"
-              :aria-label="`Vybrat ${f.question.cs}`"
-              class="grid h-4 w-4 shrink-0 place-items-center rounded border border-steel-300 bg-white data-[state=checked]:border-brand-500 data-[state=checked]:bg-brand-500"
-              @update:model-value="(v) => toggleOne(f.id, v)"
-            >
-              <CheckboxIndicator class="text-white"><Icon name="check" :size="12" /></CheckboxIndicator>
-            </CheckboxRoot>
-
-            <!-- Spouštěč = otázka (rozbalí odpověď) -->
-            <AccordionHeader class="min-w-0 flex-1">
-              <AccordionTrigger class="group flex w-full items-center gap-3 text-left outline-none">
-                <span class="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-steel-100 text-steel-400 transition-colors group-data-[state=open]:bg-brand-50 group-data-[state=open]:text-brand-600">
-                  <Icon name="faq" :size="16" />
-                </span>
-                <span class="min-w-0 flex-1">
-                  <span class="block truncate text-[14px] font-600 text-graphite-900 group-hover:text-brand-600">
-                    {{ f.question.cs || 'Bez otázky' }}
-                  </span>
-                  <span class="mt-0.5 flex items-center gap-2">
-                    <span class="font-mono text-[11px] text-steel-400">#{{ String(f.order).padStart(2, '0') }}</span>
-                    <TagChip :label="f.category" :color="faqCategoryColor(f.category)" />
-                  </span>
-                </span>
-                <!-- Jazykové mutace -->
-                <span class="hidden shrink-0 items-center gap-1 md:flex">
-                  <span
-                    v-for="l in LANGS"
-                    :key="l.code"
-                    :title="`${l.label} — ${LANG_PUBLISH_META[lps(f, l.code as LangCode)].label}`"
-                    class="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10.5px] font-700 uppercase tabular-nums"
-                    :class="LANG_PUBLISH_META[lps(f, l.code as LangCode)].chip"
-                  >
-                    <span class="h-1.5 w-1.5 rounded-full" :class="LANG_PUBLISH_META[lps(f, l.code as LangCode)].dot" />
-                    {{ l.code }}
-                  </span>
-                </span>
-                <Icon name="chevronDown" :size="18" class="shrink-0 text-steel-400 transition-transform group-data-[state=open]:rotate-180" />
-              </AccordionTrigger>
-            </AccordionHeader>
-
-            <!-- Akce (mimo spouštěč) -->
-            <RowActionsMenu :actions="rowActions" label="Akce s dotazem" @select="(key) => onRowAction(key, f)" />
+      <template v-if="visible.length">
+        <div v-for="g in groups" :key="g.category">
+          <!-- Sekce kategorie -->
+          <div class="flex items-center gap-2 border-b border-steel-100 bg-steel-50/60 px-4 py-2">
+            <span class="h-2.5 w-2.5 rounded-full" :style="{ backgroundColor: g.color }" />
+            <span class="text-[12.5px] font-700 text-graphite-800">{{ g.category }}</span>
+            <span class="text-[11px] font-600 text-steel-400">{{ g.items.length }}</span>
           </div>
 
-          <!-- Odpověď (rozbaleno) -->
-          <AccordionContent class="acc-content">
-            <div class="px-4 pb-4 pl-[60px]">
-              <div v-if="plain(f.answer.cs)" class="faq-answer max-w-3xl text-[13.5px] leading-relaxed text-steel-600" v-html="f.answer.cs" />
-              <p v-else class="flex items-center gap-1.5 text-[13px] text-amber-600">
-                <Icon name="x" :size="14" /> Odpověď zatím není vyplněná.
-              </p>
-              <div class="mt-3">
-                <AppButton variant="secondary" size="sm" @click="goEdit(f.id)"><Icon name="edit" :size="14" /> Editovat dotaz</AppButton>
+          <AccordionRoot v-model="openItems" type="multiple" class="divide-y divide-steel-100">
+            <AccordionItem
+              v-for="f in g.items"
+              :key="f.id"
+              :value="f.id"
+              class="relative transition-colors"
+              :class="[
+                selected.has(f.id) && 'bg-brand-50/40',
+                dragId === f.id && 'opacity-40',
+                overId === f.id && dragId && dragId !== f.id && 'shadow-[inset_0_2px_0_0_var(--color-brand-500)]',
+              ]"
+              @dragover.prevent="onDragOver(f)"
+              @drop="onDrop(f)"
+            >
+              <!-- Řádek otázky -->
+              <div class="flex items-center gap-2 px-4 py-2.5">
+                <!-- Úchyt pro přetažení (jen když lze řadit) -->
+                <button
+                  v-if="canReorder"
+                  type="button"
+                  draggable="true"
+                  class="grid h-7 w-6 shrink-0 cursor-grab place-items-center rounded text-steel-300 transition-colors hover:bg-steel-100 hover:text-steel-500 active:cursor-grabbing"
+                  title="Přetáhni pro změnu pořadí v kategorii"
+                  aria-label="Přetáhnout pro změnu pořadí"
+                  @click.stop
+                  @dragstart="onDragStart(f, $event)"
+                  @dragend="onDragEnd"
+                >
+                  <Icon name="grip" :size="15" />
+                </button>
+                <span v-else class="w-6 shrink-0" />
+
+                <CheckboxRoot
+                  :model-value="selected.has(f.id)"
+                  :aria-label="`Vybrat ${f.question.cs}`"
+                  class="grid h-4 w-4 shrink-0 place-items-center rounded border border-steel-300 bg-white data-[state=checked]:border-brand-500 data-[state=checked]:bg-brand-500"
+                  @update:model-value="(v) => toggleOne(f.id, v)"
+                >
+                  <CheckboxIndicator class="text-white"><Icon name="check" :size="12" /></CheckboxIndicator>
+                </CheckboxRoot>
+
+                <!-- Spouštěč = otázka (rozbalí odpověď) -->
+                <AccordionHeader class="min-w-0 flex-1">
+                  <AccordionTrigger class="group flex w-full items-center gap-3 text-left outline-none">
+                    <span class="block min-w-0 flex-1 truncate text-[14px] font-600 text-graphite-900 group-hover:text-brand-600">
+                      {{ f.question.cs || 'Bez otázky' }}
+                    </span>
+                    <!-- Jazykové mutace -->
+                    <span class="hidden shrink-0 items-center gap-1 md:flex">
+                      <span
+                        v-for="l in LANGS"
+                        :key="l.code"
+                        :title="`${l.label} — ${LANG_PUBLISH_META[lps(f, l.code as LangCode)].label}`"
+                        class="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10.5px] font-700 uppercase tabular-nums"
+                        :class="LANG_PUBLISH_META[lps(f, l.code as LangCode)].chip"
+                      >
+                        <span class="h-1.5 w-1.5 rounded-full" :class="LANG_PUBLISH_META[lps(f, l.code as LangCode)].dot" />
+                        {{ l.code }}
+                      </span>
+                    </span>
+                    <Icon name="chevronDown" :size="18" class="shrink-0 text-steel-400 transition-transform group-data-[state=open]:rotate-180" />
+                  </AccordionTrigger>
+                </AccordionHeader>
+
+                <!-- Akce (mimo spouštěč) -->
+                <RowActionsMenu :actions="rowActions" label="Akce s dotazem" @select="(key) => onRowAction(key, f)" />
               </div>
-            </div>
-          </AccordionContent>
-        </AccordionItem>
-      </AccordionRoot>
+
+              <!-- Odpověď (rozbaleno) -->
+              <AccordionContent class="acc-content">
+                <div class="px-4 pb-4 pl-[72px]">
+                  <div v-if="plain(f.answer.cs)" class="faq-answer max-w-3xl text-[13.5px] leading-relaxed text-steel-600" v-html="f.answer.cs" />
+                  <p v-else class="flex items-center gap-1.5 text-[13px] text-amber-600">
+                    <Icon name="x" :size="14" /> Odpověď zatím není vyplněná.
+                  </p>
+                  <div class="mt-3">
+                    <AppButton variant="secondary" size="sm" @click="goEdit(f.id)"><Icon name="edit" :size="14" /> Editovat dotaz</AppButton>
+                  </div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          </AccordionRoot>
+        </div>
+      </template>
 
       <!-- Empty state -->
       <div v-else class="px-4 py-16 text-center">

@@ -186,8 +186,8 @@ function onTourAction(key: string, t: Tour) {
                   <input v-model="form.name[activeLang]" type="text" placeholder="Např. Dolní Vítkovice" class="h-11 w-full rounded-md border border-steel-200 px-3.5 text-[15px] font-500 text-graphite-900 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
                 </div>
                 <div>
-                  <MlFieldHeader label="Popis kategorie" :lang="activeLang" tag="category-description" @translate="translateField('description')" />
-                  <RichTextEditor v-model="form.description[activeLang]" />
+                  <MlFieldHeader label="Popis kategorie" :lang="activeLang" tag="category-description" :overlay="false" @translate="translateField('description')" />
+                  <RichTextEditor v-model="form.description[activeLang]" ai="dovik" />
                 </div>
               </TabsContent>
 

@@ -12,6 +12,8 @@ withDefaults(
     label?: string
     hint?: string
     ariaLabel?: string
+    /** Zamknutý přepínač (nelze přepnout) — např. když je řízený jinou podmínkou. */
+    disabled?: boolean
   }>(),
   {},
 )
@@ -21,12 +23,13 @@ withDefaults(
   <component
     :is="label ? 'label' : 'span'"
     class="inline-flex items-center gap-3"
-    :class="label && 'cursor-pointer'"
+    :class="label && !disabled && 'cursor-pointer'"
   >
     <SwitchRoot
       v-model="model"
+      :disabled="disabled"
       :aria-label="ariaLabel ?? label"
-      class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full bg-steel-300 outline-none transition-colors data-[state=checked]:bg-brand-500 focus-visible:ring-4 focus-visible:ring-brand-500/15"
+      class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full bg-steel-300 outline-none transition-colors data-[state=checked]:bg-brand-500 focus-visible:ring-4 focus-visible:ring-brand-500/15 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50"
     >
       <SwitchThumb
         class="pointer-events-none block h-4 w-4 translate-x-0.5 rounded-full bg-white shadow-sm transition-transform will-change-transform data-[state=checked]:translate-x-[18px]"
