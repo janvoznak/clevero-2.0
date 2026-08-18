@@ -15,7 +15,7 @@ import RowActionsMenu from '@/components/admin/RowActionsMenu.vue'
 import UserAvatar from '@/components/admin/UserAvatar.vue'
 import {
   MOCK_PROGRAMS, SCHOOL_LEVELS, GRADES, FOCUS_AREAS,
-  levelColor, focusColor, tagColor,
+  levelColor, tagColor,
   type Program,
 } from '@/data/mockPrograms'
 import { LANGS } from '@/data/types'
@@ -190,7 +190,6 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
             </th>
             <th class="px-2 py-3 font-600">Program</th>
             <th class="w-52 px-2 py-3 font-600">Stupeň školy</th>
-            <th class="w-52 px-2 py-3 font-600">Zaměření</th>
             <th class="w-48 px-2 py-3 font-600">Autor</th>
             <th class="w-40 px-2 py-3 font-600">Jazykové mutace</th>
             <th class="w-16 px-3 py-3 text-right font-600">Akce</th>
@@ -224,12 +223,6 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
               <span v-else class="text-[11px] text-steel-400">—</span>
             </td>
             <td class="px-2 py-3 align-middle">
-              <div v-if="p.focus.length" class="flex max-w-[210px] flex-wrap items-center gap-1">
-                <TagChip v-for="f in p.focus" :key="f" :label="f" :color="focusColor(f)" />
-              </div>
-              <span v-else class="text-[11px] text-steel-400">—</span>
-            </td>
-            <td class="px-2 py-3 align-middle">
               <div class="flex items-center gap-2">
                 <UserAvatar :name="p.author" :size="28" />
                 <span class="text-[13px] text-graphite-700">{{ p.author }}</span>
@@ -255,7 +248,7 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
           </tr>
 
           <tr v-if="visible.length === 0">
-            <td colspan="7" class="px-4 py-16 text-center">
+            <td colspan="6" class="px-4 py-16 text-center">
               <div class="mx-auto grid h-12 w-12 place-items-center rounded-xl bg-steel-100 text-steel-400"><Icon name="education" :size="24" /></div>
               <p class="mt-3 text-[14px] font-600 text-graphite-800">Žádné programy</p>
               <p class="mt-1 text-[13px] text-steel-500">{{ hasFilters ? 'Zkuste upravit filtry.' : 'Vytvořte první program.' }}</p>

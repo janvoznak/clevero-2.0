@@ -193,12 +193,6 @@ function onWidgetDragEnd() {
 
 <template>
   <div class="space-y-6 px-8 py-6">
-    <!-- Kontext (field-tag) -->
-    <div class="flex items-center gap-2">
-      <span class="field-tag rounded bg-steel-100 px-1.5 py-0.5">dashboard</span>
-      <span class="font-mono text-[11px] text-steel-400">/admin/dashboard</span>
-    </div>
-
     <!-- ============ Rychlé akce (hero — zkratky do editorů modulů) ============ -->
     <section
       class="relative overflow-hidden rounded-2xl px-7 py-8 text-white shadow-lg sm:px-9 sm:py-9"
