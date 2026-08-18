@@ -72,7 +72,7 @@ function clearFilters() {
 
 const visible = computed(() =>
   MOCK_EVENTS.filter((e) => {
-    const mV = filterVenue.value === 'all' || e.areaId === filterVenue.value
+    const mV = filterVenue.value === 'all' || e.areaIds.includes(filterVenue.value)
     const mT = filterType.value === 'all' || e.type === filterType.value
     const mS = filterStatus.value === 'all' || eventStatus(e) === filterStatus.value
     return mV && mT && mS && !hiddenIds.value.has(e.id)
@@ -131,11 +131,7 @@ function confirmDelete() {
         </div>
         <h1 class="font-display text-[26px] font-700 leading-none tracking-tight text-graphite-900">
           Kalendář akcí
-        </h1>
-        <p class="mt-1.5 text-[13.5px] text-steel-500">
-          {{ visible.length }} akcí · více budov, jedno­denní i dlouhodobé události
-        </p>
-      </div>
+        </h1>      </div>
       <AppButton variant="primary" @click="goNew">
         <Icon name="plus" :size="17" />
         Nová akce
@@ -215,7 +211,10 @@ function confirmDelete() {
                   </button>
                 </td>
                 <td class="px-2 py-3 align-middle">
-                  <TagChip :label="placeLabel(e.areaId)" :color="placeColor(e.areaId)" />
+                  <div class="flex flex-wrap items-center gap-1">
+                    <TagChip v-for="aid in e.areaIds" :key="aid" :label="placeLabel(aid)" :color="placeColor(aid)" />
+                    <span v-if="!e.areaIds.length" class="text-[12px] text-steel-400">—</span>
+                  </div>
                 </td>
                 <td class="px-2 py-3 align-middle">
                   <div class="text-[13px] text-graphite-700 tabular-nums">{{ fmtRange(e) }}</div>

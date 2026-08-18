@@ -161,13 +161,7 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
           <span class="field-tag rounded bg-steel-100 px-1.5 py-0.5">{{ isVouchers ? 'vouchers' : 'products' }}</span>
           <span class="font-mono text-[11px] text-steel-400">{{ isVouchers ? '/admin/vouchers' : '/admin/products' }}</span>
         </div>
-        <h1 class="font-display text-[26px] font-700 leading-none tracking-tight text-graphite-900">{{ isVouchers ? 'Vouchery' : 'Produkty' }}</h1>
-        <p class="mt-1.5 flex items-center gap-1.5 text-[13.5px] text-steel-500">
-          <Icon name="integration" :size="14" class="text-brand-500" />
-          <template v-if="isVouchers">Dárkové a hodnotové vouchery z Colossea. Cena a dostupnost se načítají automaticky (jen čtení); popis, obrázky a členění doplníte zde.</template>
-          <template v-else>E-shop — zboží z Colossea. Cena a dostupnost se načítají automaticky (jen čtení); popis, obrázky a členění doplníte zde.</template>
-        </p>
-      </div>
+        <h1 class="font-display text-[26px] font-700 leading-none tracking-tight text-graphite-900">{{ isVouchers ? 'Vouchery' : 'Produkty' }}</h1>      </div>
       <span class="inline-flex items-center gap-1.5 rounded-md border border-steel-200 bg-steel-50 px-3 py-2 text-[12px] text-steel-500">
         <Icon name="sync" :size="14" class="text-brand-500" />
         Synchronizace z Colossea probíhá automaticky

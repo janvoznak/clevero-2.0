@@ -17,13 +17,12 @@ import { SOURCE_LANG, defaultContentBlocks } from '@/data/types'
 import type { ML } from '@/data/types'
 import {
   EVENT_TYPES, PREDEFINED_EVENT_TAGS, TICKET_MODE_OPTIONS, AGE_LIMIT_OPTIONS, eventStatus, EVENT_STATE_META,
-  eventTagColor, aiImportFromUrl, type DovEvent,
+  eventTagColor, aiImportFromUrl, COLOSSEUM_EVENTS, type DovEvent,
 } from '@/data/mockEvents'
-import { PLACE_OPTIONS, DEFAULT_PLACE_ID, areaPlace } from '@/data/mockVenues'
-import { tourOptionsList } from '@/data/mockTours'
+import ColosseumEventPicker from '@/components/admin/ColosseumEventPicker.vue'
+import { PLACE_ITEMS, DEFAULT_PLACE_ID, areaPlace } from '@/data/mockVenues'
 
 const router = useRouter()
-const tourItems = tourOptionsList()
 const typeOptions = EVENT_TYPES.map((t) => ({ value: t, label: t }))
 
 /* Věkové omezení = dropdown; sentinel pro „bez omezení" (Reka Select nechce ''). */
@@ -39,7 +38,7 @@ const form = reactive<DovEvent>({
   id: 'nová', title: empty(), subtitle: empty(), type: 'Festival',
   from: '', to: '', time: '', timeTo: '', summary: empty(), description: empty(),
   image: '', price: '', ticketUrl: '', ticketMode: 'free', ageLimit: '', duration: '', performers: '',
-  tags: [], areaId: DEFAULT_PLACE_ID, tourIds: [], galleryIds: [], gallery: [], published: false,
+  tags: [], areaIds: [DEFAULT_PLACE_ID], tourIds: [], colosseumEventId: '', galleryIds: [], gallery: [], published: false,
   contentBlocks: defaultContentBlocks(),
 })
 
@@ -75,7 +74,7 @@ function aiImport() {
     form.summary[SOURCE_LANG] = d.summary
     form.description[SOURCE_LANG] = d.description
     form.type = d.type
-    form.areaId = d.areaId
+    if (d.areaIds.length) form.areaIds = d.areaIds
     form.from = d.from
     form.to = d.to
     form.time = d.time
@@ -132,15 +131,8 @@ function finish() {
   window.setTimeout(() => router.push({ name: 'events-list' }), 700)
 }
 
-/* Proklik na objekt v Areálu z výběru místa konání (nový panel).
-   Objekty se zakládají v modulu Areál, ne odsud. */
-function openPlace() {
-  if (!form.areaId) return
-  window.open(router.resolve({ name: 'area-edit', params: { id: form.areaId } }).href, '_blank')
-}
-
 /* ---------- Odvozené pro náhled ---------- */
-const place = computed(() => areaPlace(form.areaId))
+const place = computed(() => areaPlace(form.areaIds[0]))
 const status = computed(() => (form.from && form.to ? eventStatus(form) : null))
 function fmtD(iso: string): string {
   return iso ? new Date(iso + 'T00:00:00').toLocaleDateString('cs-CZ', { day: 'numeric', month: 'numeric', year: 'numeric' }) : ''
@@ -159,11 +151,11 @@ const timeRange = computed(() => {
 const checklist = computed(() => [
   { label: 'Název akce', ok: !!form.title.cs.trim() },
   { label: 'Termín (OD)', ok: !!form.from },
-  { label: 'Místo konání', ok: !!form.areaId },
+  { label: 'Místo konání', ok: form.areaIds.length > 0 },
   { label: 'Perex', ok: !!form.summary.cs.trim() },
   { label: 'Plakát', ok: !!form.image },
 ])
-const canFinish = computed(() => !!form.title.cs.trim() && !!form.from && !!form.areaId)
+const canFinish = computed(() => !!form.title.cs.trim() && !!form.from && form.areaIds.length > 0)
 </script>
 
 <template>
@@ -281,16 +273,18 @@ const canFinish = computed(() => !!form.title.cs.trim() && !!form.from && !!form
         <p class="mt-1 text-[13px] text-steel-500">Kdy a kde se akce koná. Podle objektu se barevně zařadí do kalendáře.</p>
         <div class="mt-5 space-y-4">
           <div>
-            <label class="mb-1.5 flex items-center justify-between"><span class="text-[13px] font-600 text-graphite-800">Místo konání (objekt v areálu) <span class="text-brand-500">*</span></span><span class="field-tag">event-area_id</span></label>
-            <AppSelect v-model="form.areaId" :options="PLACE_OPTIONS" />
-            <button
-              v-if="form.areaId"
-              type="button"
-              class="mt-1.5 inline-flex items-center gap-1 text-[11.5px] font-600 text-brand-600 transition-colors hover:text-brand-700"
-              @click="openPlace"
-            >
-              <Icon name="externalLink" :size="12" /> Otevřít objekt
-            </button>
+            <label class="mb-1.5 flex items-center justify-between"><span class="text-[13px] font-600 text-graphite-800">Místo konání (objekty v areálu) <span class="text-brand-500">*</span></span><span class="field-tag">event-area_id</span></label>
+            <RelationPicker
+              v-model="form.areaIds"
+              :items="PLACE_ITEMS"
+              add-label="Přidat objekt"
+              empty-label="Zatím žádný objekt — akce se nezařadí do kalendáře."
+              search-placeholder="Hledat objekt v areálu…"
+              icon="home"
+              item-route-name="area-edit"
+              create-route-name="area-new"
+              create-label="Založit objekt"
+            />
           </div>
           <div class="grid gap-4 sm:grid-cols-2">
             <div>
@@ -364,8 +358,8 @@ const canFinish = computed(() => !!form.title.cs.trim() && !!form.from && !!form
             </p>
 
             <div v-if="form.ticketMode === 'colosseum'" class="mt-3">
-              <label class="mb-1.5 block text-[12.5px] font-600 text-graphite-800">Navázaná prohlídka (prodej přes Colosseum)</label>
-              <RelationPicker v-model="form.tourIds" :items="tourItems" add-label="Přidat prohlídku" empty-label="Zatím žádná." search-placeholder="Hledat prohlídku…" icon="ticket" item-route-name="tour-edit" create-route-name="tour-new" create-label="Založit novou prohlídku" />
+              <label class="mb-1.5 block text-[12.5px] font-600 text-graphite-800">Akce z Colossea (prodej vstupenek)</label>
+              <ColosseumEventPicker v-model="form.colosseumEventId" :events="COLOSSEUM_EVENTS" />
             </div>
             <div v-else-if="form.ticketMode === 'external'" class="mt-3">
               <label class="mb-1.5 block text-[12.5px] font-600 text-graphite-800">Odkaz na externí prodej</label>

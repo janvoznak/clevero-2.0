@@ -35,13 +35,12 @@ import {
   PREDEFINED_EVENT_TAGS,
   TICKET_MODE_OPTIONS,
   AGE_LIMIT_OPTIONS,
+  COLOSSEUM_EVENTS,
   aiImportFromUrl,
   type DovEvent,
 } from '@/data/mockEvents'
-import { PLACE_OPTIONS, DEFAULT_PLACE_ID, areaPlace } from '@/data/mockVenues'
-import { tourOptionsList } from '@/data/mockTours'
-
-const tourItems = tourOptionsList()
+import ColosseumEventPicker from '@/components/admin/ColosseumEventPicker.vue'
+import { PLACE_ITEMS, DEFAULT_PLACE_ID, areaPlace } from '@/data/mockVenues'
 
 const props = defineProps<{ id?: string }>()
 const router = useRouter()
@@ -81,8 +80,9 @@ function clone(): DovEvent {
     duration: '',
     performers: '',
     tags: [],
-    areaId: DEFAULT_PLACE_ID,
+    areaIds: [DEFAULT_PLACE_ID],
     tourIds: [],
+    colosseumEventId: '',
     galleryIds: [],
     gallery: [],
     published: false,
@@ -108,10 +108,10 @@ function onToggleLang(code: LangCode) {
 }
 
 const typeOptions = EVENT_TYPES.map((t) => ({ value: t, label: t }))
-/** Místo konání = objekt v Areálu (jedna kanonická vazba; barva v kalendáři
-    se odvozuje z objektu). Všechna místa mají neprázdné ID. */
-const placeOptions = PLACE_OPTIONS
-const place = computed(() => areaPlace(form.areaId))
+/** Místo konání = objekty v Areálu (může jich být víc; v kalendáři se akce
+    zobrazí v řádku každého objektu). Barva pro propagaci = první objekt. */
+const placeItems = PLACE_ITEMS
+const place = computed(() => areaPlace(form.areaIds[0]))
 
 /* Termín pro propagaci (FB banner/text). */
 function fmtPromoD(iso: string): string {
@@ -130,13 +130,6 @@ const ageLimitModel = computed({
   get: () => form.ageLimit || AGE_NONE,
   set: (v: string) => (form.ageLimit = v === AGE_NONE ? '' : v),
 })
-
-/* Proklik na objekt v Areálu z výběru místa konání (nový panel).
-   Objekty se zakládají v modulu Areál, ne odsud. */
-function openPlace() {
-  if (!form.areaId) return
-  window.open(router.resolve({ name: 'area-edit', params: { id: form.areaId } }).href, '_blank')
-}
 
 /** Sekce detailu (podtržené záložky). */
 const activeSection = ref('basic')
@@ -175,7 +168,7 @@ function aiImport() {
     form.summary[SOURCE_LANG] = d.summary
     form.description[SOURCE_LANG] = d.description
     form.type = d.type
-    form.areaId = d.areaId
+    if (d.areaIds.length) form.areaIds = d.areaIds
     form.from = d.from
     form.to = d.to
     form.time = d.time
@@ -338,6 +331,14 @@ function onDuplicate() {
                     class="w-full resize-y rounded-md border border-steel-200 px-3.5 py-2.5 text-[14px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none"
                   />
                 </div>
+
+                <div>
+                  <label class="mb-1.5 flex items-center justify-between">
+                    <span class="text-[13px] font-600 text-graphite-800">Typ akce</span>
+                    <span class="field-tag">event-type</span>
+                  </label>
+                  <AppSelect v-model="form.type" :options="typeOptions" />
+                </div>
               </TabsContent>
 
               <!-- Sekce: Obsah (jednotný ContentBuilder — nic dalšího pod ním) -->
@@ -345,67 +346,62 @@ function onDuplicate() {
                 <ContentBuilder v-model="form.contentBlocks" />
               </TabsContent>
 
-              <!-- Sekce: Termín a místo -->
-              <TabsContent value="when" class="space-y-4 outline-none">
-                <div class="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <label class="mb-1.5 flex items-center justify-between">
-                      <span class="text-[13px] font-600 text-graphite-800">Místo konání (objekt v areálu) <span class="text-brand-500">*</span></span>
-                      <span class="field-tag">event-area_id</span>
-                    </label>
-                    <AppSelect v-model="form.areaId" :options="placeOptions" />
-                    <button
-                      v-if="form.areaId"
-                      type="button"
-                      class="mt-1.5 inline-flex items-center gap-1 text-[11.5px] font-600 text-brand-600 transition-colors hover:text-brand-700"
-                      @click="openPlace"
-                    >
-                      <Icon name="externalLink" :size="12" /> Otevřít objekt
-                    </button>
-                  </div>
-                  <div>
-                    <label class="mb-1.5 block text-[13px] font-600 text-graphite-800">Typ akce</label>
-                    <AppSelect v-model="form.type" :options="typeOptions" />
-                  </div>
-                </div>
-                <p class="flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
-                  <Icon name="map" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
-                  Místo = objekt v <span class="font-600 text-graphite-700">Areálu</span>. Podle něj se akce barevně zařadí do kalendáře a na webu se zobrazí v detailu objektu.
-                </p>
+              <!-- Sekce: Termín a místo — dvě vizuálně oddělené karty (jako Areál) -->
+              <TabsContent value="when" class="space-y-5 outline-none">
+                <!-- Místo -->
+                <FormSection title="Místo konání" icon="map" tag="event-area_id">
+                  <RelationPicker
+                    v-model="form.areaIds"
+                    :items="placeItems"
+                    add-label="Přidat objekt"
+                    empty-label="Zatím žádný objekt — akce se nezařadí do kalendáře."
+                    search-placeholder="Hledat objekt v areálu…"
+                    icon="home"
+                    item-route-name="area-edit"
+                    create-route-name="area-new"
+                    create-label="Založit objekt"
+                  />
+                  <p class="mt-2 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
+                    <Icon name="map" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
+                    Místa = objekty v <span class="font-600 text-graphite-700">Areálu</span>. Akce se zobrazí v kalendáři v řádku každého objektu (v jeho barvě) a na webu v detailu každého z nich. Můžeš vybrat víc objektů.
+                  </p>
+                </FormSection>
 
-                <div class="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <label class="mb-1.5 block text-[13px] font-600 text-graphite-800">Termín OD</label>
-                    <input v-model="form.from" type="date" class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13.5px] text-graphite-800 focus:border-brand-500 focus:outline-none" />
+                <!-- Termín -->
+                <FormSection title="Termín" icon="calendar" tag="event-datetime">
+                  <div class="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <label class="mb-1.5 block text-[13px] font-600 text-graphite-800">Termín OD</label>
+                      <input v-model="form.from" type="date" class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13.5px] text-graphite-800 focus:border-brand-500 focus:outline-none" />
+                    </div>
+                    <div>
+                      <label class="mb-1.5 block text-[13px] font-600 text-graphite-800">Termín DO</label>
+                      <input v-model="form.to" type="date" class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13.5px] text-graphite-800 focus:border-brand-500 focus:outline-none" />
+                    </div>
                   </div>
-                  <div>
-                    <label class="mb-1.5 block text-[13px] font-600 text-graphite-800">Termín DO</label>
-                    <input v-model="form.to" type="date" class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13.5px] text-graphite-800 focus:border-brand-500 focus:outline-none" />
-                  </div>
-                </div>
 
-                <div class="grid gap-4 sm:grid-cols-3">
-                  <div>
-                    <label class="mb-1.5 block text-[13px] font-600 text-graphite-800">Čas OD</label>
-                    <input v-model="form.time" type="time" class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13.5px] text-graphite-800 focus:border-brand-500 focus:outline-none" />
+                  <div class="mt-4 grid gap-4 sm:grid-cols-3">
+                    <div>
+                      <label class="mb-1.5 block text-[13px] font-600 text-graphite-800">Čas OD</label>
+                      <input v-model="form.time" type="time" class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13.5px] text-graphite-800 focus:border-brand-500 focus:outline-none" />
+                    </div>
+                    <div>
+                      <label class="mb-1.5 block text-[13px] font-600 text-graphite-800">Čas DO</label>
+                      <input v-model="form.timeTo" type="time" class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13.5px] text-graphite-800 focus:border-brand-500 focus:outline-none" />
+                    </div>
+                    <div>
+                      <label class="mb-1.5 flex items-center justify-between">
+                        <span class="text-[13px] font-600 text-graphite-800">Délka</span>
+                        <span class="field-tag">event-duration</span>
+                      </label>
+                      <input v-model="form.duration" type="text" placeholder="např. 90 min" class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13.5px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
+                    </div>
                   </div>
-                  <div>
-                    <label class="mb-1.5 block text-[13px] font-600 text-graphite-800">Čas DO</label>
-                    <input v-model="form.timeTo" type="time" class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13.5px] text-graphite-800 focus:border-brand-500 focus:outline-none" />
-                  </div>
-                  <div>
-                    <label class="mb-1.5 flex items-center justify-between">
-                      <span class="text-[13px] font-600 text-graphite-800">Délka</span>
-                      <span class="field-tag">event-duration</span>
-                    </label>
-                    <input v-model="form.duration" type="text" placeholder="např. 90 min" class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13.5px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
-                  </div>
-                </div>
-                <p class="flex items-start gap-1.5 rounded-md bg-steel-50 px-3 py-2 text-[12px] text-steel-500">
-                  <Icon name="calendar" :size="14" class="mt-0.5 shrink-0 text-steel-400" />
-                  Stejné OD i DO = jednodenní akce. Rozdílné datumy = vícedenní / dlouhodobá akce v kalendáři.
-                </p>
-
+                  <p class="mt-3 flex items-start gap-1.5 rounded-md bg-steel-50 px-3 py-2 text-[12px] text-steel-500">
+                    <Icon name="calendar" :size="14" class="mt-0.5 shrink-0 text-steel-400" />
+                    Stejné OD i DO = jednodenní akce. Rozdílné datumy = vícedenní / dlouhodobá akce v kalendáři.
+                  </p>
+                </FormSection>
               </TabsContent>
 
               <!-- Sekce: Vstupenky a detaily -->
@@ -451,23 +447,13 @@ function onDuplicate() {
                     {{ TICKET_MODE_OPTIONS.find((o) => o.value === form.ticketMode)?.hint }}
                   </p>
 
-                  <!-- Colosseum → navázaná prohlídka -->
+                  <!-- Colosseum → napojení na akci z Colossea (našeptávač) -->
                   <div v-if="form.ticketMode === 'colosseum'" class="mt-3 border-t border-steel-100 pt-3">
-                    <p class="mb-2 flex items-center gap-2 text-[12.5px] font-600 text-graphite-800"><Icon name="ticket" :size="14" class="text-steel-400" /> Navázaná prohlídka (prodej přes Colosseum) <span class="field-tag">event-tours</span></p>
-                    <RelationPicker
-                      v-model="form.tourIds"
-                      :items="tourItems"
-                      add-label="Přidat prohlídku"
-                      empty-label="Zatím žádná prohlídka."
-                      search-placeholder="Hledat prohlídku…"
-                      icon="ticket"
-                      item-route-name="tour-edit"
-                      create-route-name="tour-new"
-                      create-label="Založit novou prohlídku"
-                    />
+                    <p class="mb-2 flex items-center gap-2 text-[12.5px] font-600 text-graphite-800"><Icon name="ticket" :size="14" class="text-steel-400" /> Akce z Colossea (prodej vstupenek) <span class="field-tag">event-colosseum</span></p>
+                    <ColosseumEventPicker v-model="form.colosseumEventId" :events="COLOSSEUM_EVENTS" />
                     <p class="mt-2 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
                       <Icon name="ticket" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
-                      <span>Dostupnost termínů i košík táhne <strong class="font-600 text-graphite-700">navázaná prohlídka</strong> z Colossea. Pro vstupenkovou akci vždy propoj alespoň jednu prohlídku.</span>
+                      <span>Vyber akci z <strong class="font-600 text-graphite-700">Colossea</strong> — dostupnost termínů i košík táhne vybraná akce (název i termín posílá Colosseum přes API). Pro vstupenkovou akci ji vždy propoj.</span>
                     </p>
                   </div>
 

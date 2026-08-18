@@ -42,7 +42,7 @@ export interface RecentItem {
 export const RECENT: RecentItem[] = [
   { id: 'r1', icon: 'news', tint: 'text-forge-600', bg: 'bg-forge-500/10', module: 'Aktuality', title: 'Bolt Tower otevírá letní vyhlídkovou sezónu', user: 'Jana Svobodová', date: 'dnes 09:14', to: '/admin/news/n-2041/edit' },
   { id: 'r2', icon: 'calendar', tint: 'text-brand-600', bg: 'bg-brand-50', module: 'Kalendář akcí', title: 'Krištof Kintera: Neuropolis', user: 'Petr Dvořák', date: 'dnes 08:02', to: '/admin/events/e-neuropolis' },
-  { id: 'r3', icon: 'ticket', tint: 'text-amber-600', bg: 'bg-amber-500/10', module: 'Prohlídky', title: 'Vysokopecní okruh vč. návštěvy Bolt Tower', user: 'Martin Kučera', date: 'včera 16:40', to: '/admin/tours/t-vysokopecni/edit' },
+  { id: 'r3', icon: 'ticket', tint: 'text-amber-600', bg: 'bg-amber-500/10', module: 'Prohlídky', title: 'Vysokopecní okruh', user: 'Martin Kučera', date: 'včera 16:40', to: '/admin/tours/t-vysokopecni/edit' },
   { id: 'r4', icon: 'page', tint: 'text-graphite-700', bg: 'bg-steel-100', module: 'Stránky', title: 'Historie areálu', user: 'Jana Svobodová', date: 'včera 11:20', to: '/admin/pages/pg-historie/edit' },
   { id: 'r5', icon: 'gallery', tint: 'text-[#7b5ea7]', bg: 'bg-[#7b5ea7]/10', module: 'Galerie', title: 'Akce a festivaly', user: 'Petr Dvořák', date: '3. 8. · 15:05', to: '/admin/galleries/g-akce/edit' },
   { id: 'r6', icon: 'news', tint: 'text-forge-600', bg: 'bg-forge-500/10', module: 'Aktuality', title: 'Noční prohlídky Dolu Hlubina', user: 'Jana Svobodová', date: '3. 8. · 09:30', to: '/admin/news/n-2035/edit' },
@@ -152,10 +152,10 @@ export const ATTENTION: AttentionItem[] = [
     icon: 'ticket',
     source: 'Prohlídky · kontrola AI',
     title: 'Prohlídka není připravená k publikaci',
-    detail: '„Noční prohlídka Dolu Hlubina" nemá fotku ani propojení na Colosseum — na webu by se zobrazila bez obrázku a bez prodeje vstupenek.',
+    detail: '„Vysoká pec po setmění" nemá fotku ani propojení na Colosseum — na webu by se zobrazila bez obrázku a bez prodeje vstupenek.',
     ai: 'Navrhnu úvodní fotku a doplním popis; ID pro Colosseum vyžádám u provozu.',
     actionLabel: 'Doplnit prohlídku',
-    to: '/admin/tours/t-hlubina-nocni/edit',
+    to: '/admin/tours/t-vysoka-pec-po-setmeni/edit',
     health: { score: 55, missing: ['hlavní fotka', 'Colosseum ID', 'ceník'] },
   },
 ]

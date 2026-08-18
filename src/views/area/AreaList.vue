@@ -93,11 +93,7 @@ function confirmDelete() {
           <span class="field-tag rounded bg-steel-100 px-1.5 py-0.5">area</span>
           <span class="font-mono text-[11px] text-steel-400">/admin/area/list</span>
         </div>
-        <h1 class="font-display text-[26px] font-700 leading-none tracking-tight text-graphite-900">Areál</h1>
-        <p class="mt-1.5 text-[13.5px] text-steel-500">
-          {{ rows.length }} objektů · budovy a místa v areálu DOV · propojení s akcemi, galeriemi a Colosseem
-        </p>
-      </div>
+        <h1 class="font-display text-[26px] font-700 leading-none tracking-tight text-graphite-900">Areál</h1>      </div>
       <AppButton variant="primary" @click="goNew">
         <Icon name="plus" :size="17" />
         Nový objekt

@@ -146,7 +146,7 @@ const RAW: RawNews[] = [
   {
     id: 'n-2035',
     areaId: 'v-hlubina',
-    tourIds: ['t-hlubina-den'],
+    tourIds: ['t-farani-dul'],
     author: 'Jana Svobodová',
     title: { cs: 'Noční prohlídky Dolu Hlubina', en: 'Night tours of the Hlubina Mine', de: '' },
     summary: { cs: 'Zážitkové prohlídky bývalého černouhelného dolu při svitu lamp.', en: '', de: '' },
