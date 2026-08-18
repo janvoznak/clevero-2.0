@@ -5,6 +5,7 @@ import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import DetailActions from '@/components/admin/DetailActions.vue'
 import CreatableSelect from '@/components/ui/CreatableSelect.vue'
+import HelpTip from '@/components/ui/HelpTip.vue'
 import AppSwitch from '@/components/ui/AppSwitch.vue'
 import FormSection from '@/components/admin/FormSection.vue'
 import PublishCard from '@/components/admin/PublishCard.vue'
@@ -164,7 +165,10 @@ function onDuplicate() {
           <!-- Zařazení (dříve v pravém railu) -->
           <div class="mt-5">
             <label class="mb-1.5 flex items-center justify-between">
-              <span class="text-[13px] font-600 text-graphite-800">Kategorie</span>
+              <span class="flex items-center gap-1.5 text-[13px] font-600 text-graphite-800">
+                Kategorie
+                <HelpTip text="Pořadí dotazu ve své kategorii nastavíš přetažením ve výpisu FAQ." />
+              </span>
               <span class="field-tag">faq-category</span>
             </label>
             <CreatableSelect
@@ -174,7 +178,6 @@ function onDuplicate() {
               create-noun="kategorii"
               @create="onCreateCategory"
             />
-            <p class="mt-1 text-[11.5px] text-steel-500">Pořadí dotazu ve své kategorii nastavíš přetažením ve výpisu FAQ.</p>
           </div>
         </div>
       </div>

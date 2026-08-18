@@ -463,9 +463,8 @@ const canFinish = computed(() => !!form.title.cs.trim() && !!form.from && !!form
           <div class="rounded-2xl border border-steel-200 bg-white p-5">
             <h3 class="mb-3 text-[13px] font-700 text-graphite-900">Publikace</h3>
             <div class="flex items-center justify-between rounded-md border border-steel-200 px-3 py-2.5">
-              <AppSwitch v-model="form.published" label="Zveřejnit na webu hned" aria-label="Zveřejnit na webu" />
+              <AppSwitch v-model="form.published" label="Zveřejnit na webu hned" hint="Bez zapnutí se akce uloží jako koncept a zveřejníte ji později." aria-label="Zveřejnit na webu" />
             </div>
-            <p class="mt-2 text-[11.5px] leading-relaxed text-steel-500">Bez zapnutí se akce uloží jako koncept a zveřejníte ji později.</p>
           </div>
         </div>
       </div>

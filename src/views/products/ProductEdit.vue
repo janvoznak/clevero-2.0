@@ -13,6 +13,7 @@ import { useAutoSlug } from '@/utils/useAutoSlug'
 import RelationPicker from '@/components/admin/RelationPicker.vue'
 import LangBar from '@/components/admin/LangBar.vue'
 import MlFieldHeader from '@/components/admin/MlFieldHeader.vue'
+import HelpTip from '@/components/ui/HelpTip.vue'
 import { useMlTranslate } from '@/utils/useMlTranslate'
 import { LANGS, SOURCE_LANG, defaultContentBlocks } from '@/data/types'
 import type { LangCode, ML } from '@/data/types'
@@ -216,14 +217,13 @@ function saveBack() {
                   </div>
 
                   <div>
-                    <MlFieldHeader label="Název pro web" :lang="activeLang" tag="product-name_override" :required="isNew" @translate="translateField('nameOverride')" />
+                    <MlFieldHeader label="Název pro web" :lang="activeLang" tag="product-name_override" :required="isNew" hint="Prázdné = na webu se použije název z Colossea." @translate="translateField('nameOverride')" />
                     <input
                       v-model="form.nameOverride[activeLang]"
                       type="text"
                       :placeholder="activeLang === 'cs' ? (form.name || 'Název produktu') : 'Přeložený název pro tuto mutaci'"
                       class="h-11 w-full rounded-md border border-steel-200 px-3.5 text-[15px] font-500 text-graphite-900 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none"
                     />
-                    <p class="mt-1 text-[11.5px] text-steel-500">Prázdné = na webu se použije název z Colossea.</p>
                   </div>
 
                   <SlugField
@@ -248,8 +248,10 @@ function saveBack() {
                     <header class="flex items-center gap-3 border-b border-brand-500/15 bg-brand-50/60 px-5 py-3.5">
                       <span class="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-brand-500/15 text-brand-600"><Icon name="integration" :size="17" /></span>
                       <div class="min-w-0 flex-1">
-                        <h2 class="font-display text-[15px] font-700 tracking-tight text-graphite-900">Napojení na Colosseum</h2>
-                        <p class="text-[11.5px] text-steel-500">Cena a dostupnost se načítají automaticky — needitovatelné.</p>
+                        <h2 class="flex items-center gap-1.5 font-display text-[15px] font-700 tracking-tight text-graphite-900">
+                          Napojení na Colosseum
+                          <HelpTip text="Cena a dostupnost se načítají automaticky — needitovatelné." />
+                        </h2>
                       </div>
                       <span class="hidden items-center gap-1 rounded bg-forge-500/10 px-1.5 py-0.5 font-mono text-[10px] font-600 text-forge-600 sm:inline-flex">
                         <Icon name="check" :size="10" />napojeno
@@ -377,8 +379,7 @@ function saveBack() {
                     <img :src="form.colosseumImage" alt="" class="h-full w-full object-cover" />
                   </span>
                   <div class="min-w-0">
-                    <p class="flex items-center gap-1.5 field-tag"><Icon name="integration" :size="12" class="text-brand-500" /> Obrázek z Colossea</p>
-                    <p class="mt-0.5 text-[12px] text-steel-500">Zobrazí se, dokud nepřidáte vlastní hlavní fotku.</p>
+                    <p class="flex items-center gap-1.5 field-tag"><Icon name="integration" :size="12" class="text-brand-500" /> Obrázek z Colossea <HelpTip text="Zobrazí se, dokud nepřidáte vlastní hlavní fotku." /></p>
                   </div>
                 </div>
                 <GalleryField
