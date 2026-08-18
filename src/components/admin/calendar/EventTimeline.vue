@@ -78,6 +78,7 @@ interface Row {
   label: string
   color: string
   silhouette: string
+  silhouetteSvg?: string
   segs: Seg[]
   lanes: number
 }
@@ -117,7 +118,7 @@ const rows = computed<Row[]>(() => {
       seg.lane = lane
       laneEnd[lane] = seg._en
     }
-    out.push({ id: v.id, label: v.title.cs, color: v.color, silhouette: v.silhouette, segs, lanes: Math.max(1, laneEnd.length) })
+    out.push({ id: v.id, label: v.title.cs, color: v.color, silhouette: v.silhouette, silhouetteSvg: v.silhouetteSvg, segs, lanes: Math.max(1, laneEnd.length) })
   }
   return out
 })
@@ -170,7 +171,7 @@ function fmtRange(e: DovEvent): string {
             <!-- Popisek objektu -->
             <div class="relative flex shrink-0 items-center gap-2.5 border-r border-steel-200 py-2.5 pl-4 pr-3" :style="{ width: labelW + 'px' }">
               <span class="absolute left-0 top-0 h-full w-[3px]" :style="{ backgroundColor: row.color }" />
-              <VenueSilhouette :venue-id="row.silhouette" :color="row.color" :size="compact ? 20 : 24" class="shrink-0" />
+              <VenueSilhouette :venue-id="row.silhouette" :svg="row.silhouetteSvg" :color="row.color" :size="compact ? 20 : 24" class="shrink-0" />
               <span class="break-words text-[12.5px] font-600 leading-tight text-graphite-800">{{ row.label }}</span>
             </div>
             <!-- Dráhy s pruhy -->

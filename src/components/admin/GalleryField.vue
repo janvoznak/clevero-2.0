@@ -53,9 +53,9 @@ const galleryItems = galleryOptionsList()
 
     <!-- 2) Fotky nahrané přímo v tomto modulu -->
     <FormSection
-      title="Fotky nahrané přímo zde"
+      title="Vlastní fotografie"
       icon="upload"
-      hint="Fotky nahrané přímo do tohoto záznamu. První obrázek (★) je hlavní."
+      hint="Fotografie nahrané přímo k tomuto záznamu. První obrázek (★) je hlavní."
       :tag="photosTag"
     >
       <GalleryManager v-model="photos" />

@@ -65,8 +65,12 @@ export interface AreaObject {
   image: string
   /** Barva místa (řádek/pruh v kalendáři akcí). */
   color: string
-  /** Klíč siluety budovy (VenueSilhouette): areal|bolt|gong|galerie|technika|hlubina|hopjump|lezecka. */
+  /** Klíč vestavěné siluety (VenueSilhouette): areal|bolt|gong|galerie|technika|hlubina|hopjump|lezecka.
+      Použije se jako fallback, když objekt nemá vlastní nahrané SVG (`silhouetteSvg`). */
   silhouette: string
+  /** Vlastní nahraná silueta objektu jako sanitizované SVG (má přednost před `silhouette`).
+      Prázdné = použije se vestavěný tvar podle `silhouette`. */
+  silhouetteSvg?: string
   /** Štítky (Gastro / Atraktivity / Ubytování / vlastní). */
   tags: string[]
   /** Základní fotky objektu (inline galerie — statické, mění se málo). */
@@ -391,7 +395,7 @@ export function areaPlace(id: string): AreaObject | undefined {
 export const PLACE_OPTIONS = MOCK_VENUES.map((v) => ({ value: v.id, label: v.title.cs }))
 
 /** Položky míst pro multi-výběr (RelationPicker) — s barvou a siluetou objektu. */
-export const PLACE_ITEMS = MOCK_VENUES.map((v) => ({ id: v.id, label: v.title.cs, color: v.color, silhouette: v.silhouette }))
+export const PLACE_ITEMS = MOCK_VENUES.map((v) => ({ id: v.id, label: v.title.cs, color: v.color, silhouette: v.silhouette, silhouetteSvg: v.silhouetteSvg }))
 
 /** Výchozí místo pro nové akce (celý areál). */
 export const DEFAULT_PLACE_ID = 'v-areal'

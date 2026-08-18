@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { TabsRoot, TabsList, TabsTrigger, TabsContent } from 'reka-ui'
 import Icon from '@/components/ui/Icon.vue'
@@ -36,6 +36,7 @@ import {
   TICKET_MODE_OPTIONS,
   AGE_LIMIT_OPTIONS,
   COLOSSEUM_EVENTS,
+  colosseumEvent,
   aiImportFromUrl,
   type DovEvent,
 } from '@/data/mockEvents'
@@ -75,7 +76,7 @@ function clone(): DovEvent {
     image: '',
     price: '',
     ticketUrl: '',
-    ticketMode: 'free',
+    ticketMode: 'external',
     ageLimit: '',
     duration: '',
     performers: '',
@@ -92,6 +93,19 @@ function clone(): DovEvent {
 }
 const form = reactive<DovEvent>(clone())
 const activeLang = ref<LangCode>('cs')
+
+/* Napojení na Colosseum → předvyplnění kapacity a volných míst (posílá Colosseum přes API).
+   Reaguje jen na změnu výběru, ne na načtení uložené akce, aby nepřepsalo ručně upravené hodnoty. */
+watch(
+  () => form.colosseumEventId,
+  (id) => {
+    if (!id) return
+    const c = colosseumEvent(id)
+    if (!c) return
+    if (c.capacity != null) form.capacity = c.capacity
+    if (c.freeSpots != null) form.freeSpots = c.freeSpots
+  },
+)
 
 function langFilled(code: LangCode): boolean {
   return form.title[code].trim().length > 0

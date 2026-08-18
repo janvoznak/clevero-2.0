@@ -6,6 +6,7 @@ import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import DetailActions from '@/components/admin/DetailActions.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
+import RelationPicker from '@/components/admin/RelationPicker.vue'
 import AppSwitch from '@/components/ui/AppSwitch.vue'
 import FormSection from '@/components/admin/FormSection.vue'
 import PublishCard from '@/components/admin/PublishCard.vue'
@@ -43,15 +44,11 @@ import {
   type Tour,
   type TourHighlight,
 } from '@/data/mockTours'
-import { PLACE_OPTIONS } from '@/data/mockVenues'
+import { PLACE_ITEMS } from '@/data/mockVenues'
 
 const props = defineProps<{ id?: string }>()
 const router = useRouter()
 const route = useRoute()
-
-/** Místo konání = objekt v Areálu (nepovinné → sentinel + proxy na ''). */
-const AREA_NONE = '__none__'
-const placeOptions = [{ value: AREA_NONE, label: '— neurčeno' }, ...PLACE_OPTIONS]
 
 const isEdit = computed(() => !!props.id)
 const source = computed(() => MOCK_TOURS.find((t) => t.id === props.id))
@@ -107,7 +104,6 @@ const activeSection = ref('basic')
 const sections = [
   { value: 'basic', label: 'Základní informace', icon: 'page' },
   { value: 'content', label: 'Obsah', icon: 'text' },
-  { value: 'pricing', label: 'Kontakt a platba', icon: 'mail' },
   { value: 'colosseum', label: 'Dostupnost a Colosseum', icon: 'integration' },
   { value: 'gallery', label: 'Galerie', icon: 'gallery' },
 ]
@@ -123,13 +119,6 @@ function removeHighlight(i: number) {
 }
 
 
-/* ---------- Místo konání (objekt v Areálu) ---------- */
-const areaModel = computed<string>({
-  get: () => form.areaId || AREA_NONE,
-  set: (v) => {
-    form.areaId = v === AREA_NONE ? '' : v
-  },
-})
 
 /* ---------- Colosseum (read-only) ---------- */
 const slots = computed(() => upcomingSlots(form))
@@ -278,6 +267,14 @@ function onDuplicate() {
 
                 <SlugField v-model="slugText" :tag="`tour-url · ${activeLang.toUpperCase()}`" @edit="markManual(activeLang)" />
 
+                <div>
+                  <label class="mb-1.5 flex items-center justify-between">
+                    <span class="text-[13px] font-600 text-graphite-800">Kategorie</span>
+                    <span class="field-tag">tour-category_id</span>
+                  </label>
+                  <AppSelect v-model="form.categoryId" :options="CATEGORY_OPTIONS" />
+                </div>
+
                 <div class="grid gap-4 sm:grid-cols-[minmax(0,1fr)_180px]">
                   <div>
                     <MlFieldHeader label="Perex" :lang="activeLang" tag="tour-perex" @translate="translateField('perex')" />
@@ -314,6 +311,36 @@ function onDuplicate() {
                   <MlFieldHeader label="Kdy prohlídky začínají" :lang="activeLang" tag="tour-schedule" @translate="translateField('scheduleNote')" />
                   <textarea v-model="form.scheduleNote[activeLang]" rows="3" placeholder="Např. Denně v 10:00, 12:00, 14:00 a 16:00. Max. kapacita skupiny 17 osob." class="w-full resize-y rounded-md border border-steel-200 px-3.5 py-2.5 text-[13.5px] leading-relaxed text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
                 </div>
+
+                <!-- Kontakt a platba (dříve samostatná záložka) -->
+                <div class="space-y-4 border-t border-steel-100 pt-4">
+                  <!-- Ceny řeší Colosseum — v CMS se needitují (žádná ruční duplikace). -->
+                  <div class="flex items-start gap-2.5 rounded-md border border-steel-200 bg-steel-50 px-3.5 py-3">
+                    <Icon name="integration" :size="16" class="mt-0.5 shrink-0 text-brand-500" />
+                    <p class="text-[12.5px] leading-relaxed text-steel-600">
+                      <span class="font-600 text-graphite-800">Ceny vstupenek se v CMS nezadávají.</span>
+                      Aktuální cena i nákup probíhají v <span class="font-600">Colosseu</span> (napojení nastavíte v záložce
+                      <span class="font-600">Dostupnost a Colosseum</span>). Tím nemůže vzniknout rozpor mezi cenou na webu a u pokladny.
+                    </p>
+                  </div>
+
+                  <div class="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <label class="mb-1.5 flex items-center justify-between">
+                        <span class="text-[13px] font-600 text-graphite-800">Kontaktní e-mail</span>
+                        <span class="field-tag">tour-contact_email</span>
+                      </label>
+                      <div class="relative">
+                        <Icon name="mail" :size="15" class="absolute left-3 top-1/2 -translate-y-1/2 text-steel-400" />
+                        <input v-model="form.contactEmail" type="text" placeholder="nkp@dolnivitkovice.cz" class="h-10 w-full rounded-md border border-steel-200 pl-9 pr-3 text-[13.5px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
+                      </div>
+                    </div>
+                    <div>
+                      <MlFieldHeader label="Poznámka k platbě" :lang="activeLang" tag="tour-payment" @translate="translateField('paymentNote')" />
+                      <input v-model="form.paymentNote[activeLang]" type="text" placeholder="Vstupenky lze platit platební kartou." class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13.5px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
+                    </div>
+                  </div>
+                </div>
               </TabsContent>
 
               <!-- Obsah (jednotný ContentBuilder — nic dalšího pod ním) -->
@@ -321,64 +348,35 @@ function onDuplicate() {
                 <ContentBuilder v-model="form.contentBlocks" />
               </TabsContent>
 
-              <!-- Kontakt a platba -->
-              <TabsContent value="pricing" class="space-y-5 outline-none">
-                <!-- Ceny řeší Colosseum — v CMS se needitují (žádná ruční duplikace). -->
-                <div class="flex items-start gap-2.5 rounded-md border border-steel-200 bg-steel-50 px-3.5 py-3">
-                  <Icon name="integration" :size="16" class="mt-0.5 shrink-0 text-brand-500" />
-                  <p class="text-[12.5px] leading-relaxed text-steel-600">
-                    <span class="font-600 text-graphite-800">Ceny vstupenek se v CMS nezadávají.</span>
-                    Aktuální cena i nákup probíhají v <span class="font-600">Colosseu</span> (napojení nastavíte v záložce
-                    <span class="font-600">Dostupnost a Colosseum</span>). Tím nemůže vzniknout rozpor mezi cenou na webu a u pokladny.
-                  </p>
-                </div>
-
-                <div class="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <label class="mb-1.5 flex items-center justify-between">
-                      <span class="text-[13px] font-600 text-graphite-800">Kontaktní e-mail</span>
-                      <span class="field-tag">tour-contact_email</span>
-                    </label>
-                    <div class="relative">
-                      <Icon name="mail" :size="15" class="absolute left-3 top-1/2 -translate-y-1/2 text-steel-400" />
-                      <input v-model="form.contactEmail" type="text" placeholder="nkp@dolnivitkovice.cz" class="h-10 w-full rounded-md border border-steel-200 pl-9 pr-3 text-[13.5px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
-                    </div>
-                  </div>
-                  <div>
-                    <MlFieldHeader label="Poznámka k platbě" :lang="activeLang" tag="tour-payment" @translate="translateField('paymentNote')" />
-                    <input v-model="form.paymentNote[activeLang]" type="text" placeholder="Vstupenky lze platit platební kartou." class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13.5px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
-                  </div>
-                </div>
-              </TabsContent>
-
               <!-- Dostupnost a Colosseum (dříve v pravém railu) -->
               <TabsContent value="colosseum" class="space-y-5 outline-none">
-                <div class="grid gap-4 sm:grid-cols-2">
-                  <div class="rounded-md bg-steel-50 px-3 py-2.5">
-                    <p class="field-tag mb-1">Dostupnost</p>
-                    <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-600" :class="[AVAILABILITY_META[availability(form)].bg, AVAILABILITY_META[availability(form)].text]">
-                      <span class="h-1.5 w-1.5 rounded-full" :class="AVAILABILITY_META[availability(form)].dot" />
-                      {{ AVAILABILITY_META[availability(form)].label }}
-                    </span>
-                  </div>
-                  <div>
-                    <label class="mb-1.5 flex items-center justify-between">
-                      <span class="text-[13px] font-600 text-graphite-800">Kategorie</span>
-                      <span class="field-tag">tour-category_id</span>
-                    </label>
-                    <AppSelect v-model="form.categoryId" :options="CATEGORY_OPTIONS" />
-                  </div>
+                <div class="rounded-md bg-steel-50 px-3 py-2.5">
+                  <p class="field-tag mb-1">Dostupnost</p>
+                  <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-600" :class="[AVAILABILITY_META[availability(form)].bg, AVAILABILITY_META[availability(form)].text]">
+                    <span class="h-1.5 w-1.5 rounded-full" :class="AVAILABILITY_META[availability(form)].dot" />
+                    {{ AVAILABILITY_META[availability(form)].label }}
+                  </span>
                 </div>
 
                 <div>
                   <label class="mb-1.5 flex items-center justify-between">
                     <span class="flex items-center gap-1.5 text-[13px] font-600 text-graphite-800">
-                      Místo konání — objekt v areálu
-                      <HelpTip text="Kde prohlídka reálně začíná. Propíše se do detailu objektu na webu (nabízené prohlídky)." />
+                      Místo konání — objekty v areálu
+                      <HelpTip text="Kde prohlídka reálně probíhá. Propíše se do detailu každého objektu na webu (nabízené prohlídky). Můžeš vybrat víc objektů." />
                     </span>
                     <span class="field-tag">tour-area_id</span>
                   </label>
-                  <AppSelect v-model="areaModel" :options="placeOptions" />
+                  <RelationPicker
+                    v-model="form.areaIds"
+                    :items="PLACE_ITEMS"
+                    add-label="Přidat objekt"
+                    empty-label="Zatím žádný objekt — prohlídka se nenabídne u žádného objektu."
+                    search-placeholder="Hledat objekt v areálu…"
+                    icon="home"
+                    item-route-name="area-edit"
+                    create-route-name="area-new"
+                    create-label="Založit objekt"
+                  />
                 </div>
 
                 <div>
