@@ -17,7 +17,7 @@ import { SOURCE_LANG, defaultContentBlocks } from '@/data/types'
 import type { ML } from '@/data/types'
 import {
   EVENT_TYPES, PREDEFINED_EVENT_TAGS, TICKET_MODE_OPTIONS, AGE_LIMIT_OPTIONS, eventStatus, EVENT_STATE_META,
-  eventTagColor, aiImportFromUrl, COLOSSEUM_EVENTS, type DovEvent,
+  eventTagColor, aiImportFromUrl, COLOSSEUM_EVENTS, colosseumEvent, type DovEvent,
 } from '@/data/mockEvents'
 import ColosseumEventPicker from '@/components/admin/ColosseumEventPicker.vue'
 import { PLACE_ITEMS, DEFAULT_PLACE_ID, areaPlace } from '@/data/mockVenues'
@@ -92,6 +92,33 @@ function aiImport() {
     step.value = steps.length - 1 // rovnou na náhled ke kontrole
     window.scrollTo({ top: 0 })
   }, 1900)
+}
+
+/* ---------- Založení z Colossea (našeptávač) ---------- */
+/* Colosseum posílá přes API dostupné akce; výběrem se předvyplní návrh nové akce. */
+const startColosseumId = ref('')
+watch(startColosseumId, (id) => {
+  if (id) colosseumImport(id)
+})
+function colosseumImport(id: string) {
+  const c = colosseumEvent(id)
+  if (!c) return
+  form.title[SOURCE_LANG] = c.name
+  if (c.subtitle) form.subtitle[SOURCE_LANG] = c.subtitle
+  if (c.summary) form.summary[SOURCE_LANG] = c.summary
+  if (c.price) form.price = c.price
+  if (c.from) form.from = c.from
+  form.to = c.to || c.from || ''
+  form.time = c.time ?? ''
+  form.timeTo = c.timeTo ?? ''
+  if (c.capacity != null) form.capacity = c.capacity
+  if (c.freeSpots != null) form.freeSpots = c.freeSpots
+  // Napojení na Colosseum jako způsob prodeje vstupenek.
+  form.ticketMode = 'colosseum'
+  form.colosseumEventId = id
+  started.value = true
+  step.value = steps.length - 1 // rovnou na náhled ke kontrole
+  window.scrollTo({ top: 0 })
 }
 
 /* ---------- Průběžné automatické ukládání (prototyp) ---------- */
@@ -217,11 +244,16 @@ const canFinish = computed(() => !!form.title.cs.trim() && !!form.from && form.a
       <div v-if="step === 0">
         <DovikChoiceTiles
           title="Jak akci založíme?"
-          subtitle="Vyberte způsob — zrychleně s DOVíkem z odkazu, nebo ručně krok po kroku."
+          subtitle="Vyberte způsob — z odkazu s DOVíkem, z akce v Colosseu, nebo ručně krok po kroku."
           dovik-hint="DOVík z odkazu připraví návrh."
           dovik-lead="Vložte odkaz na akci a DOVík vyplní název, termín, místo, vstupné, štítky i plakát. Vše pak zkontrolujete."
+          third-title="Z Colossea"
+          third-badge="Colosseum"
+          third-icon="ticket"
+          third-hint="Našeptávač akcí z Colossea."
+          third-lead="Vyberte akci z Colossea — předvyplníme termín a čas, cenu, název, podnadpis, perex, kapacitu i volná místa."
           manual-lead="Projděte průvodce sami — obsah, termín a místo, detaily a náhled. Plnou kontrolu máte vy."
-          note="Po přípravě přes DOVíka vás vezmeme rovnou na náhled ke kontrole — vše půjde upravit."
+          note="Po přípravě přes DOVíka nebo z Colossea vás vezmeme rovnou na náhled ke kontrole — vše půjde upravit."
           @manual="go(1)"
         >
           <template #dovik>
@@ -232,6 +264,9 @@ const canFinish = computed(() => !!form.title.cs.trim() && !!form.from && form.a
               placeholder="Např. https://racethestreets.eu/cs/udalosti/ostrava-2026"
               @submit="aiImport"
             />
+          </template>
+          <template #third>
+            <ColosseumEventPicker v-model="startColosseumId" :events="COLOSSEUM_EVENTS" />
           </template>
         </DovikChoiceTiles>
       </div>
@@ -360,6 +395,20 @@ const canFinish = computed(() => !!form.title.cs.trim() && !!form.from && form.a
             <div v-if="form.ticketMode === 'colosseum'" class="mt-3">
               <label class="mb-1.5 block text-[12.5px] font-600 text-graphite-800">Akce z Colossea (prodej vstupenek)</label>
               <ColosseumEventPicker v-model="form.colosseumEventId" :events="COLOSSEUM_EVENTS" />
+              <div class="mt-3 grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label class="mb-1.5 block text-[12.5px] font-600 text-graphite-800">Kapacita (počet míst)</label>
+                  <input v-model.number="form.capacity" type="number" min="0" placeholder="např. 1500" class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13.5px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
+                </div>
+                <div>
+                  <label class="mb-1.5 block text-[12.5px] font-600 text-graphite-800">Volných míst</label>
+                  <input v-model.number="form.freeSpots" type="number" min="0" placeholder="např. 320" class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13.5px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
+                </div>
+              </div>
+              <p class="mt-2 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
+                <Icon name="ticket" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
+                Kapacitu i volná místa posílá Colosseum přes API — po napojení se průběžně aktualizují.
+              </p>
             </div>
             <div v-else-if="form.ticketMode === 'external'" class="mt-3">
               <label class="mb-1.5 block text-[12.5px] font-600 text-graphite-800">Odkaz na externí prodej</label>
@@ -430,6 +479,7 @@ const canFinish = computed(() => !!form.title.cs.trim() && !!form.from && form.a
 
             <div class="mt-4 flex flex-wrap items-center gap-4 border-t border-steel-100 pt-4 text-[13px]">
               <span v-if="form.price" class="inline-flex items-center gap-1.5 text-graphite-700"><Icon name="ticket" :size="15" class="text-steel-400" /> {{ form.price }}</span>
+              <span v-if="form.capacity != null" class="inline-flex items-center gap-1.5 text-graphite-700"><Icon name="user" :size="15" class="text-steel-400" /> Volných {{ form.freeSpots ?? '?' }} / {{ form.capacity }} míst</span>
               <span v-if="form.ageLimit" class="inline-flex items-center gap-1.5 text-graphite-700"><Icon name="user" :size="15" class="text-steel-400" /> {{ form.ageLimit }}</span>
               <span v-if="form.duration" class="inline-flex items-center gap-1.5 text-graphite-700"><Icon name="clock" :size="15" class="text-steel-400" /> {{ form.duration }}</span>
               <span v-if="form.ticketUrl" class="ml-auto inline-flex items-center rounded-md bg-brand-500 px-3.5 py-1.5 text-[12.5px] font-600 text-white">Vstupenky</span>

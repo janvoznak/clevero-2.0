@@ -40,6 +40,9 @@
   --color-sidebar-line: rgba(255, 240, 230, 0.14);
 
   /* Stavové */
+  --color-forge-50: #eaf6f1;
+  --color-forge-100: #cfeae0;
+  --color-forge-300: #7fc7ad;
   --color-forge-500: #15916a;
   --color-forge-600: #0f7a58;
   --color-amber-500: #e0a52a;

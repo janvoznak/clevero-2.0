@@ -9,6 +9,7 @@ import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { PopoverRoot, PopoverTrigger, PopoverPortal, PopoverContent } from 'reka-ui'
 import Icon from '@/components/ui/Icon.vue'
+import VenueSilhouette from '@/components/ui/VenueSilhouette.vue'
 
 export interface RelItem {
   id: string
@@ -19,6 +20,8 @@ export interface RelItem {
   thumb?: string
   /** Barevná tečka místo miniatury (např. barva budovy). */
   color?: string
+  /** Klíč siluety budovy (VenueSilhouette) — vykreslí se místo tečky. */
+  silhouette?: string
 }
 
 const props = withDefaults(
@@ -88,6 +91,7 @@ function remove(id: string) {
       >
         <span class="grid h-9 w-12 shrink-0 place-items-center overflow-hidden rounded bg-steel-100 text-steel-400">
           <img v-if="it.thumb" :src="it.thumb" alt="" class="h-full w-full object-cover" />
+          <VenueSilhouette v-else-if="it.silhouette" :venue-id="it.silhouette" :color="it.color || '#64748b'" :size="22" />
           <span v-else-if="it.color" class="h-2.5 w-2.5 rounded-full" :style="{ backgroundColor: it.color }" />
           <Icon v-else :name="icon" :size="16" />
         </span>
@@ -147,6 +151,7 @@ function remove(id: string) {
             >
               <span class="grid h-8 w-11 shrink-0 place-items-center overflow-hidden rounded bg-steel-100 text-steel-400">
                 <img v-if="it.thumb" :src="it.thumb" alt="" class="h-full w-full object-cover" />
+                <VenueSilhouette v-else-if="it.silhouette" :venue-id="it.silhouette" :color="it.color || '#64748b'" :size="20" />
                 <span v-else-if="it.color" class="h-2.5 w-2.5 rounded-full" :style="{ backgroundColor: it.color }" />
                 <Icon v-else :name="icon" :size="15" />
               </span>

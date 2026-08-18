@@ -339,6 +339,14 @@ function onDuplicate() {
                   </label>
                   <AppSelect v-model="form.type" :options="typeOptions" />
                 </div>
+
+                <div>
+                  <label class="mb-1.5 flex items-center justify-between">
+                    <span class="text-[13px] font-600 text-graphite-800">Účinkující / lektoři</span>
+                    <span class="field-tag">event-performers</span>
+                  </label>
+                  <input v-model="form.performers" type="text" placeholder="Jména oddělená čárkou" class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13.5px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
+                </div>
               </TabsContent>
 
               <!-- Sekce: Obsah (jednotný ContentBuilder — nic dalšího pod ním) -->
@@ -451,9 +459,25 @@ function onDuplicate() {
                   <div v-if="form.ticketMode === 'colosseum'" class="mt-3 border-t border-steel-100 pt-3">
                     <p class="mb-2 flex items-center gap-2 text-[12.5px] font-600 text-graphite-800"><Icon name="ticket" :size="14" class="text-steel-400" /> Akce z Colossea (prodej vstupenek) <span class="field-tag">event-colosseum</span></p>
                     <ColosseumEventPicker v-model="form.colosseumEventId" :events="COLOSSEUM_EVENTS" />
+                    <div class="mt-3 grid gap-4 sm:grid-cols-2">
+                      <div>
+                        <label class="mb-1.5 flex items-center justify-between">
+                          <span class="text-[12.5px] font-600 text-graphite-800">Kapacita (počet míst)</span>
+                          <span class="field-tag">event-capacity</span>
+                        </label>
+                        <input v-model.number="form.capacity" type="number" min="0" placeholder="např. 1500" class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13.5px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
+                      </div>
+                      <div>
+                        <label class="mb-1.5 flex items-center justify-between">
+                          <span class="text-[12.5px] font-600 text-graphite-800">Volných míst</span>
+                          <span class="field-tag">event-free_spots</span>
+                        </label>
+                        <input v-model.number="form.freeSpots" type="number" min="0" placeholder="např. 320" class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13.5px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
+                      </div>
+                    </div>
                     <p class="mt-2 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
                       <Icon name="ticket" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
-                      <span>Vyber akci z <strong class="font-600 text-graphite-700">Colossea</strong> — dostupnost termínů i košík táhne vybraná akce (název i termín posílá Colosseum přes API). Pro vstupenkovou akci ji vždy propoj.</span>
+                      <span>Vyber akci z <strong class="font-600 text-graphite-700">Colossea</strong> — dostupnost termínů, kapacitu i košík táhne vybraná akce (název, termín i volná místa posílá Colosseum přes API). Pro vstupenkovou akci ji vždy propoj.</span>
                     </p>
                   </div>
 
@@ -472,14 +496,6 @@ function onDuplicate() {
                       <span>Web jen odkáže ven — prodej i vstupenky řeší pořadatel / nájemce (žádné napojení na Colosseum).</span>
                     </p>
                   </div>
-                </div>
-
-                <div>
-                  <label class="mb-1.5 flex items-center justify-between">
-                    <span class="text-[13px] font-600 text-graphite-800">Účinkující / lektoři</span>
-                    <span class="field-tag">event-performers</span>
-                  </label>
-                  <input v-model="form.performers" type="text" placeholder="Jména oddělená čárkou" class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13.5px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
                 </div>
               </TabsContent>
 

@@ -390,8 +390,8 @@ export function areaPlace(id: string): AreaObject | undefined {
 /** Volby míst pro výběr v jiných modulech (Kalendář akcí). */
 export const PLACE_OPTIONS = MOCK_VENUES.map((v) => ({ value: v.id, label: v.title.cs }))
 
-/** Položky míst pro multi-výběr (RelationPicker) — s barvou objektu. */
-export const PLACE_ITEMS = MOCK_VENUES.map((v) => ({ id: v.id, label: v.title.cs, color: v.color }))
+/** Položky míst pro multi-výběr (RelationPicker) — s barvou a siluetou objektu. */
+export const PLACE_ITEMS = MOCK_VENUES.map((v) => ({ id: v.id, label: v.title.cs, color: v.color, silhouette: v.silhouette }))
 
 /** Výchozí místo pro nové akce (celý areál). */
 export const DEFAULT_PLACE_ID = 'v-areal'
