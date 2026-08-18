@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { ref } from 'vue'
 import {
   ToggleGroupRoot,
   ToggleGroupItem,
@@ -14,11 +13,29 @@ import {
   PopoverContent,
   PopoverClose,
 } from 'reka-ui'
+import { computed, ref, watch } from 'vue'
 import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import DovikAvatar from '@/components/admin/DovikAvatar.vue'
 
 /** Vizuální náhrada CKEditoru pro prototyp (contenteditable + toolbar). */
 const model = defineModel<string>({ default: '' })
+/**
+ * Vestavěné AI:
+ * - 'generate' (výchozí) = tlačítko „Napsat s DOVíkem" v liště (vygeneruje nový text),
+ * - 'dovik' = patička DOVíka pod editorem: přepíše text, který uživatel napsal, do
+ *   souvislých vět (obsah NEvymýšlí) + volitelný pokyn + „Vrátit původní". Jednotné
+ *   řešení pro všechna pole s CK editorem.
+ * - 'none' = bez vestavěného AI; do lišty lze vložit vlastní přes slot `toolbar-ai`.
+ */
+const props = withDefaults(
+  defineProps<{ ai?: 'generate' | 'dovik' | 'none'; flush?: boolean }>(),
+  {
+    ai: 'generate',
+    // flush = bez vlastního rámečku/zaoblení (když editor obaluje nadřazený box).
+    flush: false,
+  },
+)
 const editor = ref<HTMLElement | null>(null)
 
 const tools = [
@@ -59,10 +76,73 @@ function aiGenerate() {
     aiPrompt.value = ''
   }, 1400)
 }
+
+/* ---------- DOVík: přepis textu do souvislých vět (ai="dovik") ----------
+   Uživatel napíše text sám (klidně jen body) → DOVík ho přepíše. AI obsah
+   NEvymýšlí, jen stylizuje. Volitelný pokyn (prompt) + „Vrátit původní". */
+const dovikBusy = ref(false)
+const dovikInstruction = ref('')
+const rewriteChips = ['Stručněji', 'Formálněji', 'Do odrážek']
+const hasText = computed(() => (model.value || '').replace(/<[^>]*>/g, '').trim().length > 0)
+
+// Snapshot pro undo. Jakákoli změna textu zvenčí (ruční editace, přepnutí mutace)
+// snapshot zahodí — „Vrátit původní" dává smysl jen hned po přepisu.
+const backup = ref<string | null>(null)
+const canUndo = computed(() => backup.value !== null)
+let selfChange = false
+watch(model, () => {
+  if (selfChange) {
+    selfChange = false
+    return
+  }
+  backup.value = null
+})
+
+function polishDraft(raw: string, instruction = ''): string {
+  const text = raw.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+  const parts = text
+    .split(/(?:[.;\n]|\s[•·–-]\s)+/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+  if (!parts.length) return `<p>${text}</p>`
+  const cap = (s: string) => `${s.charAt(0).toUpperCase()}${s.slice(1)}`
+  const instr = instruction.toLowerCase()
+  if (/odráž|body|seznam|bullet/.test(instr)) {
+    return `<ul>${parts.map((s) => `<li>${cap(s)}</li>`).join('')}</ul>`
+  }
+  if (/struč|krát|zkrat|kratš/.test(instr)) {
+    const brief = parts.slice(0, Math.min(2, parts.length))
+    return `<p>${brief.map((s) => `${cap(s)}.`).join(' ')}</p>`
+  }
+  if (/formál|zdvoř|oficiál/.test(instr)) {
+    return `<p>Děkujeme za dotaz. ${parts.map((s) => `${cap(s)}.`).join(' ')}</p>`
+  }
+  return parts.map((s) => `<p>${cap(s)}.</p>`).join('')
+}
+
+function dovikRewrite(instruction = '') {
+  if (dovikBusy.value || !hasText.value) return
+  backup.value = model.value
+  dovikBusy.value = true
+  window.setTimeout(() => {
+    selfChange = true
+    model.value = polishDraft(backup.value ?? '', instruction)
+    if (editor.value) editor.value.innerHTML = model.value
+    dovikBusy.value = false
+    dovikInstruction.value = ''
+  }, 1000)
+}
+function dovikUndo() {
+  if (backup.value === null) return
+  selfChange = true
+  model.value = backup.value
+  if (editor.value) editor.value.innerHTML = model.value
+  backup.value = null
+}
 </script>
 
 <template>
-  <div class="overflow-hidden rounded-md border border-steel-200 focus-within:border-brand-500">
+  <div class="overflow-hidden" :class="flush ? '' : 'rounded-md border border-steel-200 focus-within:border-brand-500'">
     <!-- Toolbar -->
     <div class="flex flex-wrap items-center gap-1 border-b border-steel-200 bg-steel-50 px-2 py-1.5">
       <TooltipProvider :delay-duration="300">
@@ -110,8 +190,11 @@ function aiGenerate() {
       </button>
       <span class="ml-auto"></span>
 
+      <!-- Vlastní AI z rodiče (např. FAQ: přepis odpovědi do vět) -->
+      <slot name="toolbar-ai" />
+
       <!-- AI: napsat text (prototyp) -->
-      <PopoverRoot v-model:open="aiOpen">
+      <PopoverRoot v-if="ai === 'generate'" v-model:open="aiOpen">
         <PopoverTrigger as-child>
           <button
             type="button"
@@ -166,6 +249,53 @@ function aiGenerate() {
       v-html="model"
       @input="onInput"
     />
+
+    <!-- Patička DOVíka: přepis textu do souvislých vět (ai="dovik") -->
+    <div v-if="props.ai === 'dovik'" class="border-t border-steel-200 bg-brand-50/50 px-3 py-2.5">
+      <div class="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+        <DovikAvatar :size="24" class="shrink-0" />
+        <span class="text-[12.5px] font-700 text-graphite-900">DOVík</span>
+        <span class="text-[11.5px] text-steel-500">přepíše text do souvislých vět (obsah nevymýšlí)</span>
+        <div class="ml-auto flex flex-wrap items-center gap-1.5">
+          <button
+            v-for="c in rewriteChips"
+            :key="c"
+            type="button"
+            class="rounded-full border px-2.5 py-0.5 text-[11.5px] transition-colors"
+            :class="dovikInstruction.trim() === c
+              ? 'border-brand-400 bg-brand-50 font-600 text-brand-700'
+              : 'border-steel-200 bg-white text-graphite-700 hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700'"
+            @click="dovikInstruction = dovikInstruction.trim() === c ? '' : c"
+          >
+            {{ c }}
+          </button>
+        </div>
+      </div>
+
+      <div class="mt-2 flex flex-wrap items-center gap-2">
+        <input
+          v-model="dovikInstruction"
+          type="text"
+          placeholder="Pokyn pro DOVíka (nepovinné) — např. zdvořile ve 2 větách, do odrážek…"
+          class="h-9 min-w-[180px] flex-1 rounded-md border border-steel-200 bg-white px-3 text-[13px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none"
+          @keydown.enter.prevent="hasText && dovikRewrite(dovikInstruction)"
+        />
+        <AppButton variant="primary" size="sm" :disabled="dovikBusy || !hasText" @click="dovikRewrite(dovikInstruction)">
+          <Icon name="sparkles" :size="15" :class="dovikBusy && 'animate-pulse'" />
+          {{ dovikBusy ? 'Přepisuji…' : 'Přepsat do vět' }}
+        </AppButton>
+        <button
+          v-if="canUndo"
+          type="button"
+          class="inline-flex items-center gap-1.5 rounded-md border border-steel-200 bg-white px-3 py-1.5 text-[12.5px] font-500 text-steel-600 outline-none transition-colors hover:border-steel-300 hover:bg-steel-50 hover:text-graphite-800"
+          title="Vrátit text na verzi před úpravou DOVíkem"
+          @click="dovikUndo"
+        >
+          <Icon name="sync" :size="14" /> Vrátit původní
+        </button>
+      </div>
+      <p v-if="!hasText" class="mt-1.5 text-[11.5px] text-steel-500">Nejdřív napiš text výše (klidně jen body).</p>
+    </div>
   </div>
 </template>
 

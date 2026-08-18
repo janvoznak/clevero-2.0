@@ -4,12 +4,11 @@ import { useRouter } from 'vue-router'
 import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import DetailActions from '@/components/admin/DetailActions.vue'
-import AppSelect from '@/components/ui/AppSelect.vue'
+import CreatableSelect from '@/components/ui/CreatableSelect.vue'
 import AppSwitch from '@/components/ui/AppSwitch.vue'
 import FormSection from '@/components/admin/FormSection.vue'
 import PublishCard from '@/components/admin/PublishCard.vue'
 import RichTextEditor from '@/components/admin/RichTextEditor.vue'
-import AiPanel from '@/components/admin/AiPanel.vue'
 import LangBar from '@/components/admin/LangBar.vue'
 import MlFieldHeader from '@/components/admin/MlFieldHeader.vue'
 import { useMlTranslate } from '@/utils/useMlTranslate'
@@ -17,7 +16,8 @@ import { LANGS } from '@/data/types'
 import type { LangCode } from '@/data/types'
 import {
   MOCK_FAQ,
-  FAQ_CATEGORY_OPTIONS,
+  FAQ_CATEGORIES,
+  registerFaqCategory,
   faqState,
   FAQ_STATE_META,
   blankFaqItem,
@@ -48,6 +48,14 @@ function clone(): FaqItem {
 const form = reactive<FaqItem>(clone())
 const activeLang = ref<LangCode>('cs')
 
+/* Kategorie (výběr s možností vytvořit novou přímo tady). */
+const categoryOptions = computed(() =>
+  FAQ_CATEGORIES.map((c) => ({ value: c.label, label: c.label })),
+)
+function onCreateCategory(label: string) {
+  registerFaqCategory(label) // model už nastaví CreatableSelect
+}
+
 function langFilled(code: LangCode): boolean {
   return form.question[code].trim().length > 0
 }
@@ -66,40 +74,6 @@ function onToggleLang(code: LangCode) {
 /* ---------- AI překlad mutací (prototyp) — sdílené řešení ---------- */
 const mlFields: (keyof FaqItem)[] = ['question', 'answer']
 const { translating, toast, translateLang, translateField } = useMlTranslate(form, mlFields)
-
-/* ---------- AI: stylizace ručně připravené odpovědi (prototyp — žádná reálná AI) ----------
-   AI tu obsah NEvymýšlí. Vezme odpověď, kterou redaktor ručně připravil
-   (klidně jen v bodech/poznámkách), a přeformuluje ji do souvislých, čtivých
-   vět. V ostrém CMS by tu volal jazykový model; tady je jen simulovaný stav. */
-const polishing = ref(false)
-const answerReady = computed(
-  () => form.answer[activeLang.value].replace(/<[^>]*>/g, '').trim().length > 0,
-)
-
-function polishDraft(raw: string): string {
-  const text = raw.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
-  // Rozdělíme ruční body/věty a poskládáme do odstavců (prototyp — jen stylizace,
-  // žádný nový obsah nevzniká).
-  const parts = text
-    .split(/(?:[.;\n]|\s[•·–-]\s)+/)
-    .map((s) => s.trim())
-    .filter(Boolean)
-  const body = parts.length
-    ? parts.map((s) => `<p>${s.charAt(0).toUpperCase()}${s.slice(1)}.</p>`).join('')
-    : `<p>${text}</p>`
-  return body
-}
-function polishAnswer() {
-  if (polishing.value || !answerReady.value) return
-  polishing.value = true
-  const l = activeLang.value
-  window.setTimeout(() => {
-    form.answer[l] = polishDraft(form.answer[l])
-    polishing.value = false
-    toast.value = `Odpověď upravena do souvislých vět (${l.toUpperCase()}) — zkontrolujte`
-    window.setTimeout(() => (toast.value = ''), 3200)
-  }, 1200)
-}
 
 const saved = ref(false)
 function save() {
@@ -180,55 +154,27 @@ function onDuplicate() {
 
           <!-- Odpověď -->
           <div>
-            <MlFieldHeader label="Odpověď" :lang="activeLang" tag="faq-answer" @translate="translateField('answer')" />
+            <MlFieldHeader label="Odpověď" :lang="activeLang" tag="faq-answer" :overlay="false" @translate="translateField('answer')" />
             <p class="mb-2 text-[11.5px] text-steel-500">
-              Napište odpověď vlastními slovy — klidně jen v bodech. DOVík ji níže umí přepsat do souvislých vět.
+              Napiš odpověď vlastními slovy — klidně jen v bodech. DOVík ji dole přepíše do souvislých vět.
             </p>
-            <RichTextEditor v-model="form.answer[activeLang]" />
+            <RichTextEditor v-model="form.answer[activeLang]" ai="dovik" />
           </div>
 
-          <!-- AI: stylizace ručně připravené odpovědi (sjednocený AI blok) -->
-          <AiPanel
-            title="Upravit odpověď do souvislých vět (DOVík)"
-            hint="Přeformuluje vaši odpověď — DOVík nový obsah nevymýšlí, jen stylizuje to, co jste napsali."
-            class="mt-4"
-          >
-            <div class="flex flex-wrap items-center gap-3">
-              <AppButton variant="primary" size="sm" :disabled="polishing || !answerReady" @click="polishAnswer">
-                <Icon name="sparkles" :size="15" :class="polishing && 'animate-pulse'" />
-                {{ polishing ? 'Upravuji…' : 'Upravit do souvislých vět' }}
-              </AppButton>
-              <span v-if="!answerReady" class="text-[11.5px] text-steel-500">
-                Nejdřív napište odpověď (klidně jen body) do pole výše.
-              </span>
-              <span v-else class="text-[11.5px] text-steel-500">
-                Přepíše obsah pole „Odpověď" ({{ activeLang.toUpperCase() }}) — pak zkontrolujte.
-              </span>
-            </div>
-          </AiPanel>
-
           <!-- Zařazení (dříve v pravém railu) -->
-          <div class="mt-5 grid gap-4 sm:grid-cols-2">
-            <div>
-              <label class="mb-1.5 flex items-center justify-between">
-                <span class="text-[13px] font-600 text-graphite-800">Kategorie</span>
-                <span class="field-tag">faq-category</span>
-              </label>
-              <AppSelect v-model="form.category" :options="FAQ_CATEGORY_OPTIONS" placeholder="Vyberte kategorii…" />
-            </div>
-            <div>
-              <label class="mb-1.5 flex items-center justify-between">
-                <span class="text-[13px] font-600 text-graphite-800">Pořadí</span>
-                <span class="field-tag">faq-order</span>
-              </label>
-              <input
-                v-model.number="form.order"
-                type="number"
-                min="1"
-                class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13px] text-graphite-800 focus:border-brand-500 focus:outline-none"
-              />
-              <p class="mt-1 text-[11.5px] text-steel-500">Nižší číslo = dotaz výš ve své kategorii.</p>
-            </div>
+          <div class="mt-5">
+            <label class="mb-1.5 flex items-center justify-between">
+              <span class="text-[13px] font-600 text-graphite-800">Kategorie</span>
+              <span class="field-tag">faq-category</span>
+            </label>
+            <CreatableSelect
+              v-model="form.category"
+              :options="categoryOptions"
+              placeholder="Vyberte nebo napište kategorii…"
+              create-noun="kategorii"
+              @create="onCreateCategory"
+            />
+            <p class="mt-1 text-[11.5px] text-steel-500">Pořadí dotazu ve své kategorii nastavíš přetažením ve výpisu FAQ.</p>
           </div>
         </div>
       </div>

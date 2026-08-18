@@ -89,7 +89,21 @@ function lps(row: PopupItem, code: LangCode) {
   return langPublishState(code, filledLangsOf(row.title), row.publishedLangs)
 }
 
+/** Okno zobrazení už uplynulo (datum „Zobrazení do" je v minulosti). */
+function isExpired(p: PopupItem): boolean {
+  return popupState(p) === 'expired'
+}
+/**
+ * Hodnota přepínače „Zobrazovat". Sepnutý jen když je okno povolené A časové
+ * okno ještě neuplynulo — po datu „Zobrazení do" se přepínač sám ukáže vypnutý
+ * (a je zamčený), protože zobrazování řídí datum. Znovu ho spustíš posunutím
+ * data „Zobrazení do" do budoucna.
+ */
+function switchOn(p: PopupItem): boolean {
+  return p.enabled && !isExpired(p)
+}
 function toggleEnabled(p: PopupItem, v: boolean) {
+  if (isExpired(p)) return // řízeno datem — přepínač je po expiraci zamčený
   p.enabled = v // prototyp — jen lokální stav
 }
 
@@ -355,8 +369,10 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
 
             <div class="mt-3 flex items-center justify-between gap-2 border-t border-steel-100 pt-3">
               <AppSwitch
-                :model-value="p.enabled"
+                :model-value="switchOn(p)"
+                :disabled="isExpired(p)"
                 label="Zobrazovat"
+                :hint="isExpired(p) ? `Okno skončilo ${fmt(p.to)} — uprav „Zobrazení do“` : undefined"
                 :aria-label="`Zobrazovat ${p.title.cs}`"
                 @update:model-value="(v) => toggleEnabled(p, v)"
               />
@@ -465,8 +481,10 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
             </td>
             <td class="px-2 py-3 align-middle">
               <AppSwitch
-                :model-value="p.enabled"
+                :model-value="switchOn(p)"
+                :disabled="isExpired(p)"
                 :aria-label="`Zobrazovat ${p.title.cs}`"
+                :title="isExpired(p) ? `Okno zobrazení skončilo ${fmt(p.to)} — pro opětovné zobrazení uprav datum „Zobrazení do“.` : undefined"
                 @update:model-value="(v) => toggleEnabled(p, v)"
               />
             </td>
