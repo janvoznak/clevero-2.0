@@ -371,7 +371,12 @@ function onDuplicate() {
               <!-- Sekce: Termín a místo — dvě vizuálně oddělené karty (jako Areál) -->
               <TabsContent value="when" class="space-y-5 outline-none">
                 <!-- Místo -->
-                <FormSection title="Místo konání" icon="map" tag="event-area_id">
+                <FormSection
+                  title="Místo konání"
+                  icon="map"
+                  tag="event-area_id"
+                  hint="Místa = objekty v Areálu. Akce se zobrazí v kalendáři v řádku každého objektu (v jeho barvě) a na webu v detailu každého z nich. Můžeš vybrat víc objektů."
+                >
                   <RelationPicker
                     v-model="form.areaIds"
                     :items="placeItems"
@@ -383,10 +388,6 @@ function onDuplicate() {
                     create-route-name="area-new"
                     create-label="Založit objekt"
                   />
-                  <p class="mt-2 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
-                    <Icon name="map" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
-                    Místa = objekty v <span class="font-600 text-graphite-700">Areálu</span>. Akce se zobrazí v kalendáři v řádku každého objektu (v jeho barvě) a na webu v detailu každého z nich. Můžeš vybrat víc objektů.
-                  </p>
                 </FormSection>
 
                 <!-- Termín -->

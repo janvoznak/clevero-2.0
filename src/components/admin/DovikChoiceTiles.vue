@@ -116,7 +116,7 @@ defineEmits<{ manual: [] }>()
           </div>
         </div>
         <p v-if="manualLead" class="mb-3 text-[13px] leading-relaxed text-graphite-700">{{ manualLead }}</p>
-        <span class="mt-auto inline-flex items-center gap-1.5 text-[13px] font-600 text-brand-600">
+        <span class="mt-auto flex h-10 w-full items-center justify-center gap-1.5 rounded-md border border-steel-200 bg-white text-[13px] font-600 text-graphite-700 shadow-sm transition-colors group-hover:border-brand-400 group-hover:bg-brand-50 group-hover:text-brand-600">
           {{ manualCta }} <Icon name="chevronRight" :size="16" class="transition-transform group-hover:translate-x-0.5" />
         </span>
       </button>

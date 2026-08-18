@@ -19,7 +19,6 @@ import { useAutoSlug } from '@/utils/useAutoSlug'
 import GalleryField from '@/components/admin/GalleryField.vue'
 import LangBar from '@/components/admin/LangBar.vue'
 import MlFieldHeader from '@/components/admin/MlFieldHeader.vue'
-import HelpTip from '@/components/ui/HelpTip.vue'
 import { useMlTranslate } from '@/utils/useMlTranslate'
 import { LANGS, SOURCE_LANG, defaultContentBlocks } from '@/data/types'
 import type { LangCode, ML } from '@/data/types'
@@ -104,7 +103,7 @@ const activeSection = ref('basic')
 const sections = [
   { value: 'basic', label: 'Základní informace', icon: 'page' },
   { value: 'content', label: 'Obsah', icon: 'text' },
-  { value: 'colosseum', label: 'Dostupnost a Colosseum', icon: 'integration' },
+  { value: 'colosseum', label: 'Místo a Colosseum', icon: 'integration' },
   { value: 'gallery', label: 'Galerie', icon: 'gallery' },
 ]
 
@@ -320,7 +319,7 @@ function onDuplicate() {
                     <p class="text-[12.5px] leading-relaxed text-steel-600">
                       <span class="font-600 text-graphite-800">Ceny vstupenek se v CMS nezadávají.</span>
                       Aktuální cena i nákup probíhají v <span class="font-600">Colosseu</span> (napojení nastavíte v záložce
-                      <span class="font-600">Dostupnost a Colosseum</span>). Tím nemůže vzniknout rozpor mezi cenou na webu a u pokladny.
+                      <span class="font-600">Místo a Colosseum</span>). Tím nemůže vzniknout rozpor mezi cenou na webu a u pokladny.
                     </p>
                   </div>
 
@@ -348,24 +347,14 @@ function onDuplicate() {
                 <ContentBuilder v-model="form.contentBlocks" />
               </TabsContent>
 
-              <!-- Dostupnost a Colosseum (dříve v pravém railu) -->
+              <!-- Místo a Colosseum (místo konání + napojení na Colosseum) -->
               <TabsContent value="colosseum" class="space-y-5 outline-none">
-                <div class="rounded-md bg-steel-50 px-3 py-2.5">
-                  <p class="field-tag mb-1">Dostupnost</p>
-                  <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-600" :class="[AVAILABILITY_META[availability(form)].bg, AVAILABILITY_META[availability(form)].text]">
-                    <span class="h-1.5 w-1.5 rounded-full" :class="AVAILABILITY_META[availability(form)].dot" />
-                    {{ AVAILABILITY_META[availability(form)].label }}
-                  </span>
-                </div>
-
-                <div>
-                  <label class="mb-1.5 flex items-center justify-between">
-                    <span class="flex items-center gap-1.5 text-[13px] font-600 text-graphite-800">
-                      Místo konání — objekty v areálu
-                      <HelpTip text="Kde prohlídka reálně probíhá. Propíše se do detailu každého objektu na webu (nabízené prohlídky). Můžeš vybrat víc objektů." />
-                    </span>
-                    <span class="field-tag">tour-area_id</span>
-                  </label>
+                <FormSection
+                  title="Místo konání"
+                  icon="map"
+                  tag="tour-area_id"
+                  hint="Místa = objekty v Areálu. Prohlídka se na webu nabídne v detailu každého vybraného objektu. Můžeš vybrat víc objektů."
+                >
                   <RelationPicker
                     v-model="form.areaIds"
                     :items="PLACE_ITEMS"
@@ -377,13 +366,9 @@ function onDuplicate() {
                     create-route-name="area-new"
                     create-label="Založit objekt"
                   />
-                </div>
+                </FormSection>
 
-                <div>
-                  <label class="mb-1.5 flex items-center justify-between">
-                    <span class="text-[13px] font-600 text-graphite-800">Napojení na Colosseum</span>
-                    <span class="field-tag">tour-colosseum_id</span>
-                  </label>
+                <FormSection title="Napojení na Colosseum" icon="integration" tag="tour-colosseum_id">
                   <!-- Našeptávač z načtených okruhů (+ volné zadání nenačteného ID) -->
                   <div class="relative">
                     <Icon name="ticket" :size="15" class="absolute left-3 top-1/2 -translate-y-1/2 text-steel-400" />
@@ -433,33 +418,39 @@ function onDuplicate() {
                     <Icon name="integration" :size="13" class="mt-0.5 shrink-0" />
                     <span>Vyberte načtenou akci z Colossea — bez napojení se termíny ani vstupenky nenačtou.</span>
                   </p>
-                </div>
 
-                <!-- Termíny z Colossea (read-only) -->
-                <div class="rounded-md border border-steel-200 p-4">
-                  <p class="mb-2 flex items-center gap-2 text-[13px] font-600 text-graphite-800"><Icon name="calendar" :size="15" class="text-steel-400" /> Nejbližší termíny <span class="field-tag">Colosseum · read-only</span></p>
-                  <ul v-if="slots.length" class="space-y-1.5">
-                    <li v-for="s in slots" :key="s.id" class="flex items-center justify-between gap-2 rounded-md border border-steel-200 px-3 py-2">
-                      <span class="text-[12.5px] font-500 text-graphite-800 tabular-nums">{{ fmtSlot(s.datetime) }}</span>
-                      <span
-                        class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-600 tabular-nums"
-                        :class="remaining(s) === 0 ? 'bg-danger-500/10 text-danger-600' : remaining(s) <= 5 ? 'bg-amber-500/10 text-amber-600' : 'bg-forge-500/10 text-forge-600'"
-                      >
-                        <span class="h-1.5 w-1.5 rounded-full" :class="remaining(s) === 0 ? 'bg-danger-500' : remaining(s) <= 5 ? 'bg-amber-500' : 'bg-forge-500'" />
-                        {{ remaining(s) === 0 ? 'Vyprodáno' : `${remaining(s)} / ${s.capacity} volných` }}
+                  <!-- Dostupnost & termíny z Colossea (read-only) -->
+                  <div class="mt-4 border-t border-steel-100 pt-4">
+                    <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+                      <p class="flex items-center gap-2 text-[13px] font-600 text-graphite-800"><Icon name="calendar" :size="15" class="text-steel-400" /> Nejbližší termíny <span class="field-tag">Colosseum · read-only</span></p>
+                      <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-600" :class="[AVAILABILITY_META[availability(form)].bg, AVAILABILITY_META[availability(form)].text]">
+                        <span class="h-1.5 w-1.5 rounded-full" :class="AVAILABILITY_META[availability(form)].dot" />
+                        {{ AVAILABILITY_META[availability(form)].label }}
                       </span>
-                    </li>
-                  </ul>
-                  <p v-else class="text-[12px] text-steel-400">Žádné nadcházející termíny z Colossea.</p>
-                  <div v-if="slots.length" class="mt-3 flex items-center justify-between rounded-md bg-steel-50 px-3 py-2 text-[12px]">
-                    <span class="text-steel-600">Volných míst celkem</span>
-                    <span class="font-700 text-graphite-900 tabular-nums">{{ freeSeats(form) }}</span>
+                    </div>
+                    <ul v-if="slots.length" class="space-y-1.5">
+                      <li v-for="s in slots" :key="s.id" class="flex items-center justify-between gap-2 rounded-md border border-steel-200 px-3 py-2">
+                        <span class="text-[12.5px] font-500 text-graphite-800 tabular-nums">{{ fmtSlot(s.datetime) }}</span>
+                        <span
+                          class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-600 tabular-nums"
+                          :class="remaining(s) === 0 ? 'bg-danger-500/10 text-danger-600' : remaining(s) <= 5 ? 'bg-amber-500/10 text-amber-600' : 'bg-forge-500/10 text-forge-600'"
+                        >
+                          <span class="h-1.5 w-1.5 rounded-full" :class="remaining(s) === 0 ? 'bg-danger-500' : remaining(s) <= 5 ? 'bg-amber-500' : 'bg-forge-500'" />
+                          {{ remaining(s) === 0 ? 'Vyprodáno' : `${remaining(s)} / ${s.capacity} volných` }}
+                        </span>
+                      </li>
+                    </ul>
+                    <p v-else class="text-[12px] text-steel-400">Žádné nadcházející termíny z Colossea.</p>
+                    <div v-if="slots.length" class="mt-3 flex items-center justify-between rounded-md bg-steel-50 px-3 py-2 text-[12px]">
+                      <span class="text-steel-600">Volných míst celkem</span>
+                      <span class="font-700 text-graphite-900 tabular-nums">{{ freeSeats(form) }}</span>
+                    </div>
+                    <p class="mt-2.5 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
+                      <Icon name="integration" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
+                      Termíny a volná místa se tahají z Colossea (needitovatelné). Na webu bude u prohlídky tlačítko „Koupit vstupenku" směřující do Colossea.
+                    </p>
                   </div>
-                  <p class="mt-2.5 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
-                    <Icon name="integration" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
-                    Termíny a volná místa se tahají z Colossea (needitovatelné). Na webu bude u prohlídky tlačítko „Koupit vstupenku" směřující do Colossea.
-                  </p>
-                </div>
+                </FormSection>
               </TabsContent>
 
               <!-- Fotogalerie (jednotné napříč moduly — hlavní fotka = cover) -->

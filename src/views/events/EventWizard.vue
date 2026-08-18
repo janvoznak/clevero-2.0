@@ -95,11 +95,9 @@ function aiImport() {
 }
 
 /* ---------- Založení z Colossea (našeptávač) ---------- */
-/* Colosseum posílá přes API dostupné akce; výběrem se předvyplní návrh nové akce. */
+/* Colosseum posílá přes API dostupné akce; uživatel akci vybere v našeptávači
+   a teprve tlačítkem potvrdí přechod (nepřechází se hned po výběru). */
 const startColosseumId = ref('')
-watch(startColosseumId, (id) => {
-  if (id) colosseumImport(id)
-})
 /* Ruční výběr akce z Colossea (krok Detaily) → předvyplní kapacitu a volná místa. */
 watch(
   () => form.colosseumEventId,
@@ -277,7 +275,17 @@ const canFinish = computed(() => !!form.title.cs.trim() && !!form.from && form.a
             />
           </template>
           <template #third>
-            <ColosseumEventPicker v-model="startColosseumId" :events="COLOSSEUM_EVENTS" />
+            <div class="space-y-2">
+              <ColosseumEventPicker v-model="startColosseumId" :events="COLOSSEUM_EVENTS" />
+              <button
+                type="button"
+                class="flex h-10 w-full items-center justify-center gap-2 rounded-md bg-forge-500 text-[13px] font-600 text-white shadow-sm outline-none transition-colors hover:bg-forge-600 focus-visible:ring-4 focus-visible:ring-forge-500/15 disabled:pointer-events-none disabled:opacity-55"
+                :disabled="!startColosseumId"
+                @click="colosseumImport(startColosseumId)"
+              >
+                <Icon name="ticket" :size="16" /> Založit akci
+              </button>
+            </div>
           </template>
         </DovikChoiceTiles>
       </div>
