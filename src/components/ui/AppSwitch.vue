@@ -5,6 +5,7 @@
  * Bez `label` = jen přepínač (např. v buňce tabulky); s `label` = řádek popisek + přepínač.
  */
 import { SwitchRoot, SwitchThumb } from 'reka-ui'
+import HelpTip from '@/components/ui/HelpTip.vue'
 
 const model = defineModel<boolean>({ default: false })
 withDefaults(
@@ -35,9 +36,9 @@ withDefaults(
         class="pointer-events-none block h-4 w-4 translate-x-0.5 rounded-full bg-white shadow-sm transition-transform will-change-transform data-[state=checked]:translate-x-[18px]"
       />
     </SwitchRoot>
-    <span v-if="label" class="min-w-0">
-      <span class="block text-[13px] font-500 text-graphite-800">{{ label }}</span>
-      <span v-if="hint" class="block text-[11.5px] leading-snug text-steel-500">{{ hint }}</span>
+    <span v-if="label" class="flex min-w-0 items-center gap-1.5">
+      <span class="text-[13px] font-500 text-graphite-800">{{ label }}</span>
+      <HelpTip v-if="hint" :text="hint" />
     </span>
   </component>
 </template>

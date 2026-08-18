@@ -18,6 +18,7 @@ import { useAutoSlug } from '@/utils/useAutoSlug'
 import GalleryField from '@/components/admin/GalleryField.vue'
 import LangBar from '@/components/admin/LangBar.vue'
 import MlFieldHeader from '@/components/admin/MlFieldHeader.vue'
+import HelpTip from '@/components/ui/HelpTip.vue'
 import { useMlTranslate } from '@/utils/useMlTranslate'
 import { LANGS, SOURCE_LANG, defaultContentBlocks } from '@/data/types'
 import type { LangCode, ML } from '@/data/types'
@@ -371,11 +372,13 @@ function onDuplicate() {
 
                 <div>
                   <label class="mb-1.5 flex items-center justify-between">
-                    <span class="text-[13px] font-600 text-graphite-800">Místo konání — objekt v areálu</span>
+                    <span class="flex items-center gap-1.5 text-[13px] font-600 text-graphite-800">
+                      Místo konání — objekt v areálu
+                      <HelpTip text="Kde prohlídka reálně začíná. Propíše se do detailu objektu na webu (nabízené prohlídky)." />
+                    </span>
                     <span class="field-tag">tour-area_id</span>
                   </label>
                   <AppSelect v-model="areaModel" :options="placeOptions" />
-                  <p class="mt-1 text-[11.5px] text-steel-500">Kde prohlídka reálně začíná. Propíše se do detailu objektu na webu (nabízené prohlídky).</p>
                 </div>
 
                 <div>

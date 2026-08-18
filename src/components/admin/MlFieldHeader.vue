@@ -7,6 +7,7 @@
  */
 import Icon from '@/components/ui/Icon.vue'
 import LangFlag from '@/components/admin/LangFlag.vue'
+import HelpTip from '@/components/ui/HelpTip.vue'
 import { LANGS } from '@/data/types'
 import type { LangCode } from '@/data/types'
 
@@ -17,6 +18,8 @@ const props = withDefaults(
     lang: LangCode
     /** field-tag chip (bez jazyka — ten nese vlaječka). */
     tag?: string
+    /** Nápověda k poli — skryje se pod „?" vedle labelu. */
+    hint?: string
     required?: boolean
     /**
      * true (výchozí) = ikonka překladu spadne dovnitř políčka vpravo (jednoduché
@@ -39,6 +42,7 @@ const langLabel = () => LANGS.find((l) => l.code === props.lang)?.label ?? props
       {{ label }}
       <span v-if="required" class="text-brand-500">*</span>
       <LangFlag :lang="lang" :size="13" :title="`Jazyková mutace: ${langLabel()}`" />
+      <HelpTip v-if="hint" :text="hint" />
     </span>
 
     <span class="flex items-center gap-1.5">

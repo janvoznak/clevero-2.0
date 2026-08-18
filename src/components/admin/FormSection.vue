@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import Icon from '@/components/ui/Icon.vue'
+import HelpTip from '@/components/ui/HelpTip.vue'
 defineProps<{ title: string; icon?: string; hint?: string; tag?: string }>()
 </script>
 
@@ -10,8 +11,10 @@ defineProps<{ title: string; icon?: string; hint?: string; tag?: string }>()
         <Icon :name="icon" :size="17" />
       </span>
       <div class="min-w-0 flex-1">
-        <h2 class="font-display text-[15px] font-700 tracking-tight text-graphite-900">{{ title }}</h2>
-        <p v-if="hint" class="text-[12px] text-steel-500">{{ hint }}</p>
+        <h2 class="flex items-center gap-1.5 font-display text-[15px] font-700 tracking-tight text-graphite-900">
+          {{ title }}
+          <HelpTip v-if="hint" :text="hint" />
+        </h2>
       </div>
       <span v-if="tag" class="field-tag hidden rounded bg-steel-100 px-1.5 py-0.5 sm:inline">{{ tag }}</span>
     </header>

@@ -14,6 +14,7 @@ import TagPicker from '@/components/admin/TagPicker.vue'
 import GalleryField from '@/components/admin/GalleryField.vue'
 import LangBar from '@/components/admin/LangBar.vue'
 import MlFieldHeader from '@/components/admin/MlFieldHeader.vue'
+import HelpTip from '@/components/ui/HelpTip.vue'
 import SlugField from '@/components/admin/SlugField.vue'
 import { useAutoSlug } from '@/utils/useAutoSlug'
 import { useMlTranslate } from '@/utils/useMlTranslate'
@@ -289,23 +290,22 @@ function onDuplicate() {
                       <span class="h-1.5 w-1.5 rounded-full" :class="OPEN_STATE_META[form.openState].dot" />
                       {{ OPEN_STATE_META[form.openState].label }}
                     </span>
+                    <HelpTip>
+                      <span v-if="form.openState === 'open'">Na webu se otevřeno/zavřeno řídí otevírací dobou níže.</span>
+                      <span v-else-if="form.openState === 'seasonal'">Sezónní provoz — otevírací doba platí v sezóně; mimo sezónu je objekt zavřený. Upřesněte v poznámce.</span>
+                      <span v-else>Dočasně uzavřeno — na webu se objekt zobrazí jako zavřený bez ohledu na otevírací dobu. Doplňte poznámku (např. rekonstrukce).</span>
+                    </HelpTip>
                   </div>
-                  <p class="mt-2 text-[11.5px] leading-relaxed text-steel-500">
-                    <span v-if="form.openState === 'open'">Na webu se otevřeno/zavřeno řídí otevírací dobou níže.</span>
-                    <span v-else-if="form.openState === 'seasonal'">Sezónní provoz — otevírací doba platí v sezóně; mimo sezónu je objekt zavřený. Upřesněte v poznámce.</span>
-                    <span v-else>Dočasně uzavřeno — na webu se objekt zobrazí jako zavřený bez ohledu na otevírací dobu. Doplňte poznámku (např. rekonstrukce).</span>
-                  </p>
 
                   <!-- Poznámka k provozu (na web, ML) -->
                   <div class="mt-4">
-                    <MlFieldHeader label="Poznámka k provozu (na web)" :lang="activeLang" tag="area-status_note" @translate="translateField('statusNote')" />
+                    <MlFieldHeader label="Poznámka k provozu (na web)" :lang="activeLang" tag="area-status_note" hint="Zobrazí se na webu u objektu (nepovinné). Vhodné hlavně při dočasném uzavření nebo sezónním provozu." @translate="translateField('statusNote')" />
                     <textarea
                       v-model="form.statusNote[activeLang]"
                       rows="2"
                       placeholder="Např. Zavřeno kvůli rekonstrukci do jara 2027."
                       class="w-full resize-y rounded-md border border-steel-200 px-3.5 py-2.5 text-[14px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none"
                     />
-                    <p class="mt-1 text-[11.5px] text-steel-500">Zobrazí se na webu u objektu (nepovinné). Vhodné hlavně při dočasném uzavření nebo sezónním provozu.</p>
                   </div>
                 </FormSection>
 
@@ -343,12 +343,12 @@ function onDuplicate() {
                   </span>
                   <div class="min-w-0">
                     <div class="flex items-center gap-2">
-                      <span class="text-[13px] font-600 text-graphite-800">Hlavní obrázek (náhledovka)</span>
+                      <span class="flex items-center gap-1.5 text-[13px] font-600 text-graphite-800">
+                        Hlavní obrázek (náhledovka)
+                        <HelpTip text="Náhledovka se bere z galerie níže — hlavní je fotka označená ★ (1. pozice). Pořadí a hlavní fotku nastavíš přetažením nebo tlačítkem „topovat nahoru“. Nenahrává se zvlášť." />
+                      </span>
                       <span class="field-tag">area-image</span>
                     </div>
-                    <p class="mt-1.5 text-[11.5px] leading-relaxed text-steel-500">
-                      Náhledovka se bere z galerie níže — hlavní je fotka označená ★ (1. pozice). Pořadí a hlavní fotku nastavíš přetažením nebo tlačítkem „topovat nahoru". Nenahrává se zvlášť.
-                    </p>
                   </div>
                 </div>
 
