@@ -245,11 +245,7 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
         </div>
         <h1 class="font-display text-[26px] font-700 leading-none tracking-tight text-graphite-900">
           Časté dotazy
-        </h1>
-        <p class="mt-1.5 text-[13.5px] text-steel-500">
-          {{ visible.length }} {{ visible.length === 1 ? 'dotaz' : 'dotazů' }} · otázky a odpovědi pro web
-        </p>
-      </div>
+        </h1>      </div>
       <AppButton variant="primary" @click="goNew">
         <Icon name="plus" :size="17" />
         Nový dotaz

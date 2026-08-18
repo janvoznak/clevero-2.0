@@ -50,11 +50,7 @@ function confirmDelete() {
           <span class="field-tag rounded bg-steel-100 px-1.5 py-0.5">galleries</span>
           <span class="font-mono text-[11px] text-steel-400">/admin/galleries</span>
         </div>
-        <h1 class="font-display text-[26px] font-700 leading-none tracking-tight text-graphite-900">Galerie</h1>
-        <p class="mt-1.5 text-[13.5px] text-steel-500">
-          {{ rows.length }} {{ rows.length === 1 ? 'sekce' : 'sekcí' }} · sady fotografií pro web
-        </p>
-      </div>
+        <h1 class="font-display text-[26px] font-700 leading-none tracking-tight text-graphite-900">Galerie</h1>      </div>
       <AppButton variant="primary" @click="goNew">
         <Icon name="plus" :size="17" />
         Nová sekce

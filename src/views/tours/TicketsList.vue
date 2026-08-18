@@ -40,12 +40,7 @@ function fmtPurchased(iso: string): string {
           <span class="field-tag rounded bg-steel-100 px-1.5 py-0.5">tickets</span>
           <span class="font-mono text-[11px] text-steel-400">/admin/tickets</span>
         </div>
-        <h1 class="font-display text-[26px] font-700 leading-none tracking-tight text-graphite-900">Vstupenky</h1>
-        <p class="mt-1.5 flex items-center gap-1.5 text-[13.5px] text-steel-500">
-          <Icon name="integration" :size="14" class="text-brand-500" />
-          Zakoupené vstupenky — data z Colossea přes API (needitovatelné).
-        </p>
-      </div>
+        <h1 class="font-display text-[26px] font-700 leading-none tracking-tight text-graphite-900">Vstupenky</h1>      </div>
     </div>
 
     <!-- Souhrn -->

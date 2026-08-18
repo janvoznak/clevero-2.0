@@ -298,11 +298,7 @@ function onRowAction(key: string, p: PageItem) {
           <span class="field-tag rounded bg-steel-100 px-1.5 py-0.5">page</span>
           <span class="font-mono text-[11px] text-steel-400">/admin/page/list</span>
         </div>
-        <h1 class="font-display text-[26px] font-700 leading-none tracking-tight text-graphite-900">Stránky</h1>
-        <p class="mt-1.5 text-[13.5px] text-steel-500">
-          {{ rows.length }} stránek · hierarchická struktura webu · pořadí a zanoření změníte přetažením
-        </p>
-      </div>
+        <h1 class="font-display text-[26px] font-700 leading-none tracking-tight text-graphite-900">Stránky</h1>      </div>
       <AppButton :key="activeKey" variant="primary" class="animate-pop" @click="goNewActive">
         <Icon name="plus" :size="17" />
         Nová stránka

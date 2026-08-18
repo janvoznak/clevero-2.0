@@ -87,7 +87,7 @@ const rows = computed<Row[]>(() => {
   const out: Row[] = []
   for (const v of MOCK_VENUES) {
     const evs = props.events.filter(
-      (e) => e.areaId === v.id && parseISO(e.to).getTime() >= startMs && parseISO(e.from).getTime() <= endMs,
+      (e) => e.areaIds.includes(v.id) && parseISO(e.to).getTime() >= startMs && parseISO(e.from).getTime() <= endMs,
     )
     if (!evs.length) continue
     const segs: Seg[] = evs

@@ -126,11 +126,7 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
           <span class="field-tag rounded bg-steel-100 px-1.5 py-0.5">programs</span>
           <span class="font-mono text-[11px] text-steel-400">/admin/education</span>
         </div>
-        <h1 class="font-display text-[26px] font-700 leading-none tracking-tight text-graphite-900">Vzdělávací programy</h1>
-        <p class="mt-1.5 text-[13.5px] text-steel-500">
-          {{ visible.length }} {{ visible.length === 1 ? 'program' : 'programů' }} · rezervace přes DOVIS
-        </p>
-      </div>
+        <h1 class="font-display text-[26px] font-700 leading-none tracking-tight text-graphite-900">Vzdělávací programy</h1>      </div>
       <AppButton variant="primary" @click="goNew"><Icon name="plus" :size="17" /> Nový program</AppButton>
     </div>
 

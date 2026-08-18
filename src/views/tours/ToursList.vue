@@ -84,11 +84,7 @@ function confirmDeleteTour() {
           <span class="field-tag rounded bg-steel-100 px-1.5 py-0.5">tours</span>
           <span class="font-mono text-[11px] text-steel-400">/admin/tours</span>
         </div>
-        <h1 class="font-display text-[26px] font-700 leading-none tracking-tight text-graphite-900">Prohlídky</h1>
-        <p class="mt-1.5 text-[13.5px] text-steel-500">
-          {{ rows.length }} kategorií · prohlídky napojené na Colosseum · vstupenky přes API
-        </p>
-      </div>
+        <h1 class="font-display text-[26px] font-700 leading-none tracking-tight text-graphite-900">Prohlídky</h1>      </div>
       <AppButton variant="primary" @click="goNew">
         <Icon name="plus" :size="17" />
         Nová kategorie

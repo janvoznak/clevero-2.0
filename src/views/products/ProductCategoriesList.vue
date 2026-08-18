@@ -52,11 +52,7 @@ const total = computed(() => rows.value.length)
           <span class="field-tag rounded bg-steel-100 px-1.5 py-0.5">product-category</span>
           <span class="font-mono text-[11px] text-steel-400">/admin/product-categories</span>
         </div>
-        <h1 class="font-display text-[26px] font-700 leading-none tracking-tight text-graphite-900">Členění produktů</h1>
-        <p class="mt-1.5 text-[13.5px] text-steel-500">
-          {{ total }} {{ total === 1 ? 'kategorie' : 'kategorií' }} · vlastní členění e-shopu (Colosseum se nepřebírá)
-        </p>
-      </div>
+        <h1 class="font-display text-[26px] font-700 leading-none tracking-tight text-graphite-900">Členění produktů</h1>      </div>
       <AppButton variant="primary" @click="goNew">
         <Icon name="plus" :size="17" /> Nová kategorie
       </AppButton>

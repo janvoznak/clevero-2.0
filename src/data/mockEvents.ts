@@ -26,11 +26,35 @@ export const EVENT_TYPES = [
 export type TicketMode = 'colosseum' | 'external' | 'onsite' | 'free'
 
 export const TICKET_MODE_OPTIONS: { value: TicketMode; label: string; hint: string; icon: string }[] = [
-  { value: 'colosseum', label: 'Přes Colosseum', hint: 'Vstupenky prodává navázaná prohlídka — dostupnost i košík táhne Colosseum.', icon: 'ticket' },
+  { value: 'colosseum', label: 'Přes Colosseum', hint: 'Vyber akci z Colossea (našeptávač) — dostupnost termínů i košík táhne vybraná akce.', icon: 'ticket' },
   { value: 'external', label: 'Externí odkaz', hint: 'Prodej řeší pořadatel / nájemce na svém webu — web jen odkáže.', icon: 'link' },
   { value: 'onsite', label: 'Prodej na místě', hint: 'Placená akce bez online prodeje — vstupenky jen na místě, na pokladně přes Colosseum.', icon: 'map' },
   { value: 'free', label: 'Zdarma', hint: 'Vstup zdarma — vstupenky se neprodávají.', icon: 'check' },
 ]
+
+/* ---------- Akce dostupné z Colossea (přes API) ----------
+   Našeptávač v „Prodej vstupenek → Přes Colosseum". Colosseum posílá název akce
+   a termín (datum/čas). Napojení = hlavní způsob prodeje přes Colosseum. */
+export interface ColosseumEvent {
+  id: string
+  name: string
+  /** Termín akce z Colossea (datum, případně čas) — pro našeptávač. */
+  when: string
+}
+export const COLOSSEUM_EVENTS: ColosseumEvent[] = [
+  { id: 'COL-EV-9001', name: 'Ostrava v plamenech 2026', when: '1. 8. 2026 · 18:00' },
+  { id: 'COL-EV-9002', name: 'Letní koncert v Gongu', when: '7. 8. 2026 · 19:30' },
+  { id: 'COL-EV-9003', name: 'HIP HOP ŽIJE OSTRAVA', when: '28.–29. 8. 2026' },
+  { id: 'COL-EV-9004', name: 'Festival AFROSTRAVA', when: '14.–15. 8. 2026' },
+  { id: 'COL-EV-9005', name: 'Závody na lezecké stěně', when: '15. 8. 2026 · 10:00' },
+  { id: 'COL-EV-9006', name: 'David Macháč: Soukromé ráje (výstava)', when: '19. 3. – 27. 9. 2026' },
+  { id: 'COL-EV-9007', name: 'Krištof Kintera: Neuropolis (výstava)', when: '1. 5. – 31. 12. 2026' },
+  { id: 'COL-EV-9008', name: 'Adventní koncert v Gongu', when: '13. 12. 2026 · 18:00' },
+  { id: 'COL-EV-9009', name: 'Silvestrovský ohňostroj', when: '31. 12. 2026 · 23:30' },
+]
+export function colosseumEvent(id: string): ColosseumEvent | undefined {
+  return COLOSSEUM_EVENTS.find((e) => e.id === id.trim())
+}
 
 /** Předdefinované možnosti věkového omezení (dropdown v detailu akce).
     Prázdná hodnota = bez omezení (řeší se sentinelem v komponentě). */
@@ -94,13 +118,17 @@ export interface DovEvent {
   performers: string
   /** Štítky akce. */
   tags: string[]
-  /** Vazba na objekt v Areálu (ID objektu, '' = nepropojeno). */
-  areaId: string
+  /** Vazba na objekty v Areálu (IDs objektů). Akce se může konat na více
+      místech — v kalendáři se zobrazí v řádku každého z nich. */
+  areaIds: string[]
   /** Akce obsazuje budovu — po dobu konání je uzavřena pro širší veřejnost
       (soukromá akce, konference, festival). Řídí upozornění „Provoz budov". */
   closesVenue?: boolean
   /** Související prohlídky (ID z modulu Prohlídky). */
   tourIds: string[]
+  /** Napojení na akci v Colosseu (hlavní způsob prodeje vstupenek přes Colosseum).
+      Dostupnost termínů i košík táhne tato akce z Colossea. '' = nenapojeno. */
+  colosseumEventId?: string
   /** Připojené fotogalerie (ID z modulu Galerie) — např. „fotky z minulého ročníku". */
   galleryIds: string[]
   /** Fotky nahrané přímo k akci (mimo připojené galerie). */
@@ -135,10 +163,11 @@ type RawEvent = {
   duration?: string
   performers?: string
   tags?: string[]
-  areaId?: string
+  areaIds?: string[]
   /** Akce obsazuje budovu (uzavře ji pro veřejnost po dobu konání). */
   closesVenue?: boolean
   tourIds?: string[]
+  colosseumEventId?: string
   galleryIds?: string[]
   /** Volitelné jazykové mutace názvu (mimo CZ) — pro demonstraci stavů publikace. */
   titleLangs?: Partial<Record<LangCode, string>>
@@ -151,32 +180,32 @@ function ml(cs: string): ML {
 
 const RAW_EVENTS: RawEvent[] = [
   // — Dlouhodobé výstavy —
-  { id: 'e-neuropolis', title: 'Krištof Kintera: Neuropolis', areaId: 'v-galerie', type: 'Výstava', from: '2026-05-01', to: '2026-12-31', summary: 'Rozsáhlá výstava propojující umění a technologie v Galerii Gong.', image: imageFor(3), published: true, price: '250 Kč', ageLimit: '', tags: ['Industriál'] },
-  { id: 'e-machac', title: 'David Macháč: Soukromé ráje', areaId: 'v-areal', type: 'Výstava', from: '2026-03-19', to: '2026-09-27', summary: 'Site-specific instalace v prostorách areálu.', image: imageFor(11), published: true },
-  { id: 'e-salon', title: 'Letní salón 2', areaId: 'v-galerie', type: 'Výstava', from: '2026-06-23', to: '2026-08-28', summary: 'Přehlídka současné regionální tvorby.', image: imageFor(6), published: true },
+  { id: 'e-neuropolis', title: 'Krištof Kintera: Neuropolis', areaIds: ['v-galerie'], type: 'Výstava', from: '2026-05-01', to: '2026-12-31', summary: 'Rozsáhlá výstava propojující umění a technologie v Galerii Gong.', image: imageFor(3), published: true, price: '250 Kč', ageLimit: '', tags: ['Industriál'] },
+  { id: 'e-machac', title: 'David Macháč: Soukromé ráje', areaIds: ['v-areal'], type: 'Výstava', from: '2026-03-19', to: '2026-09-27', summary: 'Site-specific instalace v prostorách areálu.', image: imageFor(11), published: true },
+  { id: 'e-salon', title: 'Letní salón 2', areaIds: ['v-galerie'], type: 'Výstava', from: '2026-06-23', to: '2026-08-28', summary: 'Přehlídka současné regionální tvorby.', image: imageFor(6), published: true },
 
   // — Vzdělávací programy (konec července) —
-  { id: 'e-tabor', areaId: 'v-u6', title: 'Letní příměstský tábor U6', type: 'Vzdělávací program', from: '2026-07-27', to: '2026-07-31', summary: 'Týdenní tábor plný experimentů ve Světě techniky.', image: imageFor(4), published: true, price: '2 900 Kč', ageLimit: 'Od 6 let', tags: ['Pro školy', 'Rodinné'], closesVenue: true },
+  { id: 'e-tabor', areaIds: ['v-u6'], title: 'Letní příměstský tábor U6', type: 'Vzdělávací program', from: '2026-07-27', to: '2026-07-31', summary: 'Týdenní tábor plný experimentů ve Světě techniky.', image: imageFor(4), published: true, price: '2 900 Kč', ageLimit: 'Od 6 let', tags: ['Pro školy', 'Rodinné'], closesVenue: true },
   // — Soukromá akce, která už skončila (budova zůstala omylem zavřená → dashboard nabídne otevřít) —
-  { id: 'e-firemniden', areaId: 'v-marycka', title: 'Firemní den — ArcelorMittal', type: 'Soukromá akce', from: '2026-07-25', to: '2026-07-27', summary: 'Soukromá firemní akce — prostor uzavřen pro veřejnost.', image: imageFor(6), published: false, closesVenue: true },
-  { id: 'e-scienceshow', areaId: 'v-u6', title: 'Science Show: Živly', type: 'Vzdělávací program', from: '2026-07-29', to: '2026-07-29', time: '15:00', timeTo: '16:00', summary: 'Interaktivní představení o přírodních živlech.', image: imageFor(13), published: true, price: 'Vstup zdarma', duration: '60 min', tags: ['Rodinné', 'Zdarma'] },
+  { id: 'e-firemniden', areaIds: ['v-marycka'], title: 'Firemní den — ArcelorMittal', type: 'Soukromá akce', from: '2026-07-25', to: '2026-07-27', summary: 'Soukromá firemní akce — prostor uzavřen pro veřejnost.', image: imageFor(6), published: false, closesVenue: true },
+  { id: 'e-scienceshow', areaIds: ['v-u6'], title: 'Science Show: Živly', type: 'Vzdělávací program', from: '2026-07-29', to: '2026-07-29', time: '15:00', timeTo: '16:00', summary: 'Interaktivní představení o přírodních živlech.', image: imageFor(13), published: true, price: 'Vstup zdarma', duration: '60 min', tags: ['Rodinné', 'Zdarma'] },
   // — Srpen: festivaly a akce (více budov v jeden den) —
   // CZ živě, EN má vyplněný název, ale drží se skryté (připraveno) → amber stav.
-  { id: 'e-plameny', title: 'Ostrava v plamenech 2026', titleLangs: { en: 'Ostrava Ablaze 2026' }, publishedLangs: ['cs'], areaId: 'v-areal', type: 'Festival', from: '2026-08-01', to: '2026-08-01', time: '18:00', summary: 'Ohnivá show a doprovodný program v celém areálu.', image: imageFor(1), published: true, price: 'od 290 Kč', tags: ['Venku', 'Hudba'], galleryIds: ['g-akce'] },
-  { id: 'e-race', title: 'Race the Streets', areaId: 'v-areal', type: 'Sportovní akce', from: '2026-08-07', to: '2026-08-08', summary: 'Městské závody napříč industriálním areálem.', image: imageFor(2), published: true, tags: ['Sport', 'Venku'] },
-  { id: 'e-gongkoncert', areaId: 'v-gong', title: 'Letní koncert v Gongu', type: 'Koncert', from: '2026-08-07', to: '2026-08-07', time: '19:30', summary: 'Večerní koncert v multifunkční aule.', image: imageFor(8), published: true, price: 'od 490 Kč', tags: ['Hudba'] },
-  { id: 'e-hopjump', title: 'HopJump večerní jam', areaId: 'v-hopjump', type: 'Sportovní akce', from: '2026-08-08', to: '2026-08-08', time: '20:00', summary: 'Trampolínový večer pro všechny věkové kategorie.', image: imageFor(9), published: true, tags: ['Sport', 'Rodinné'] },
+  { id: 'e-plameny', title: 'Ostrava v plamenech 2026', titleLangs: { en: 'Ostrava Ablaze 2026' }, publishedLangs: ['cs'], areaIds: ['v-areal', 'v-bolt', 'v-gong'], type: 'Festival', from: '2026-08-01', to: '2026-08-01', time: '18:00', summary: 'Ohnivá show a doprovodný program v celém areálu.', image: imageFor(1), published: true, price: 'od 290 Kč', tags: ['Venku', 'Hudba'], galleryIds: ['g-akce'] },
+  { id: 'e-race', title: 'Race the Streets', areaIds: ['v-areal', 'v-hopjump'], type: 'Sportovní akce', from: '2026-08-07', to: '2026-08-08', summary: 'Městské závody napříč industriálním areálem.', image: imageFor(2), published: true, tags: ['Sport', 'Venku'] },
+  { id: 'e-gongkoncert', colosseumEventId: 'COL-EV-9002', areaIds: ['v-gong'], title: 'Letní koncert v Gongu', type: 'Koncert', from: '2026-08-07', to: '2026-08-07', time: '19:30', summary: 'Večerní koncert v multifunkční aule.', image: imageFor(8), published: true, price: 'od 490 Kč', tags: ['Hudba'] },
+  { id: 'e-hopjump', title: 'HopJump večerní jam', areaIds: ['v-hopjump'], type: 'Sportovní akce', from: '2026-08-08', to: '2026-08-08', time: '20:00', summary: 'Trampolínový večer pro všechny věkové kategorie.', image: imageFor(9), published: true, tags: ['Sport', 'Rodinné'] },
   // CZ + EN živě, DE má vyplněný název, ale zatím skryté (připraveno) → amber stav.
-  { id: 'e-afrostrava', title: 'Festival AFROSTRAVA', titleLangs: { en: 'AFROSTRAVA Festival', de: 'AFROSTRAVA Festival' }, publishedLangs: ['cs', 'en'], areaId: 'v-areal', type: 'Festival', from: '2026-08-14', to: '2026-08-15', summary: 'Přehlídka africké hudby, tance a gastronomie.', image: imageFor(7), published: true, tags: ['Hudba', 'Venku', 'Občerstvení'] },
-  { id: 'e-lezecka', title: 'Závody na lezecké stěně', areaId: 'v-lezecka', type: 'Sportovní akce', from: '2026-08-15', to: '2026-08-15', time: '10:00', summary: 'Regionální kolo v lezení na obtížnost.', image: imageFor(10), published: true, tags: ['Sport'] },
-  { id: 'e-hiphop', areaId: 'v-gong', title: 'HIP HOP ŽIJE OSTRAVA', type: 'Koncert', from: '2026-08-28', to: '2026-08-29', summary: 'Dvoudenní hip-hopový festival v Gongu.', image: imageFor(12), published: true, tags: ['Hudba'] },
-  { id: 'e-konference', title: 'Konference Industry 5.0', areaId: 'v-u6', type: 'Konference', from: '2026-08-20', to: '2026-08-21', summary: 'Odborná konference o budoucnosti průmyslu.', image: imageFor(14), published: false, tags: ['Pro školy'], closesVenue: true },
+  { id: 'e-afrostrava', colosseumEventId: 'COL-EV-9004', title: 'Festival AFROSTRAVA', titleLangs: { en: 'AFROSTRAVA Festival', de: 'AFROSTRAVA Festival' }, publishedLangs: ['cs', 'en'], areaIds: ['v-areal'], type: 'Festival', from: '2026-08-14', to: '2026-08-15', summary: 'Přehlídka africké hudby, tance a gastronomie.', image: imageFor(7), published: true, tags: ['Hudba', 'Venku', 'Občerstvení'] },
+  { id: 'e-lezecka', colosseumEventId: 'COL-EV-9005', title: 'Závody na lezecké stěně', areaIds: ['v-lezecka'], type: 'Sportovní akce', from: '2026-08-15', to: '2026-08-15', time: '10:00', summary: 'Regionální kolo v lezení na obtížnost.', image: imageFor(10), published: true, tags: ['Sport'] },
+  { id: 'e-hiphop', colosseumEventId: 'COL-EV-9003', areaIds: ['v-gong'], title: 'HIP HOP ŽIJE OSTRAVA', type: 'Koncert', from: '2026-08-28', to: '2026-08-29', summary: 'Dvoudenní hip-hopový festival v Gongu.', image: imageFor(12), published: true, tags: ['Hudba'] },
+  { id: 'e-konference', title: 'Konference Industry 5.0', areaIds: ['v-u6'], type: 'Konference', from: '2026-08-20', to: '2026-08-21', summary: 'Odborná konference o budoucnosti průmyslu.', image: imageFor(14), published: false, tags: ['Pro školy'], closesVenue: true },
 ]
 
 /** Odvození způsobu prodeje z dostupných polí, když RawEvent `ticketMode` neurčuje.
     Placená akce (má cenu, ne „zdarma") bez online prodeje = prodej na místě, ne „zdarma". */
 function deriveTicketMode(r: RawEvent): TicketMode {
-  if (r.tourIds?.length) return 'colosseum'
+  if (r.colosseumEventId || r.tourIds?.length) return 'colosseum'
   if (r.ticketUrl) return 'external'
   const price = (r.price ?? '').trim()
   if (price && !/zdarma/i.test(price)) return 'onsite'
@@ -203,9 +232,10 @@ export const MOCK_EVENTS: DovEvent[] = RAW_EVENTS.map((r) => ({
   duration: r.duration ?? '',
   performers: r.performers ?? '',
   tags: r.tags ?? [],
-  areaId: r.areaId ?? '',
+  areaIds: r.areaIds ?? [],
   closesVenue: r.closesVenue ?? false,
   tourIds: r.tourIds ?? [],
+  colosseumEventId: r.colosseumEventId ?? '',
   galleryIds: r.galleryIds ?? [],
   published: r.published,
   publishedLangs: r.publishedLangs,
@@ -262,7 +292,7 @@ export interface EventDraft {
   summary: string
   description: string
   type: string
-  areaId: string
+  areaIds: string[]
   from: string
   to: string
   time: string
@@ -292,7 +322,7 @@ export function aiImportFromUrl(url: string): EventDraft {
         '<p>Připraveny jsou kategorie pro jednotlivce i týmy, kratší dětská trasa a bohatý doprovodný program s občerstvením.</p>' +
         '<ul><li>Závod jednotlivců i štafet</li><li>Dětská trasa zdarma</li><li>Doprovodný program a food zóna</li></ul>',
       type: 'Sportovní akce',
-      areaId: 'v-areal',
+      areaIds: ['v-areal'],
       from: '2026-08-07',
       to: '2026-08-08',
       time: '09:00',
@@ -317,7 +347,7 @@ export function aiImportFromUrl(url: string): EventDraft {
       description:
         '<p>Přední čeští komici rozezní halu Dolních Vítkovic. Připravte se na večer plný vtipu, improvizace a nečekaných situací.</p>',
       type: 'Stand-up',
-      areaId: 'v-gong',
+      areaIds: ['v-gong'],
       from: '2026-08-05',
       to: '2026-08-05',
       time: '19:00',
@@ -340,7 +370,7 @@ export function aiImportFromUrl(url: string): EventDraft {
     summary: 'Přijďte zažít výjimečnou akci v industriálním areálu Dolních Vítkovic.',
     description: '<p>Podrobnosti programu doplníme. Sledujte web a rezervujte si vstupenky včas.</p>',
     type: 'Festival',
-    areaId: 'v-areal',
+    areaIds: ['v-areal'],
     from: '',
     to: '',
     time: '',

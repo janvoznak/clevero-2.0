@@ -129,7 +129,7 @@ const venues = reactive<VenueRow[]>(
 )
 /** Akce, která právě obsazuje budovu (probíhá a uzavírá ji pro veřejnost). */
 function activeClosingEvent(venueId: string) {
-  return MOCK_EVENTS.find((e) => e.areaId === venueId && e.closesVenue && eventStatus(e, EVENTS_NOW) === 'ongoing')
+  return MOCK_EVENTS.find((e) => e.areaIds.includes(venueId) && e.closesVenue && eventStatus(e, EVENTS_NOW) === 'ongoing')
 }
 function eventById(id?: string) {
   return id ? MOCK_EVENTS.find((e) => e.id === id) : undefined
