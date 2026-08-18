@@ -53,7 +53,7 @@ export function backRefsForArea(id: string): BackRefGroup[] {
     ...group('events', 'Události', 'calendar',
       MOCK_EVENTS.filter((e) => e.areaIds.includes(id)).map((e) => ({ id: e.id, title: T(e.title), routeName: 'event-detail' }))),
     ...group('tours', 'Prohlídky', 'ticket',
-      MOCK_TOURS.filter((t) => t.areaId === id).map((t) => ({ id: t.id, title: T(t.title), routeName: 'tour-edit' }))),
+      MOCK_TOURS.filter((t) => t.areaIds.includes(id)).map((t) => ({ id: t.id, title: T(t.title), routeName: 'tour-edit' }))),
     ...group('galleries', 'Galerie', 'gallery',
       MOCK_GALLERIES.filter((g) => g.areaId === id).map((g) => ({ id: g.id, title: T(g.name), routeName: 'gallery-edit' }))),
   ]

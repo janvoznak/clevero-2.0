@@ -23,17 +23,43 @@ export const SILHOUETTE_PATHS: Record<string, string> = {
   lezecka: 'M6 2h4v20H6zM10 5h2.5v2.5H10zM10 10.5h2.5V13H10zM10 16h2.5v2.5H10z',
 }
 
-/** Výchozí klíč siluety, když objekt žádnou nemá. */
+/** Výchozí klíč siluety, když objekt nemá vlastní SVG ani klíč. */
 export const DEFAULT_SILHOUETTE = 'areal'
 
-/** Volby siluet pro výběr v detailu objektu (klíč + popisek). */
-export const SILHOUETTE_OPTIONS: { key: string; label: string }[] = [
-  { key: 'areal', label: 'Areál (skyline)' },
-  { key: 'bolt', label: 'Bolt Tower (vysoká pec)' },
-  { key: 'gong', label: 'Gong (plynojem)' },
-  { key: 'galerie', label: 'Galerie' },
-  { key: 'technika', label: 'Svět techniky (hala)' },
-  { key: 'hlubina', label: 'Důl Hlubina (těžní věž)' },
-  { key: 'hopjump', label: 'HopJump' },
-  { key: 'lezecka', label: 'Lezecká stěna' },
-]
+/**
+ * Vyčistí nahrané SVG pro bezpečné vykreslení (v-html) — odstraní skripty,
+ * event handlery, foreignObject/style/animace a inline fill/stroke, aby šla
+ * silueta obarvit barvou objektu (nastaví fill=currentColor). Vrací '' když
+ * vstup není platné SVG.
+ *
+ * Pozn.: klientská sanitizace pro prototyp. V produkci (reálný upload) SVG
+ * vždy sanitovat i na serveru (např. DOMPurify/svgo) — regex/DOM na klientu
+ * není bezpečnostní hranice.
+ */
+export function sanitizeSvg(raw: string): string {
+  if (!raw || typeof DOMParser === 'undefined') return ''
+  const doc = new DOMParser().parseFromString(raw, 'image/svg+xml')
+  if (doc.querySelector('parsererror')) return ''
+  const svg = doc.querySelector('svg')
+  if (!svg) return ''
+  // Nebezpečné / skriptovatelné / animující uzly pryč.
+  svg
+    .querySelectorAll('script, foreignObject, style, image, a, use, animate, animateTransform, animateMotion, set')
+    .forEach((n) => n.remove())
+  // Projít strom a odstranit rizikové/barevné atributy.
+  const walk = (el: Element) => {
+    for (const attr of [...el.attributes]) {
+      const name = attr.name.toLowerCase()
+      if (name.startsWith('on')) el.removeAttribute(attr.name)
+      else if ((name === 'href' || name === 'xlink:href') && /^\s*javascript:/i.test(attr.value)) el.removeAttribute(attr.name)
+      else if (name === 'style' || name === 'fill' || name === 'stroke') el.removeAttribute(attr.name)
+    }
+    for (const child of [...el.children]) walk(child)
+  }
+  walk(svg)
+  // Obarvení barvou objektu + roztažení do rámečku náhledu.
+  svg.setAttribute('fill', 'currentColor')
+  svg.setAttribute('width', '100%')
+  svg.setAttribute('height', '100%')
+  return svg.outerHTML
+}

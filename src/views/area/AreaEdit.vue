@@ -16,7 +16,7 @@ import LangBar from '@/components/admin/LangBar.vue'
 import MlFieldHeader from '@/components/admin/MlFieldHeader.vue'
 import HelpTip from '@/components/ui/HelpTip.vue'
 import VenueSilhouette from '@/components/ui/VenueSilhouette.vue'
-import { SILHOUETTE_OPTIONS } from '@/data/venueSilhouettes'
+import { sanitizeSvg } from '@/data/venueSilhouettes'
 import SlugField from '@/components/admin/SlugField.vue'
 import { useAutoSlug } from '@/utils/useAutoSlug'
 import { useMlTranslate } from '@/utils/useMlTranslate'
@@ -85,6 +85,37 @@ const baseSections = computed(() => [
 ])
 /** Individuální záložky přidružených stránek (kopírují záložky na FE webu; obsah = ContentBuilder). */
 const pageTabs = computed(() => form.pageTabs ?? [])
+
+/* ---------- Silueta objektu (nahrání vlastního SVG) ---------- */
+const svgInput = ref<HTMLInputElement | null>(null)
+const svgError = ref('')
+function onSilhouetteFile(e: Event) {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = '' // reset, aby šlo nahrát stejný soubor znovu
+  if (!file) return
+  svgError.value = ''
+  const isSvg = /svg/i.test(file.type) || file.name.toLowerCase().endsWith('.svg')
+  if (!isSvg) {
+    svgError.value = 'Nahraj prosím soubor ve formátu SVG.'
+    return
+  }
+  const reader = new FileReader()
+  reader.onload = () => {
+    const clean = sanitizeSvg(String(reader.result ?? ''))
+    if (!clean) {
+      svgError.value = 'Soubor se nepodařilo načíst jako platné SVG.'
+      return
+    }
+    form.silhouetteSvg = clean
+  }
+  reader.onerror = () => (svgError.value = 'Soubor se nepodařilo přečíst.')
+  reader.readAsText(file)
+}
+function clearSilhouette() {
+  form.silhouetteSvg = ''
+  svgError.value = ''
+}
 
 /* ---------- Zajímavá čísla ---------- */
 let statSeq = 0
@@ -245,31 +276,40 @@ function onDuplicate() {
                   </div>
                 </FormSection>
 
-                <!-- Silueta objektu (ikonka budovy) -->
+                <!-- Silueta objektu (vlastní nahrané SVG) -->
                 <FormSection
                   title="Silueta objektu"
-                  hint="Ikonka budovy — propisuje se do kalendáře a všude, kde se objekt vybírá (např. místo konání akce)."
+                  hint="Vlastní SVG silueta budovy — propisuje se do kalendáře a všude, kde se objekt vybírá (např. místo konání akce). Obarví se barvou objektu."
                   tag="area-silhouette"
                 >
-                  <div class="grid grid-cols-4 gap-2">
-                    <button
-                      v-for="opt in SILHOUETTE_OPTIONS"
-                      :key="opt.key"
-                      type="button"
-                      :title="opt.label"
-                      :aria-label="opt.label"
-                      :aria-pressed="form.silhouette === opt.key"
-                      class="flex flex-col items-center justify-center gap-1.5 rounded-lg border py-2.5 outline-none transition-colors"
-                      :class="
-                        form.silhouette === opt.key
-                          ? 'border-brand-500 bg-brand-50 ring-1 ring-brand-500'
-                          : 'border-steel-200 bg-white hover:border-brand-300 hover:bg-brand-50/40'
-                      "
-                      @click="form.silhouette = opt.key"
-                    >
-                      <VenueSilhouette :venue-id="opt.key" :color="form.color || '#64748b'" :size="30" />
-                      <span class="w-full truncate px-1 text-center text-[10.5px] leading-tight text-steel-500">{{ opt.label }}</span>
-                    </button>
+                  <div class="flex items-center gap-4">
+                    <span class="grid h-20 w-20 shrink-0 place-items-center rounded-lg border border-steel-200 bg-steel-50">
+                      <VenueSilhouette :svg="form.silhouetteSvg" :venue-id="form.silhouette" :color="form.color || '#64748b'" :size="52" />
+                    </span>
+                    <div class="min-w-0 flex-1">
+                      <div class="flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          class="inline-flex items-center gap-2 rounded-md border border-dashed border-steel-300 px-3.5 py-2 text-[13px] font-500 text-graphite-700 transition-colors hover:border-brand-400 hover:bg-brand-50/40 hover:text-brand-600"
+                          @click="svgInput?.click()"
+                        >
+                          <Icon name="upload" :size="16" /> {{ form.silhouetteSvg ? 'Nahradit SVG' : 'Nahrát SVG siluetu' }}
+                        </button>
+                        <button
+                          v-if="form.silhouetteSvg"
+                          type="button"
+                          class="inline-flex items-center gap-1.5 rounded-md px-2.5 py-2 text-[12.5px] font-500 text-steel-500 transition-colors hover:bg-danger-500/10 hover:text-danger-600"
+                          @click="clearSilhouette"
+                        >
+                          <Icon name="trash" :size="14" /> Odebrat
+                        </button>
+                        <input ref="svgInput" type="file" accept=".svg,image/svg+xml" class="hidden" @change="onSilhouetteFile" />
+                      </div>
+                      <p class="mt-1.5 text-[11.5px] leading-relaxed text-steel-500">
+                        Nejlépe funguje jednobarevná silueta / obrys (SVG) — obarví se barvou objektu. Bez vlastního SVG se použije výchozí tvar.
+                      </p>
+                      <p v-if="svgError" class="mt-1 text-[11.5px] font-500 text-danger-600">{{ svgError }}</p>
+                    </div>
                   </div>
                 </FormSection>
 

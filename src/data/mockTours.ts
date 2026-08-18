@@ -51,8 +51,8 @@ export interface TourSlot {
 export interface Tour {
   id: string
   categoryId: string
-  /** Místo konání — objekt v Areálu (kde prohlídka fyzicky probíhá). */
-  areaId: string
+  /** Místo konání — objekty v Areálu (kde prohlídka fyzicky probíhá). Může jich být víc. */
+  areaIds: string[]
   title: ML
   /** Část URL (slug) — ML, auto z názvu prohlídky. */
   slug?: ML
@@ -168,7 +168,7 @@ const RAW_TOURS: RawTour[] = [
   {
     id: 't-vysokopecni',
     categoryId: 'cat-dov',
-    areaId: 'v-bolt',
+    areaIds: ['v-bolt'],
     title: 'Vysokopecní okruh',
     // EN živě, DE vyplněno ale skryté (amber), PL prázdné.
     titleTr: { en: 'Blast Furnace Tour', de: 'Hochofen-Rundgang' },
@@ -201,7 +201,7 @@ const RAW_TOURS: RawTour[] = [
   {
     id: 't-bolt-cafe',
     categoryId: 'cat-dov',
-    areaId: 'v-bolt',
+    areaIds: ['v-bolt'],
     title: 'Bolt Café',
     perex: 'Výstup na vrchol vysoké pece do kavárny Bolt Café s jedinečným výhledem na areál i Ostravu.',
     description:
@@ -219,7 +219,7 @@ const RAW_TOURS: RawTour[] = [
   {
     id: 't-vitkovicke-pece',
     categoryId: 'cat-dov',
-    areaId: 'v-bolt',
+    areaIds: ['v-bolt'],
     title: 'Vítkovické pece – příběhy, které utvářely Ostravu',
     perex: 'Komentovaná prohlídka o historii vítkovických pecí a jejich vlivu na podobu města.',
     description:
@@ -237,7 +237,7 @@ const RAW_TOURS: RawTour[] = [
   {
     id: 't-cesta-uhli',
     categoryId: 'cat-dov',
-    areaId: 'v-bolt',
+    areaIds: ['v-bolt'],
     title: 'Cesta uhlí – speciál',
     perex: 'Speciální tematická prohlídka sledující cestu uhlí od těžby až po jeho zpracování.',
     description:
@@ -255,7 +255,7 @@ const RAW_TOURS: RawTour[] = [
   {
     id: 't-kox',
     categoryId: 'cat-dov',
-    areaId: 'v-bolt',
+    areaIds: ['v-bolt'],
     title: 'KOX',
     perex: 'Prohlídka části bývalé vítkovické koksovny.',
     description:
@@ -273,7 +273,7 @@ const RAW_TOURS: RawTour[] = [
   {
     id: 't-vysoka-pec-po-setmeni',
     categoryId: 'cat-dov',
-    areaId: 'v-bolt',
+    areaIds: ['v-bolt'],
     title: 'Vysoká pec po setmění',
     perex: 'Atmosférická večerní prohlídka vysoké pece v nasvícení.',
     description:
@@ -291,7 +291,7 @@ const RAW_TOURS: RawTour[] = [
   {
     id: 't-vyslap-vysoka-pec',
     categoryId: 'cat-dov',
-    areaId: 'v-bolt',
+    areaIds: ['v-bolt'],
     title: 'Výšlap na vysokou pec s vyhlídkou',
     perex: 'Fyzicky náročnější výstup po schodech na ochozy vysoké pece s výhledem.',
     description:
@@ -309,7 +309,7 @@ const RAW_TOURS: RawTour[] = [
   {
     id: 't-architektura-dov',
     categoryId: 'cat-dov',
-    areaId: 'v-areal',
+    areaIds: ['v-areal'],
     title: 'Architektura DOV',
     perex: 'Prohlídka zaměřená na architektonické prvky areálu a jejich historii.',
     description:
@@ -328,7 +328,7 @@ const RAW_TOURS: RawTour[] = [
   {
     id: 't-farani-dul',
     categoryId: 'cat-hornicke',
-    areaId: 'v-hlubina',
+    areaIds: ['v-hlubina'],
     title: 'Fárání do dolu a báňské záchranářství',
     perex: 'Sfárání do podzemí dolu Anselm, řetízkové šatny a jízda původním důlním vláčkem z 60. let.',
     description:
@@ -346,7 +346,7 @@ const RAW_TOURS: RawTour[] = [
   {
     id: 't-banske-zachranarstvi',
     categoryId: 'cat-hornicke',
-    areaId: 'v-hlubina',
+    areaIds: ['v-hlubina'],
     title: 'Báňské záchranářství',
     perex: 'Expozice báňského záchranářství — technika, výstroj a příběhy záchranných akcí.',
     description:
@@ -364,7 +364,7 @@ const RAW_TOURS: RawTour[] = [
   {
     id: 't-farani-stajgr',
     categoryId: 'cat-hornicke',
-    areaId: 'v-hlubina',
+    areaIds: ['v-hlubina'],
     title: 'Fárání se štajgrem – zážitkový program',
     perex: 'Zážitkový program se štajgrem — práci horníků si vyzkoušíte na vlastní kůži.',
     description:
@@ -382,7 +382,7 @@ const RAW_TOURS: RawTour[] = [
   {
     id: 't-dulni-vlacek',
     categoryId: 'cat-hornicke',
-    areaId: 'v-hlubina',
+    areaIds: ['v-hlubina'],
     title: 'Důlní vláček',
     perex: 'Jízda původním důlním vláčkem areálem Landek Parku.',
     description: '<p>Svezte se původním důlním vláčkem a projeďte areálem Landek Parku pohodlně a s výkladem průvodce.</p>',
@@ -400,7 +400,7 @@ const RAW_TOURS: RawTour[] = [
   {
     id: 't-zamek-promeny',
     categoryId: 'cat-zamek',
-    areaId: 'v-areal',
+    areaIds: ['v-areal'],
     title: 'Vítkovický zámek – proměny jednoho místa',
     perex: 'Komentovaná prohlídka o historii vítkovického zámku od poloviny 19. století po současnost.',
     description:
@@ -418,7 +418,7 @@ const RAW_TOURS: RawTour[] = [
   {
     id: 't-zamek-obyvatele',
     categoryId: 'cat-zamek',
-    areaId: 'v-areal',
+    areaIds: ['v-areal'],
     title: 'Vítkovický zámek a jeho obyvatelé',
     perex: 'Tematická prohlídka o osobnostech spjatých s železárnami a generálních ředitelích.',
     description:
@@ -499,12 +499,12 @@ export function colosseumTourById(id: string): ColosseumTour | undefined {
 export function toursForCategory(categoryId: string): Tour[] {
   return MOCK_TOURS.filter((t) => t.categoryId === categoryId)
 }
-/** Prohlídky „nabízené" u objektu = ty, které tu mají místo konání (`tour.areaId`).
+/** Prohlídky „nabízené" u objektu = ty, které tu mají místo konání (`tour.areaIds`).
     Odvozeno z Prohlídek — v Areálu se nabízené prohlídky needitují, jen zrcadlí
-    (jediný zdroj pravdy je `tour.areaId`, nastavovaný v modulu Prohlídky). */
+    (jediný zdroj pravdy je `tour.areaIds`, nastavovaný v modulu Prohlídky). */
 export function toursForVenue(areaId: string): Tour[] {
   if (!areaId) return []
-  return MOCK_TOURS.filter((t) => t.areaId === areaId)
+  return MOCK_TOURS.filter((t) => t.areaIds.includes(areaId))
 }
 export function remaining(s: TourSlot): number {
   return Math.max(0, s.capacity - s.booked)
@@ -550,7 +550,7 @@ export function blankTour(categoryId = 'cat-dov'): Tour {
   return {
     id: 'nová',
     categoryId,
-    areaId: '',
+    areaIds: [],
     title: ml(''),
     perex: ml(''),
     description: ml(''),

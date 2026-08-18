@@ -37,7 +37,7 @@ const empty = (): ML => ({ cs: '', en: '', de: '', pl: '' })
 const form = reactive<DovEvent>({
   id: 'nová', title: empty(), subtitle: empty(), type: 'Festival',
   from: '', to: '', time: '', timeTo: '', summary: empty(), description: empty(),
-  image: '', price: '', ticketUrl: '', ticketMode: 'free', ageLimit: '', duration: '', performers: '',
+  image: '', price: '', ticketUrl: '', ticketMode: 'external', ageLimit: '', duration: '', performers: '',
   tags: [], areaIds: [DEFAULT_PLACE_ID], tourIds: [], colosseumEventId: '', galleryIds: [], gallery: [], published: false,
   contentBlocks: defaultContentBlocks(),
 })
@@ -100,6 +100,17 @@ const startColosseumId = ref('')
 watch(startColosseumId, (id) => {
   if (id) colosseumImport(id)
 })
+/* Ruční výběr akce z Colossea (krok Detaily) → předvyplní kapacitu a volná místa. */
+watch(
+  () => form.colosseumEventId,
+  (id) => {
+    if (!id) return
+    const c = colosseumEvent(id)
+    if (!c) return
+    if (c.capacity != null) form.capacity = c.capacity
+    if (c.freeSpots != null) form.freeSpots = c.freeSpots
+  },
+)
 function colosseumImport(id: string) {
   const c = colosseumEvent(id)
   if (!c) return
@@ -238,8 +249,8 @@ const canFinish = computed(() => !!form.title.cs.trim() && !!form.from && form.a
       </div>
     </div>
 
-    <!-- Obsah kroku -->
-    <div class="mx-auto max-w-[780px] px-6 py-8">
+    <!-- Obsah kroku (úvodní krok s dlaždicemi je širší kvůli 3 sloupcům) -->
+    <div class="mx-auto px-6 py-8" :class="step === 0 ? 'max-w-[1120px]' : 'max-w-[780px]'">
       <!-- KROK 1: Založení — dvě dlaždice (DOVík zrychleně vs. ručně) -->
       <div v-if="step === 0">
         <DovikChoiceTiles
