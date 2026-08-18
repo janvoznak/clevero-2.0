@@ -1,9 +1,13 @@
 <script setup lang="ts">
 /**
- * Výběr způsobu založení obsahu — dvě dlaždice „Zrychleně s DOVíkem" vs „Ručně".
+ * Výběr způsobu založení obsahu — dlaždice „Zrychleně s DOVíkem" vs „Ručně".
  * Sdílené (princip „jeden prvek = jedna komponenta"): používá průvodce akcí
  * (URL import) i editor Aktualit (téma). Levá (DOVík) dlaždice má obsah přes
  * slot `#dovik`; pravá (ručně) emituje `manual`.
+ *
+ * Volitelná třetí dlaždice: vyplňte slot `#third` (+ `third*` props) — např.
+ * v průvodci akcí „Z Colossea" (našeptávač). Bez slotu zůstává layout dvoudlaždicový
+ * (zpětná kompatibilita s Aktualitami).
  */
 import Icon from '@/components/ui/Icon.vue'
 import DovikAvatar from '@/components/admin/DovikAvatar.vue'
@@ -21,6 +25,16 @@ withDefaults(
     manualHint?: string
     manualLead?: string
     manualCta?: string
+    /** Volitelná třetí dlaždice (obsah přes slot `#third`). */
+    thirdTitle?: string
+    /** Odznak vpravo od nadpisu třetí dlaždice (např. „Colosseum"). */
+    thirdBadge?: string
+    /** Krátký popisek pod nadpisem třetí dlaždice. */
+    thirdHint?: string
+    /** Odstavec ve třetí dlaždici. */
+    thirdLead?: string
+    /** Ikona v hlavičce třetí dlaždice. */
+    thirdIcon?: string
     /** Poznámka pod dlaždicemi (na střed). */
     note?: string
   }>(),
@@ -33,6 +47,11 @@ withDefaults(
     manualHint: 'Bez DOVíka, krok po kroku.',
     manualLead: '',
     manualCta: 'Začít ručně',
+    thirdTitle: '',
+    thirdBadge: '',
+    thirdHint: '',
+    thirdLead: '',
+    thirdIcon: 'ticket',
     note: '',
   },
 )
@@ -46,7 +65,7 @@ defineEmits<{ manual: [] }>()
       <p v-if="subtitle" class="mt-1.5 text-[14px] text-steel-500">{{ subtitle }}</p>
     </div>
 
-    <div class="grid items-stretch gap-4 sm:grid-cols-2">
+    <div class="grid items-stretch gap-4" :class="$slots.third ? 'lg:grid-cols-3 sm:grid-cols-2' : 'sm:grid-cols-2'">
       <!-- Dlaždice A: Zrychleně s DOVíkem -->
       <div class="flex flex-col overflow-hidden rounded-2xl border-2 border-brand-300 bg-gradient-to-br from-brand-50 to-white p-5 shadow-sm">
         <div class="mb-3 flex items-center gap-3">
@@ -62,6 +81,24 @@ defineEmits<{ manual: [] }>()
         <p v-if="dovikLead" class="mb-3 text-[13px] leading-relaxed text-graphite-700">{{ dovikLead }}</p>
         <div class="mt-auto">
           <slot name="dovik" />
+        </div>
+      </div>
+
+      <!-- Dlaždice C: Volitelná třetí možnost (např. z Colossea) -->
+      <div v-if="$slots.third" class="flex flex-col overflow-hidden rounded-2xl border-2 border-forge-300 bg-gradient-to-br from-forge-50 to-white p-5 shadow-sm">
+        <div class="mb-3 flex items-center gap-3">
+          <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white text-forge-600 shadow-sm ring-1 ring-forge-100"><Icon :name="thirdIcon" :size="22" /></span>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="font-display text-[16px] font-700 text-graphite-900">{{ thirdTitle }}</h3>
+              <span v-if="thirdBadge" class="rounded bg-white px-1.5 py-0.5 font-mono text-[10px] text-forge-600">{{ thirdBadge }}</span>
+            </div>
+            <p v-if="thirdHint" class="text-[12.5px] text-steel-500">{{ thirdHint }}</p>
+          </div>
+        </div>
+        <p v-if="thirdLead" class="mb-3 text-[13px] leading-relaxed text-graphite-700">{{ thirdLead }}</p>
+        <div class="mt-auto">
+          <slot name="third" />
         </div>
       </div>
 

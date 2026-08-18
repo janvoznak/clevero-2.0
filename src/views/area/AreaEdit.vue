@@ -15,6 +15,8 @@ import GalleryField from '@/components/admin/GalleryField.vue'
 import LangBar from '@/components/admin/LangBar.vue'
 import MlFieldHeader from '@/components/admin/MlFieldHeader.vue'
 import HelpTip from '@/components/ui/HelpTip.vue'
+import VenueSilhouette from '@/components/ui/VenueSilhouette.vue'
+import { SILHOUETTE_OPTIONS } from '@/data/venueSilhouettes'
 import SlugField from '@/components/admin/SlugField.vue'
 import { useAutoSlug } from '@/utils/useAutoSlug'
 import { useMlTranslate } from '@/utils/useMlTranslate'
@@ -240,6 +242,34 @@ function onDuplicate() {
                       <AppSwitch v-model="form.accessible" label="Bezbariérový přístup" aria-label="Bezbariérový přístup" />
                       <span class="field-tag">area-accessible</span>
                     </div>
+                  </div>
+                </FormSection>
+
+                <!-- Silueta objektu (ikonka budovy) -->
+                <FormSection
+                  title="Silueta objektu"
+                  hint="Ikonka budovy — propisuje se do kalendáře a všude, kde se objekt vybírá (např. místo konání akce)."
+                  tag="area-silhouette"
+                >
+                  <div class="grid grid-cols-4 gap-2">
+                    <button
+                      v-for="opt in SILHOUETTE_OPTIONS"
+                      :key="opt.key"
+                      type="button"
+                      :title="opt.label"
+                      :aria-label="opt.label"
+                      :aria-pressed="form.silhouette === opt.key"
+                      class="flex flex-col items-center justify-center gap-1.5 rounded-lg border py-2.5 outline-none transition-colors"
+                      :class="
+                        form.silhouette === opt.key
+                          ? 'border-brand-500 bg-brand-50 ring-1 ring-brand-500'
+                          : 'border-steel-200 bg-white hover:border-brand-300 hover:bg-brand-50/40'
+                      "
+                      @click="form.silhouette = opt.key"
+                    >
+                      <VenueSilhouette :venue-id="opt.key" :color="form.color || '#64748b'" :size="30" />
+                      <span class="w-full truncate px-1 text-center text-[10.5px] leading-tight text-steel-500">{{ opt.label }}</span>
+                    </button>
                   </div>
                 </FormSection>
 

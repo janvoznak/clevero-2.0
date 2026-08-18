@@ -40,17 +40,36 @@ export interface ColosseumEvent {
   name: string
   /** Termín akce z Colossea (datum, případně čas) — pro našeptávač. */
   when: string
+  /* --- Data, která Colosseum posílá přes API a použijí se k předvyplnění nové akce --- */
+  /** Podnadpis / claim akce. */
+  subtitle?: string
+  /** Perex / krátké shrnutí. */
+  summary?: string
+  /** Vstupné (text, např. „od 390 Kč"). */
+  price?: string
+  /** Termín OD (ISO YYYY-MM-DD). */
+  from?: string
+  /** Termín DO (ISO YYYY-MM-DD). */
+  to?: string
+  /** Čas začátku (HH:MM). */
+  time?: string
+  /** Čas konce (HH:MM). */
+  timeTo?: string
+  /** Kapacita akce (počet míst). */
+  capacity?: number
+  /** Aktuálně volných míst. */
+  freeSpots?: number
 }
 export const COLOSSEUM_EVENTS: ColosseumEvent[] = [
-  { id: 'COL-EV-9001', name: 'Ostrava v plamenech 2026', when: '1. 8. 2026 · 18:00' },
-  { id: 'COL-EV-9002', name: 'Letní koncert v Gongu', when: '7. 8. 2026 · 19:30' },
-  { id: 'COL-EV-9003', name: 'HIP HOP ŽIJE OSTRAVA', when: '28.–29. 8. 2026' },
-  { id: 'COL-EV-9004', name: 'Festival AFROSTRAVA', when: '14.–15. 8. 2026' },
-  { id: 'COL-EV-9005', name: 'Závody na lezecké stěně', when: '15. 8. 2026 · 10:00' },
-  { id: 'COL-EV-9006', name: 'David Macháč: Soukromé ráje (výstava)', when: '19. 3. – 27. 9. 2026' },
-  { id: 'COL-EV-9007', name: 'Krištof Kintera: Neuropolis (výstava)', when: '1. 5. – 31. 12. 2026' },
-  { id: 'COL-EV-9008', name: 'Adventní koncert v Gongu', when: '13. 12. 2026 · 18:00' },
-  { id: 'COL-EV-9009', name: 'Silvestrovský ohňostroj', when: '31. 12. 2026 · 23:30' },
+  { id: 'COL-EV-9001', name: 'Ostrava v plamenech 2026', when: '1. 8. 2026 · 18:00', subtitle: 'Velkolepá ohňová show nad Dolní oblastí', summary: 'Tradiční letní podívaná plná ohně, hudby a světel v areálu Dolní oblasti Vítkovice.', price: 'od 390 Kč', from: '2026-08-01', to: '2026-08-01', time: '18:00', timeTo: '22:00', capacity: 5000, freeSpots: 1240 },
+  { id: 'COL-EV-9002', name: 'Letní koncert v Gongu', when: '7. 8. 2026 · 19:30', subtitle: 'Open-air koncert pod kupolí Gongu', summary: 'Letní hudební večer v jedinečné akustice multifunkční auly Gong.', price: 'od 590 Kč', from: '2026-08-07', to: '2026-08-07', time: '19:30', timeTo: '22:00', capacity: 1500, freeSpots: 320 },
+  { id: 'COL-EV-9003', name: 'HIP HOP ŽIJE OSTRAVA', when: '28.–29. 8. 2026', subtitle: 'Dvoudenní festival městské kultury', summary: 'Dva dny beatů, tance a graffiti napříč areálem Dolní oblasti.', price: 'od 890 Kč', from: '2026-08-28', to: '2026-08-29', capacity: 8000, freeSpots: 2600 },
+  { id: 'COL-EV-9004', name: 'Festival AFROSTRAVA', when: '14.–15. 8. 2026', subtitle: 'Rytmy Afriky v srdci Ostravy', summary: 'Hudba, tanec, gastro a workshopy oslavující africkou kulturu.', price: 'Vstup zdarma', from: '2026-08-14', to: '2026-08-15', capacity: 3000, freeSpots: 3000 },
+  { id: 'COL-EV-9005', name: 'Závody na lezecké stěně', when: '15. 8. 2026 · 10:00', subtitle: 'Regionální přebor v lezení na obtížnost', summary: 'Závodní den pro všechny výkonnostní kategorie na venkovní lezecké stěně.', price: 'od 150 Kč', from: '2026-08-15', to: '2026-08-15', time: '10:00', timeTo: '17:00', capacity: 200, freeSpots: 44 },
+  { id: 'COL-EV-9006', name: 'David Macháč: Soukromé ráje (výstava)', when: '19. 3. – 27. 9. 2026', subtitle: 'Komentovaná výstava fotografií', summary: 'Autorská výstava mapující intimní krajiny a zákoutí každodennosti.', price: 'od 120 Kč', from: '2026-03-19', to: '2026-09-27' },
+  { id: 'COL-EV-9007', name: 'Krištof Kintera: Neuropolis (výstava)', when: '1. 5. – 31. 12. 2026', subtitle: 'Velká autorská výstava', summary: 'Rozsáhlá instalace propojující město, energii a lidský mozek.', price: 'od 180 Kč', from: '2026-05-01', to: '2026-12-31' },
+  { id: 'COL-EV-9008', name: 'Adventní koncert v Gongu', when: '13. 12. 2026 · 18:00', subtitle: 'Adventní podvečer s hudbou', summary: 'Sváteční koncert v adventním čase pod kupolí Gongu.', price: 'od 490 Kč', from: '2026-12-13', to: '2026-12-13', time: '18:00', timeTo: '20:00', capacity: 1500, freeSpots: 210 },
+  { id: 'COL-EV-9009', name: 'Silvestrovský ohňostroj', when: '31. 12. 2026 · 23:30', subtitle: 'Přivítejte nový rok pod širým nebem', summary: 'Novoroční ohňostroj nad industriální siluetou Dolní oblasti.', price: 'Vstup zdarma', from: '2026-12-31', to: '2026-12-31', time: '23:30', timeTo: '00:15', capacity: 10000, freeSpots: 7800 },
 ]
 export function colosseumEvent(id: string): ColosseumEvent | undefined {
   return COLOSSEUM_EVENTS.find((e) => e.id === id.trim())
@@ -129,6 +148,10 @@ export interface DovEvent {
   /** Napojení na akci v Colosseu (hlavní způsob prodeje vstupenek přes Colosseum).
       Dostupnost termínů i košík táhne tato akce z Colossea. '' = nenapojeno. */
   colosseumEventId?: string
+  /** Kapacita akce (počet míst) — typicky přebráno z napojené akce v Colosseu. */
+  capacity?: number
+  /** Aktuálně volných míst — typicky přebráno z napojené akce v Colosseu. */
+  freeSpots?: number
   /** Připojené fotogalerie (ID z modulu Galerie) — např. „fotky z minulého ročníku". */
   galleryIds: string[]
   /** Fotky nahrané přímo k akci (mimo připojené galerie). */
