@@ -171,7 +171,7 @@ function fmtRange(e: DovEvent): string {
             <div class="relative flex shrink-0 items-center gap-2.5 border-r border-steel-200 py-2.5 pl-4 pr-3" :style="{ width: labelW + 'px' }">
               <span class="absolute left-0 top-0 h-full w-[3px]" :style="{ backgroundColor: row.color }" />
               <VenueSilhouette :venue-id="row.silhouette" :color="row.color" :size="compact ? 20 : 24" class="shrink-0" />
-              <span class="truncate text-[12.5px] font-600 text-graphite-800">{{ row.label }}</span>
+              <span class="break-words text-[12.5px] font-600 leading-tight text-graphite-800">{{ row.label }}</span>
             </div>
             <!-- Dráhy s pruhy -->
             <div class="relative flex-1" :style="{ height: row.lanes * laneH + 6 + 'px' }">

@@ -12,6 +12,7 @@ import AppSelect from '@/components/ui/AppSelect.vue'
 import ClearFiltersButton from '@/components/ui/ClearFiltersButton.vue'
 import TagChip from '@/components/ui/TagChip.vue'
 import RowActionsMenu from '@/components/admin/RowActionsMenu.vue'
+import UserAvatar from '@/components/admin/UserAvatar.vue'
 import {
   MOCK_PROGRAMS, SCHOOL_LEVELS, GRADES, FOCUS_AREAS,
   levelColor, focusColor, tagColor,
@@ -28,10 +29,6 @@ function lps(row: Program, code: LangCode) {
   return langPublishState(code, filledLangsOf(row.title), row.publishedLangs)
 }
 
-/** Iniciály autora pro avatar (stejně jako v Aktualitách). */
-function initials(name: string): string {
-  return name.split(/\s+/).filter(Boolean).map((w) => w[0] ?? '').slice(0, 2).join('').toUpperCase()
-}
 
 /* ---------- Filtry ---------- */
 const filterLevel = ref('all')
@@ -238,7 +235,7 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
             </td>
             <td class="px-2 py-3 align-middle">
               <div class="flex items-center gap-2">
-                <span class="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-steel-100 text-[10.5px] font-700 text-steel-600">{{ initials(p.author) }}</span>
+                <UserAvatar :name="p.author" :size="28" />
                 <span class="text-[13px] text-graphite-700">{{ p.author }}</span>
               </div>
             </td>

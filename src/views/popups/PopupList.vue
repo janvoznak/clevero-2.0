@@ -57,7 +57,7 @@ const statusOptions = [
 ]
 const langOptions = [
   { value: 'all', label: 'Všechny mutace' },
-  ...LANGS.map((l) => ({ value: l.code, label: `${l.flag} ${l.label}` })),
+  ...LANGS.map((l) => ({ value: l.code, label: l.label })),
 ]
 /** Diakritiku-nezávislé porovnání (např. „muzeum" najde „múzeum"). */
 function norm(s: string): string {

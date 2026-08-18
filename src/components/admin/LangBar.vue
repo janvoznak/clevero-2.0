@@ -6,6 +6,7 @@
  */
 import { TabsRoot, TabsList, TabsTrigger } from 'reka-ui'
 import Icon from '@/components/ui/Icon.vue'
+import LangFlag from '@/components/admin/LangFlag.vue'
 import { LANGS, SOURCE_LANG } from '@/data/types'
 import type { LangCode } from '@/data/types'
 
@@ -60,7 +61,7 @@ const DOT: Record<'live' | 'ready' | 'empty', { cls: string; title: string }> = 
           class="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[12.5px] font-600 outline-none transition-colors"
           :class="model === l.code ? 'text-graphite-900' : 'text-steel-500 hover:text-graphite-800'"
         >
-          <span>{{ l.flag }}</span>
+          <LangFlag :lang="l.code" :size="13" />
           {{ l.code.toUpperCase() }}
           <span
             class="h-1.5 w-1.5 rounded-full"
