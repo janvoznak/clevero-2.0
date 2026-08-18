@@ -25,6 +25,7 @@ import AppSelect from '@/components/ui/AppSelect.vue'
 import ClearFiltersButton from '@/components/ui/ClearFiltersButton.vue'
 import TagChip from '@/components/ui/TagChip.vue'
 import RowActionsMenu from '@/components/admin/RowActionsMenu.vue'
+import UserAvatar from '@/components/admin/UserAvatar.vue'
 import { MOCK_NEWS, publishState, tagColor, categoryColor } from '@/data/mockNews'
 import { langPublishState, LANG_PUBLISH_META, filledLangsOf } from '@/utils/langPublish'
 import { LANGS } from '@/data/types'
@@ -140,14 +141,6 @@ function fmtTime(dt: string | null): string {
   return new Date(dt).toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })
 }
 
-function initials(name: string): string {
-  return name
-    .split(' ')
-    .map((w) => w[0] ?? '')
-    .slice(0, 2)
-    .join('')
-    .toUpperCase()
-}
 
 /** Stav publikace jedné mutace v řádku výpisu (sdílený helper). */
 function lps(n: NewsItem, code: LangCode) {
@@ -361,9 +354,7 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
             </td>
             <td class="px-2 py-3 align-middle">
               <div class="flex items-center gap-2">
-                <span class="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-steel-100 text-[10.5px] font-700 text-steel-600">
-                  {{ initials(n.author) }}
-                </span>
+                <UserAvatar :name="n.author" :size="28" />
                 <span class="text-[13px] text-graphite-700">{{ n.author }}</span>
               </div>
             </td>

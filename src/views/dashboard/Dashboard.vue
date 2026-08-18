@@ -3,6 +3,7 @@ import { computed, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import UserAvatar from '@/components/admin/UserAvatar.vue'
 import { QUICK_CREATE } from '@/data/quickCreate'
 import {
   VISITS_SPARK,
@@ -79,18 +80,6 @@ function healthBar(s: number): string {
 }
 function healthText(s: number): string {
   return s < 50 ? 'text-danger-600' : s < 80 ? 'text-amber-600' : 'text-forge-600'
-}
-
-/** Iniciály uživatele pro avatar v aktivitě. */
-function initials(name: string): string {
-  const clean = name.replace(/^Systém.*/i, 'S')
-  return clean
-    .split(/[\s·]+/)
-    .filter(Boolean)
-    .map((w) => w[0] ?? '')
-    .slice(0, 2)
-    .join('')
-    .toUpperCase()
 }
 
 /* ============================================================
@@ -508,7 +497,7 @@ function onWidgetDragEnd() {
               </span>
             </span>
             <span class="flex min-w-0 items-center gap-2">
-              <span class="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-steel-200 text-[9px] font-700 text-steel-600">{{ initials(r.user) }}</span>
+              <UserAvatar :name="r.user" :size="24" />
               <span class="truncate text-[12.5px] text-graphite-700">{{ r.user }}</span>
             </span>
             <span class="font-mono text-[11.5px] text-steel-400">{{ r.date }}</span>

@@ -15,6 +15,8 @@ import { ref } from 'vue'
 import Icon from '@/components/ui/Icon.vue'
 import AppSwitch from '@/components/ui/AppSwitch.vue'
 import FormSection from '@/components/admin/FormSection.vue'
+import LangFlag from '@/components/admin/LangFlag.vue'
+import UserAvatar from '@/components/admin/UserAvatar.vue'
 import type { LangCode } from '@/data/types'
 
 type Status = 'draft' | 'published' | 'scheduled'
@@ -67,16 +69,6 @@ const STATES: { value: Status; label: string }[] = [
   { value: 'scheduled', label: 'Naplánováno' },
 ]
 const status = ref<Status>(props.initialStatus ?? (props.published ? 'published' : 'draft'))
-
-function initials(name: string): string {
-  return name
-    .split(/[\s·]+/)
-    .filter(Boolean)
-    .map((w) => w[0] ?? '')
-    .slice(0, 2)
-    .join('')
-    .toUpperCase()
-}
 </script>
 
 <template>
@@ -142,7 +134,7 @@ function initials(name: string): string {
             class="flex items-center justify-between gap-2 rounded-md bg-white px-2.5 py-1.5"
           >
             <span class="flex items-center gap-2 text-[12.5px]">
-              <span>{{ l.flag }}</span>
+              <LangFlag :lang="l.code" :size="13" />
               <span class="font-600 text-graphite-800">{{ l.code.toUpperCase() }}</span>
               <span class="inline-flex items-center gap-1 text-[11px] text-steel-500">
                 <span class="h-1.5 w-1.5 rounded-full" :class="LANG_STATE_META[l.state].dot" />
@@ -182,7 +174,7 @@ function initials(name: string): string {
       <div class="flex items-center justify-between gap-2 border-t border-steel-100 pt-2.5">
         <dt class="flex items-center gap-1.5 text-steel-500"><Icon name="user" :size="13" class="text-steel-400" /> Upravil(a)</dt>
         <dd class="flex items-center gap-1.5">
-          <span class="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-steel-200 text-[8.5px] font-700 text-steel-600">{{ initials(updatedBy) }}</span>
+          <UserAvatar :name="updatedBy" :size="20" />
           <span class="text-[12.5px] text-graphite-700">{{ updatedBy }}</span>
         </dd>
       </div>

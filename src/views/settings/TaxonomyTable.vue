@@ -1,6 +1,7 @@
 <script setup lang="ts">
 /** Tabulka pojmů taxonomie — vícejazyčné názvy + barva. Sdílená pro štítky i kategorie. */
 import Icon from '@/components/ui/Icon.vue'
+import LangFlag from '@/components/admin/LangFlag.vue'
 import { LANGS, SOURCE_LANG } from '@/data/types'
 import type { TaxonomyTerm } from '@/data/mockTaxonomy'
 
@@ -25,7 +26,7 @@ function missing(term: TaxonomyTerm): number {
               class="px-2 py-2 font-600"
             >
               <span class="inline-flex items-center gap-1.5">
-                <span>{{ l.flag }}</span> {{ l.code.toUpperCase() }}
+                <LangFlag :lang="l.code" :size="13" /> {{ l.code.toUpperCase() }}
                 <span v-if="l.code === SOURCE_LANG" class="normal-case text-[10px] text-steel-400">(zdroj)</span>
               </span>
             </th>

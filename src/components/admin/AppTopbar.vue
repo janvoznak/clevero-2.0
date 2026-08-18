@@ -14,6 +14,7 @@ import {
   TooltipContent,
 } from 'reka-ui'
 import Icon from '@/components/ui/Icon.vue'
+import UserAvatar from '@/components/admin/UserAvatar.vue'
 </script>
 
 <template>
@@ -64,10 +65,7 @@ import Icon from '@/components/ui/Icon.vue'
           <button
             class="flex items-center gap-2.5 rounded-lg py-1 pl-1 pr-2.5 outline-none transition-colors hover:bg-steel-100 data-[state=open]:bg-steel-100"
           >
-            <span
-              class="grid h-8 w-8 place-items-center rounded-full bg-graphite-800 font-display text-[13px] font-700 text-white"
-              >JV</span
-            >
+            <UserAvatar name="Jan Voznak" :size="32" />
             <div class="hidden text-left leading-tight sm:block">
               <div class="text-[13px] font-600 text-graphite-900">Jan Voznak</div>
               <div class="font-mono text-[10px] text-steel-500">Administrátor</div>
@@ -82,7 +80,7 @@ import Icon from '@/components/ui/Icon.vue'
             class="z-50 min-w-56 rounded-xl border border-steel-200 bg-white p-1.5 shadow-2xl"
           >
             <DropdownMenuLabel class="flex items-center gap-2.5 px-2.5 py-2">
-              <span class="grid h-9 w-9 place-items-center rounded-full bg-graphite-800 font-display text-[13px] font-700 text-white">JV</span>
+              <UserAvatar name="Jan Voznak" :size="36" />
               <span class="leading-tight">
                 <span class="block text-[13px] font-600 text-graphite-900">Jan Voznak</span>
                 <span class="block font-mono text-[10.5px] text-steel-500">jan.voznak@poski.com</span>
