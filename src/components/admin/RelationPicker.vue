@@ -40,6 +40,9 @@ const props = withDefaults(
     createRouteName?: string
     /** Popisek tlačítka pro založení nové položky. */
     createLabel?: string
+    /** ID, která se vzájemně vylučují se všemi ostatními — výběr takové položky
+        zruší ostatní a naopak (např. „Celý areál" vs. jednotlivé objekty). */
+    exclusiveIds?: string[]
   }>(),
   {
     addLabel: 'Přidat',
@@ -75,7 +78,18 @@ function isSelected(id: string) {
   return model.value.includes(id)
 }
 function toggle(id: string) {
-  model.value = isSelected(id) ? model.value.filter((x) => x !== id) : [...model.value, id]
+  if (isSelected(id)) {
+    model.value = model.value.filter((x) => x !== id)
+    return
+  }
+  const exclusive = props.exclusiveIds ?? []
+  if (exclusive.includes(id)) {
+    // Výběr výhradní položky → jen ona.
+    model.value = [id]
+  } else {
+    // Výběr běžné položky → odeber případné výhradní položky.
+    model.value = [...model.value.filter((x) => !exclusive.includes(x)), id]
+  }
 }
 function remove(id: string) {
   model.value = model.value.filter((x) => x !== id)

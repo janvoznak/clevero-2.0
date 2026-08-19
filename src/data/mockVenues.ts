@@ -397,6 +397,21 @@ export const PLACE_OPTIONS = MOCK_VENUES.map((v) => ({ value: v.id, label: v.tit
 /** Položky míst pro multi-výběr (RelationPicker) — s barvou a siluetou objektu. */
 export const PLACE_ITEMS = MOCK_VENUES.map((v) => ({ id: v.id, label: v.title.cs, color: v.color, silhouette: v.silhouette, silhouetteSvg: v.silhouetteSvg }))
 
+/** Sentinel pro „celý areál DOV" ve výběru místa u akce (nemá vlastní budovu —
+    mapuje se na DovEvent.wholeArea). */
+export const AREA_ALL_ID = 'area:all'
+/** Speciální položka „Celý areál DOV" do výběru místa u akce (nad jednotlivými objekty). */
+export const AREA_ALL_ITEM = {
+  id: AREA_ALL_ID,
+  label: 'Celý areál DOV',
+  color: areaPlace('v-areal')?.color ?? '#64748b',
+  silhouette: 'areal',
+  silhouetteSvg: areaPlace('v-areal')?.silhouetteSvg,
+}
+/** Položky pro výběr místa u AKCE: nahoře „Celý areál", pak jednotlivé objekty
+    (bez pseudo-objektu „Areál", který nahrazuje příznak wholeArea). */
+export const EVENT_PLACE_ITEMS = [AREA_ALL_ITEM, ...PLACE_ITEMS.filter((i) => i.id !== 'v-areal')]
+
 /** Výchozí místo pro nové akce (celý areál). */
 export const DEFAULT_PLACE_ID = 'v-areal'
 

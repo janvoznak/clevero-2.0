@@ -41,7 +41,7 @@ import {
   type DovEvent,
 } from '@/data/mockEvents'
 import ColosseumEventPicker from '@/components/admin/ColosseumEventPicker.vue'
-import { PLACE_ITEMS, DEFAULT_PLACE_ID, areaPlace } from '@/data/mockVenues'
+import { EVENT_PLACE_ITEMS, AREA_ALL_ID, areaPlace } from '@/data/mockVenues'
 
 const props = defineProps<{ id?: string }>()
 const router = useRouter()
@@ -81,7 +81,8 @@ function clone(): DovEvent {
     duration: '',
     performers: '',
     tags: [],
-    areaIds: [DEFAULT_PLACE_ID],
+    wholeArea: true,
+    areaIds: [],
     tourIds: [],
     colosseumEventId: '',
     galleryIds: [],
@@ -122,10 +123,26 @@ function onToggleLang(code: LangCode) {
 }
 
 const typeOptions = EVENT_TYPES.map((t) => ({ value: t, label: t }))
-/** Místo konání = objekty v Areálu (může jich být víc; v kalendáři se akce
-    zobrazí v řádku každého objektu). Barva pro propagaci = první objekt. */
-const placeItems = PLACE_ITEMS
-const place = computed(() => areaPlace(form.areaIds[0]))
+/** Místo konání = celý areál (wholeArea) NEBO konkrétní objekty (areaIds).
+    Picker pracuje se sentinelem „Celý areál" (AREA_ALL_ID), který se vzájemně
+    vylučuje s jednotlivými objekty. */
+const placeItems = EVENT_PLACE_ITEMS
+const placeModel = computed<string[]>({
+  get: () => (form.wholeArea ? [AREA_ALL_ID] : form.areaIds),
+  set: (ids) => {
+    if (ids.includes(AREA_ALL_ID)) {
+      form.wholeArea = true
+      form.areaIds = []
+    } else {
+      form.wholeArea = false
+      form.areaIds = ids
+    }
+  },
+})
+const place = computed(() => (form.wholeArea ? undefined : areaPlace(form.areaIds[0])))
+/** Popisek/barva místa pro propagaci a náhled (celý areál vs. první objekt). */
+const placeLabel = computed(() => (form.wholeArea ? 'Celý areál DOV' : (place.value?.title.cs ?? '')))
+const placeColor = computed(() => (form.wholeArea ? (areaPlace('v-areal')?.color ?? '#64748b') : place.value?.color))
 
 /* Termín pro propagaci (FB banner/text). */
 function fmtPromoD(iso: string): string {
@@ -151,7 +168,7 @@ const sections = [
   { value: 'basic', label: 'Základní informace', icon: 'page' },
   { value: 'content', label: 'Obsah', icon: 'text' },
   { value: 'when', label: 'Termín a místo', icon: 'calendar' },
-  { value: 'tickets', label: 'Vstupenky a detaily', icon: 'ticket' },
+  { value: 'tickets', label: 'Vstupenky', icon: 'ticket' },
   { value: 'gallery', label: 'Galerie', icon: 'gallery' },
   { value: 'promo', label: 'Propagace', icon: 'share' },
 ]
@@ -182,7 +199,8 @@ function aiImport() {
     form.summary[SOURCE_LANG] = d.summary
     form.description[SOURCE_LANG] = d.description
     form.type = d.type
-    if (d.areaIds.length) form.areaIds = d.areaIds
+    form.wholeArea = d.wholeArea
+    form.areaIds = d.wholeArea ? [] : d.areaIds
     form.from = d.from
     form.to = d.to
     form.time = d.time
@@ -346,12 +364,21 @@ function onDuplicate() {
                   />
                 </div>
 
-                <div>
-                  <label class="mb-1.5 flex items-center justify-between">
-                    <span class="text-[13px] font-600 text-graphite-800">Typ akce</span>
-                    <span class="field-tag">event-type</span>
-                  </label>
-                  <AppSelect v-model="form.type" :options="typeOptions" />
+                <div class="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label class="mb-1.5 flex items-center justify-between">
+                      <span class="text-[13px] font-600 text-graphite-800">Typ akce</span>
+                      <span class="field-tag">event-type</span>
+                    </label>
+                    <AppSelect v-model="form.type" :options="typeOptions" />
+                  </div>
+                  <div>
+                    <label class="mb-1.5 flex items-center justify-between">
+                      <span class="text-[13px] font-600 text-graphite-800">Věkové omezení</span>
+                      <span class="field-tag">event-age_limit</span>
+                    </label>
+                    <AppSelect v-model="ageLimitModel" :options="ageLimitOptions" placeholder="Bez omezení" />
+                  </div>
                 </div>
 
                 <div>
@@ -375,13 +402,14 @@ function onDuplicate() {
                   title="Místo konání"
                   icon="map"
                   tag="event-area_id"
-                  hint="Místa = objekty v Areálu. Akce se zobrazí v kalendáři v řádku každého objektu (v jeho barvě) a na webu v detailu každého z nich. Můžeš vybrat víc objektů."
+                  hint="Vyber Celý areál DOV (akce napříč areálem — v kalendáři zvláštní pruh nahoře), nebo konkrétní objekty (akce se zobrazí v řádku každého). Obojí naráz nejde."
                 >
                   <RelationPicker
-                    v-model="form.areaIds"
+                    v-model="placeModel"
                     :items="placeItems"
+                    :exclusive-ids="[AREA_ALL_ID]"
                     add-label="Přidat objekt"
-                    empty-label="Zatím žádný objekt — akce se nezařadí do kalendáře."
+                    empty-label="Zatím nevybráno — vyber Celý areál nebo konkrétní objekt."
                     search-placeholder="Hledat objekt v areálu…"
                     icon="home"
                     item-route-name="area-edit"
@@ -427,25 +455,8 @@ function onDuplicate() {
                 </FormSection>
               </TabsContent>
 
-              <!-- Sekce: Vstupenky a detaily -->
+              <!-- Sekce: Vstupenky -->
               <TabsContent value="tickets" class="space-y-4 outline-none">
-                <div class="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <label class="mb-1.5 flex items-center justify-between">
-                      <span class="text-[13px] font-600 text-graphite-800">Vstupné</span>
-                      <span class="field-tag">event-price</span>
-                    </label>
-                    <input v-model="form.price" type="text" placeholder="např. Vstup zdarma / od 390 Kč" class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13.5px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
-                  </div>
-                  <div>
-                    <label class="mb-1.5 flex items-center justify-between">
-                      <span class="text-[13px] font-600 text-graphite-800">Věkové omezení</span>
-                      <span class="field-tag">event-age_limit</span>
-                    </label>
-                    <AppSelect v-model="ageLimitModel" :options="ageLimitOptions" placeholder="Bez omezení" />
-                  </div>
-                </div>
-
                 <!-- Prodej vstupenek — přepínač určuje, co se u akce vyplňuje -->
                 <div class="rounded-md border border-steel-200 p-4">
                   <div class="mb-2.5 flex items-center justify-between">
@@ -511,6 +522,15 @@ function onDuplicate() {
                       <span>Web jen odkáže ven — prodej i vstupenky řeší pořadatel / nájemce (žádné napojení na Colosseum).</span>
                     </p>
                   </div>
+
+                  <!-- Prodej na místě / Zdarma → cena se zadává ručně (jinak ji řeší Colosseum/externí) -->
+                  <div v-else-if="form.ticketMode === 'onsite' || form.ticketMode === 'free'" class="mt-3 border-t border-steel-100 pt-3">
+                    <label class="mb-1.5 flex items-center justify-between">
+                      <span class="text-[12.5px] font-600 text-graphite-800">Vstupné</span>
+                      <span class="field-tag">event-price</span>
+                    </label>
+                    <input v-model="form.price" type="text" placeholder="např. Vstup zdarma / od 390 Kč" class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13.5px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
+                  </div>
                 </div>
               </TabsContent>
 
@@ -553,8 +573,8 @@ function onDuplicate() {
                   :title="form.title.cs"
                   :subtitle="form.subtitle.cs"
                   :date-label="promoDate"
-                  :place-label="place?.title.cs ?? ''"
-                  :place-color="place?.color"
+                  :place-label="placeLabel"
+                  :place-color="placeColor"
                   :image="form.image"
                   :summary="form.summary.cs"
                   :type-label="form.type"

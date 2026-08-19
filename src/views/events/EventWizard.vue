@@ -20,7 +20,7 @@ import {
   eventTagColor, aiImportFromUrl, COLOSSEUM_EVENTS, colosseumEvent, type DovEvent,
 } from '@/data/mockEvents'
 import ColosseumEventPicker from '@/components/admin/ColosseumEventPicker.vue'
-import { PLACE_ITEMS, DEFAULT_PLACE_ID, areaPlace } from '@/data/mockVenues'
+import { EVENT_PLACE_ITEMS, AREA_ALL_ID, areaPlace } from '@/data/mockVenues'
 
 const router = useRouter()
 const typeOptions = EVENT_TYPES.map((t) => ({ value: t, label: t }))
@@ -38,7 +38,7 @@ const form = reactive<DovEvent>({
   id: 'nová', title: empty(), subtitle: empty(), type: 'Festival',
   from: '', to: '', time: '', timeTo: '', summary: empty(), description: empty(),
   image: '', price: '', ticketUrl: '', ticketMode: 'external', ageLimit: '', duration: '', performers: '',
-  tags: [], areaIds: [DEFAULT_PLACE_ID], tourIds: [], colosseumEventId: '', galleryIds: [], gallery: [], published: false,
+  tags: [], wholeArea: true, areaIds: [], tourIds: [], colosseumEventId: '', galleryIds: [], gallery: [], published: false,
   contentBlocks: defaultContentBlocks(),
 })
 
@@ -74,7 +74,8 @@ function aiImport() {
     form.summary[SOURCE_LANG] = d.summary
     form.description[SOURCE_LANG] = d.description
     form.type = d.type
-    if (d.areaIds.length) form.areaIds = d.areaIds
+    form.wholeArea = d.wholeArea
+    form.areaIds = d.wholeArea ? [] : d.areaIds
     form.from = d.from
     form.to = d.to
     form.time = d.time
@@ -167,8 +168,26 @@ function finish() {
   window.setTimeout(() => router.push({ name: 'events-list' }), 700)
 }
 
+/* ---------- Místo: celý areál (wholeArea) vs. konkrétní objekty (areaIds) ---------- */
+const placeModel = computed<string[]>({
+  get: () => (form.wholeArea ? [AREA_ALL_ID] : form.areaIds),
+  set: (ids) => {
+    if (ids.includes(AREA_ALL_ID)) {
+      form.wholeArea = true
+      form.areaIds = []
+    } else {
+      form.wholeArea = false
+      form.areaIds = ids
+    }
+  },
+})
+/** Vybráno místo? (celý areál nebo aspoň jeden objekt) */
+const hasPlace = computed(() => form.wholeArea || form.areaIds.length > 0)
+
 /* ---------- Odvozené pro náhled ---------- */
-const place = computed(() => areaPlace(form.areaIds[0]))
+const place = computed(() => (form.wholeArea ? undefined : areaPlace(form.areaIds[0])))
+const placeLabel = computed(() => (form.wholeArea ? 'Celý areál DOV' : (place.value?.title.cs ?? '')))
+const placeColor = computed(() => (form.wholeArea ? (areaPlace('v-areal')?.color ?? '#64748b') : (place.value?.color ?? '#64748b')))
 const status = computed(() => (form.from && form.to ? eventStatus(form) : null))
 function fmtD(iso: string): string {
   return iso ? new Date(iso + 'T00:00:00').toLocaleDateString('cs-CZ', { day: 'numeric', month: 'numeric', year: 'numeric' }) : ''
@@ -187,11 +206,11 @@ const timeRange = computed(() => {
 const checklist = computed(() => [
   { label: 'Název akce', ok: !!form.title.cs.trim() },
   { label: 'Termín (OD)', ok: !!form.from },
-  { label: 'Místo konání', ok: form.areaIds.length > 0 },
+  { label: 'Místo konání', ok: hasPlace.value },
   { label: 'Perex', ok: !!form.summary.cs.trim() },
   { label: 'Plakát', ok: !!form.image },
 ])
-const canFinish = computed(() => !!form.title.cs.trim() && !!form.from && form.areaIds.length > 0)
+const canFinish = computed(() => !!form.title.cs.trim() && !!form.from && hasPlace.value)
 </script>
 
 <template>
@@ -306,9 +325,15 @@ const canFinish = computed(() => !!form.title.cs.trim() && !!form.from && form.a
             <label class="mb-1.5 flex items-center justify-between"><span class="text-[13px] font-600 text-graphite-800">Podnadpis</span><span class="field-tag">event-subtitle · CS</span></label>
             <input v-model="form.subtitle.cs" type="text" placeholder="Claim nebo doplňující řádek" class="h-10 w-full rounded-md border border-steel-200 px-3.5 text-[13.5px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
           </div>
-          <div>
-            <label class="mb-1.5 block text-[13px] font-600 text-graphite-800">Typ akce</label>
-            <AppSelect v-model="form.type" :options="typeOptions" />
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label class="mb-1.5 block text-[13px] font-600 text-graphite-800">Typ akce</label>
+              <AppSelect v-model="form.type" :options="typeOptions" />
+            </div>
+            <div>
+              <label class="mb-1.5 block text-[13px] font-600 text-graphite-800">Věkové omezení</label>
+              <AppSelect v-model="ageLimitModel" :options="ageLimitOptions" placeholder="Bez omezení" />
+            </div>
           </div>
           <div>
             <label class="mb-1.5 flex items-center justify-between"><span class="text-[13px] font-600 text-graphite-800">Perex</span><span class="field-tag">event-summary · CS</span></label>
@@ -327,12 +352,13 @@ const canFinish = computed(() => !!form.title.cs.trim() && !!form.from && form.a
         <p class="mt-1 text-[13px] text-steel-500">Kdy a kde se akce koná. Podle objektu se barevně zařadí do kalendáře.</p>
         <div class="mt-5 space-y-4">
           <div>
-            <label class="mb-1.5 flex items-center justify-between"><span class="text-[13px] font-600 text-graphite-800">Místo konání (objekty v areálu) <span class="text-brand-500">*</span></span><span class="field-tag">event-area_id</span></label>
+            <label class="mb-1.5 flex items-center justify-between"><span class="text-[13px] font-600 text-graphite-800">Místo konání — celý areál nebo objekty <span class="text-brand-500">*</span></span><span class="field-tag">event-area_id</span></label>
             <RelationPicker
-              v-model="form.areaIds"
-              :items="PLACE_ITEMS"
+              v-model="placeModel"
+              :items="EVENT_PLACE_ITEMS"
+              :exclusive-ids="[AREA_ALL_ID]"
               add-label="Přidat objekt"
-              empty-label="Zatím žádný objekt — akce se nezařadí do kalendáře."
+              empty-label="Zatím nevybráno — vyber Celý areál nebo konkrétní objekt."
               search-placeholder="Hledat objekt v areálu…"
               icon="home"
               item-route-name="area-edit"
@@ -374,20 +400,10 @@ const canFinish = computed(() => !!form.title.cs.trim() && !!form.from && form.a
       <!-- KROK 4: Detaily -->
       <div v-else-if="step === 3" class="space-y-5">
         <div class="rounded-2xl border border-steel-200 bg-white p-6">
-          <h2 class="font-display text-[17px] font-700 text-graphite-900">Vstupenky a detaily</h2>
-          <div class="mt-5 grid gap-4 sm:grid-cols-2">
-            <div>
-              <label class="mb-1.5 block text-[13px] font-600 text-graphite-800">Vstupné</label>
-              <input v-model="form.price" type="text" placeholder="např. Vstup zdarma / od 390 Kč" class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13.5px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
-            </div>
-            <div>
-              <label class="mb-1.5 block text-[13px] font-600 text-graphite-800">Věkové omezení</label>
-              <AppSelect v-model="ageLimitModel" :options="ageLimitOptions" placeholder="Bez omezení" />
-            </div>
-            <div class="sm:col-span-2">
-              <label class="mb-1.5 block text-[13px] font-600 text-graphite-800">Účinkující / lektoři</label>
-              <input v-model="form.performers" type="text" placeholder="Jména oddělená čárkou" class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13.5px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
-            </div>
+          <h2 class="font-display text-[17px] font-700 text-graphite-900">Vstupenky</h2>
+          <div class="mt-5">
+            <label class="mb-1.5 block text-[13px] font-600 text-graphite-800">Účinkující / lektoři</label>
+            <input v-model="form.performers" type="text" placeholder="Jména oddělená čárkou" class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13.5px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
           </div>
 
           <!-- Prodej vstupenek — přepínač -->
@@ -435,6 +451,10 @@ const canFinish = computed(() => !!form.title.cs.trim() && !!form.from && form.a
                 <Icon name="link" :size="15" class="absolute left-3 top-1/2 -translate-y-1/2 text-steel-400" />
                 <input v-model="form.ticketUrl" type="text" placeholder="https://… (web pořadatele / nájemce)" class="h-10 w-full rounded-md border border-steel-200 pl-9 pr-3 text-[13.5px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
               </div>
+            </div>
+            <div v-else-if="form.ticketMode === 'onsite' || form.ticketMode === 'free'" class="mt-3">
+              <label class="mb-1.5 block text-[12.5px] font-600 text-graphite-800">Vstupné</label>
+              <input v-model="form.price" type="text" placeholder="např. Vstup zdarma / od 390 Kč" class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13.5px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
             </div>
           </div>
         </div>
@@ -487,7 +507,7 @@ const canFinish = computed(() => !!form.title.cs.trim() && !!form.from && form.a
           </div>
           <div class="p-6">
             <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12.5px] text-steel-500">
-              <span v-if="place" class="inline-flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full" :style="{ background: place.color }" /> {{ place.title.cs }}</span>
+              <span v-if="hasPlace" class="inline-flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full" :style="{ background: placeColor }" /> {{ placeLabel }}</span>
               <span v-if="dateRange" class="inline-flex items-center gap-1.5"><Icon name="calendar" :size="13" /> {{ dateRange }}</span>
               <span v-if="timeRange" class="inline-flex items-center gap-1.5"><Icon name="clock" :size="13" /> {{ timeRange }}</span>
             </div>
