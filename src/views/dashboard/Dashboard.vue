@@ -359,7 +359,7 @@ function onWidgetDragEnd() {
             <p class="truncate text-[13.5px] font-700 text-graphite-900">{{ o.v.title }}</p>
             <p class="text-[12px] leading-relaxed text-steel-500">
               <template v-if="o.kind === 'needs-close'">Probíhá akce „{{ o.eventTitle }}" — zavřete budovu pro veřejnost na webu.</template>
-              <template v-else>Akce „{{ o.eventTitle }}" skončila — budovu je potřeba znovu otevřít pro veřejnost.</template>
+              <template v-else>Aktuálně tu neprobíhá žádná akce — budovu je potřeba znovu otevřít pro veřejnost.</template>
             </p>
           </div>
           <AppButton variant="secondary" size="sm" @click="goVenue(o.v.id)">
