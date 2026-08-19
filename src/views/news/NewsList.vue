@@ -365,12 +365,12 @@ const rangeEnd = computed(() => Math.min(page.value * perPage, totalItems))
               <span v-else class="text-[11px] text-steel-400">Bez kategorií</span>
             </td>
             <td class="px-2 py-3 align-middle">
-              <div class="flex items-center gap-2 text-[13px] text-graphite-700">
-                <span class="tabular-nums">{{ fmt(n.dateFrom) }}</span>
+              <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[13px] text-graphite-700">
+                <span class="whitespace-nowrap tabular-nums">{{ fmt(n.dateFrom) }}</span>
                 <span class="text-steel-300">→</span>
-                <span class="tabular-nums" :class="!n.dateTo && 'text-steel-400'">{{ fmt(n.dateTo) }}</span>
+                <span class="whitespace-nowrap tabular-nums" :class="!n.dateTo && 'text-steel-400'">{{ fmt(n.dateTo) }}</span>
               </div>
-              <div v-if="n.dateFrom" class="mt-0.5 font-mono text-[10.5px] text-steel-400">
+              <div v-if="n.dateFrom" class="mt-0.5 whitespace-nowrap font-mono text-[10.5px] text-steel-400">
                 {{ fmtTime(n.dateFrom) }}<span v-if="n.dateTo"> – {{ fmtTime(n.dateTo) }}</span>
               </div>
             </td>

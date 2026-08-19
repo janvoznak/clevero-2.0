@@ -95,7 +95,6 @@ const nav: NavEntry[] = [
       { label: 'Pop-up', to: '/admin/popups/list', match: '/admin/popups' },
       { label: 'FAQ', to: '/admin/faq' },
       { label: 'Galerie', to: '/admin/galleries' },
-      { label: 'Slider', to: '/admin/slider' },
       { label: 'Navigace', to: '/admin/navigation' },
       { label: 'Kontakty', to: '/admin/contacts' },
       { label: 'Patička', to: '/admin/footer' },

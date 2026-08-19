@@ -5,14 +5,10 @@ import { TabsRoot, TabsList, TabsTrigger, TabsContent } from 'reka-ui'
 import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import DetailActions from '@/components/admin/DetailActions.vue'
-import AppSelect from '@/components/ui/AppSelect.vue'
-import AppSwitch from '@/components/ui/AppSwitch.vue'
-import FormSection from '@/components/admin/FormSection.vue'
 import PublishCard from '@/components/admin/PublishCard.vue'
 import ContentBuilder from '@/components/admin/ContentBuilder.vue'
 import GalleryField from '@/components/admin/GalleryField.vue'
 import AttachmentsManager from '@/components/admin/AttachmentsManager.vue'
-import OpeningHoursEditor from '@/components/admin/OpeningHoursEditor.vue'
 import PageFormBuilder from '@/components/admin/PageFormBuilder.vue'
 import SlugField from '@/components/admin/SlugField.vue'
 import { useAutoSlug } from '@/utils/useAutoSlug'
@@ -29,10 +25,6 @@ import { LANGS, defaultContentBlocks } from '@/data/types'
 import type { LangCode, ML } from '@/data/types'
 import {
   MOCK_PAGES,
-  PAGE_SECTIONS,
-  slugPath,
-  parentOptions,
-  hasChildren,
   defaultOpeningHours,
   FORM_TEMPLATES,
 } from '@/data/mockPages'
@@ -102,27 +94,10 @@ const activeSection = ref('basic')
 const sections = [
   { value: 'basic', label: 'Základní informace', icon: 'page' },
   { value: 'content', label: 'Obsah', icon: 'text' },
-  { value: 'settings', label: 'Nastavení a vztahy', icon: 'settings' },
   { value: 'forms', label: 'Formuláře', icon: 'reference' },
   { value: 'media', label: 'Galerie', icon: 'gallery' },
   { value: 'attachments', label: 'Přílohy', icon: 'paperclip' },
 ]
-
-/* ---------- Proxy pro typované selecty ---------- */
-const parentValue = computed({
-  get: () => form.parentId ?? '',
-  set: (v: string) => (form.parentId = v || null),
-})
-/** Nadřazená stránka jen z téže sekce, do které stránka patří. */
-const parentOpts = computed(() =>
-  parentOptions(
-    MOCK_PAGES.filter((p) => p.section === form.section),
-    props.id,
-  ),
-)
-const sectionLabel = computed(() => PAGE_SECTIONS.find((s) => s.key === form.section)?.label ?? '')
-/** Stránka s podstránkami je nadřazená → musí zůstat na kořenové úrovni. */
-const isParent = computed(() => isEdit.value && hasChildren(MOCK_PAGES, form.id))
 
 function langFilled(code: LangCode): boolean {
   return form.title[code].trim().length > 0
@@ -138,14 +113,6 @@ const publishRows = computed(() => publishLangRows(form.title, form.publishedLan
 function onToggleLang(code: LangCode) {
   form.publishedLangs = toggleLangPublish(form.publishedLangs, filledLangsOf(form.title), code)
 }
-
-/* Hierarchická URL náhled (dle rodiče z mock stromu + vlastní slug). */
-const urlPreview = computed(() => {
-  const slug = form.slug[activeLang.value] || form.slug.cs || 'slug'
-  if (!form.parentId) return '/' + slug
-  const parent = MOCK_PAGES.find((p) => p.id === form.parentId)
-  return parent ? `${slugPath(MOCK_PAGES, parent)}/${slug}` : '/' + slug
-})
 
 /* ---------- URL slug (prototyp) — automaticky z nadpisu, dokud ho klient
    neupraví ručně. Titulek a meta se odvozují automaticky. ---------- */
@@ -285,57 +252,6 @@ const { translating, toast, translateLang, translateField } = useMlTranslate(for
               <!-- TAB: Obsah (jednotný ContentBuilder — nic dalšího pod ním) -->
               <TabsContent value="content" class="outline-none">
                 <ContentBuilder v-model="form.contentBlocks" />
-              </TabsContent>
-
-              <!-- TAB: Nastavení a vztahy (dříve v pravém railu) -->
-              <TabsContent value="settings" class="space-y-5 outline-none">
-                <!-- Zařazení -->
-                <FormSection title="Zařazení" icon="layers" tag="page-entityParentId">
-                  <div>
-                    <label class="mb-1.5 flex items-center justify-between">
-                      <span class="text-[13px] font-600 text-graphite-800">Nadřazená stránka</span>
-                      <span class="field-tag">page-entityParentId</span>
-                    </label>
-                    <AppSelect v-model="parentValue" :options="parentOpts" :disabled="isParent" />
-                    <p v-if="isParent" class="mt-1 flex items-start gap-1.5 text-[11px] leading-relaxed text-steel-500">
-                      <Icon name="reference" :size="13" class="mt-0.5 shrink-0 text-steel-400" />
-                      Tato stránka má podstránky, je tedy nadřazená a zůstává na kořenové úrovni.
-                    </p>
-                    <p v-else class="mt-1 text-[11px] text-steel-400">
-                      Na výběr jsou pouze stránky ze sekce <span class="font-600 text-steel-500">{{ sectionLabel }}</span>.
-                    </p>
-                  </div>
-                  <p class="mt-3 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
-                    <Icon name="grip" :size="13" class="mt-0.5 shrink-0 text-steel-400" />
-                    Pořadí a zanoření stránky nastavíte přetažením přímo v seznamu stránek.
-                  </p>
-                </FormSection>
-
-                <!-- Adresa a náhled (publikaci řeší pravý panel) -->
-                <FormSection title="Adresa a náhled" icon="globe" tag="page-url">
-                  <div class="space-y-3">
-                    <div class="rounded-md border border-steel-200 px-3 py-2.5">
-                      <p class="mb-0.5 field-tag">Adresa na webu</p>
-                      <p class="break-all font-mono text-[11.5px] text-graphite-700">/cs{{ urlPreview }}</p>
-                    </div>
-                  </div>
-                </FormSection>
-
-                <!-- Otevírací doba -->
-                <FormSection title="Otevírací doba" icon="clock" tag="page-openingHours">
-                  <div class="rounded-md border border-steel-200 bg-steel-50/60 px-3 py-2.5">
-                    <AppSwitch
-                      v-model="form.showOpeningHours"
-                      label="Zobrazit na webu"
-                      hint="Některé stránky otevírací dobu nepotřebují — vypnutím se skryje."
-                      aria-label="Zobrazit otevírací dobu na webu"
-                    />
-                  </div>
-                  <template v-if="form.showOpeningHours">
-                    <p class="mb-3 mt-4 text-[12.5px] text-steel-500">Nastavte hodiny pro jednotlivé dny, nebo den označte jako zavřený.</p>
-                    <OpeningHoursEditor v-model="form.openingHours" />
-                  </template>
-                </FormSection>
               </TabsContent>
 
               <!-- TAB 2: Formuláře -->
