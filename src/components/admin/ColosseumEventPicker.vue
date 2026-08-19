@@ -64,8 +64,8 @@ function onOpen(v: boolean) {
       </button>
     </div>
 
-    <!-- Našeptávač -->
-    <PopoverRoot :open="open" @update:open="onOpen">
+    <!-- Našeptávač — jen dokud není akce vybraná (změna = zrušit křížkem a vybrat znovu) -->
+    <PopoverRoot v-if="!selected" :open="open" @update:open="onOpen">
       <PopoverTrigger as-child>
         <button
           type="button"
@@ -73,7 +73,7 @@ function onOpen(v: boolean) {
         >
           <span class="inline-flex items-center gap-2">
             <Icon name="search" :size="15" class="text-steel-400" />
-            {{ selected ? 'Změnit akci z Colossea…' : 'Vyhledat akci z Colossea…' }}
+            Vyhledat akci z Colossea…
           </span>
           <Icon name="chevronDown" :size="14" class="text-steel-400" />
         </button>

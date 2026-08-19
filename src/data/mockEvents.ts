@@ -226,13 +226,11 @@ const RAW_EVENTS: RawEvent[] = [
 ]
 
 /** Odvození způsobu prodeje z dostupných polí, když RawEvent `ticketMode` neurčuje.
-    Placená akce (má cenu, ne „zdarma") bez online prodeje = prodej na místě, ne „zdarma". */
+    Colosseum má přednost u akcí na něj napojených; jinak je výchozí režim
+    „Externí odkaz" (default napříč akcemi). */
 function deriveTicketMode(r: RawEvent): TicketMode {
   if (r.colosseumEventId || r.tourIds?.length) return 'colosseum'
-  if (r.ticketUrl) return 'external'
-  const price = (r.price ?? '').trim()
-  if (price && !/zdarma/i.test(price)) return 'onsite'
-  return 'free'
+  return 'external'
 }
 
 /** Normalizace na plný model (ML — vyplněná zatím jen čeština). */
