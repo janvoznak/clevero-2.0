@@ -14,7 +14,7 @@ import Icon from '@/components/ui/Icon.vue'
 import VenueSilhouette from '@/components/ui/VenueSilhouette.vue'
 import { parseISO, sameDay } from '@/utils/calendar'
 import { EVENTS_NOW, eventStatus, EVENT_STATE_META, type DovEvent } from '@/data/mockEvents'
-import { MOCK_VENUES } from '@/data/mockVenues'
+import { MOCK_VENUES, areaPlace } from '@/data/mockVenues'
 
 const props = withDefaults(
   defineProps<{
@@ -81,44 +81,61 @@ interface Row {
   silhouetteSvg?: string
   segs: Seg[]
   lanes: number
+  /** Pinned řádek „Celý areál" (nad jednotlivými objekty). */
+  whole?: boolean
+}
+
+/** Pruhy + počet drah z množiny akcí (řazení + skládání do drah). */
+function buildSegs(evs: DovEvent[]): { segs: Seg[]; lanes: number } {
+  const { startMs, days, endMs } = win.value
+  const segs: Seg[] = evs
+    .map((e) => {
+      const fromMs = parseISO(e.from).getTime()
+      const toMs = parseISO(e.to).getTime() + (DAY - 1)
+      const s = Math.max(0, (fromMs - startMs) / DAY)
+      const en = Math.min(days, (toMs - startMs) / DAY)
+      return {
+        item: e,
+        leftPct: (s / days) * 100,
+        widthPct: Math.max(100 / days, ((en - s) / days) * 100),
+        lane: 0,
+        continuesLeft: fromMs < startMs,
+        continuesRight: toMs > endMs,
+        status: eventStatus(e, now),
+        _en: en,
+        _s: s,
+      }
+    })
+    .sort((a, b) => a._s - b._s || b._en - a._en)
+  // Dráhy jen podle časového překryvu (sousední akce v jiných dnech = stejná dráha).
+  const laneEnd: number[] = []
+  for (const seg of segs) {
+    let lane = 0
+    while (lane < laneEnd.length && laneEnd[lane] > seg._s + 0.001) lane++
+    seg.lane = lane
+    laneEnd[lane] = seg._en
+  }
+  return { segs, lanes: Math.max(1, laneEnd.length) }
 }
 
 const rows = computed<Row[]>(() => {
-  const { startMs, days, endMs } = win.value
+  const { startMs, endMs } = win.value
+  const inWindow = (e: DovEvent) => parseISO(e.to).getTime() >= startMs && parseISO(e.from).getTime() <= endMs
   const out: Row[] = []
+  // Pinned řádek „Celý areál" nahoře — akce napříč celým areálem (wholeArea).
+  const areal = areaPlace('v-areal')
+  const wholeEvs = props.events.filter((e) => e.wholeArea && inWindow(e))
+  if (wholeEvs.length) {
+    const { segs, lanes } = buildSegs(wholeEvs)
+    out.push({ id: 'area:all', label: 'Celý areál DOV', color: areal?.color ?? '#64748b', silhouette: 'areal', silhouetteSvg: areal?.silhouetteSvg, segs, lanes, whole: true })
+  }
+  // Řádky jednotlivých objektů (bez pseudo-objektu „Areál" — ten nahrazuje pruh nahoře).
   for (const v of MOCK_VENUES) {
-    const evs = props.events.filter(
-      (e) => e.areaIds.includes(v.id) && parseISO(e.to).getTime() >= startMs && parseISO(e.from).getTime() <= endMs,
-    )
+    if (v.id === 'v-areal') continue
+    const evs = props.events.filter((e) => e.areaIds.includes(v.id) && inWindow(e))
     if (!evs.length) continue
-    const segs: Seg[] = evs
-      .map((e) => {
-        const fromMs = parseISO(e.from).getTime()
-        const toMs = parseISO(e.to).getTime() + (DAY - 1)
-        const s = Math.max(0, (fromMs - startMs) / DAY)
-        const en = Math.min(days, (toMs - startMs) / DAY)
-        return {
-          item: e,
-          leftPct: (s / days) * 100,
-          widthPct: Math.max(100 / days, ((en - s) / days) * 100),
-          lane: 0,
-          continuesLeft: fromMs < startMs,
-          continuesRight: toMs > endMs,
-          status: eventStatus(e, now),
-          _en: en,
-          _s: s,
-        }
-      })
-      .sort((a, b) => a._s - b._s || b._en - a._en)
-    // Dráhy jen podle časového překryvu (sousední akce v jiných dnech = stejná dráha).
-    const laneEnd: number[] = []
-    for (const seg of segs) {
-      let lane = 0
-      while (lane < laneEnd.length && laneEnd[lane] > seg._s + 0.001) lane++
-      seg.lane = lane
-      laneEnd[lane] = seg._en
-    }
-    out.push({ id: v.id, label: v.title.cs, color: v.color, silhouette: v.silhouette, silhouetteSvg: v.silhouetteSvg, segs, lanes: Math.max(1, laneEnd.length) })
+    const { segs, lanes } = buildSegs(evs)
+    out.push({ id: v.id, label: v.title.cs, color: v.color, silhouette: v.silhouette, silhouetteSvg: v.silhouetteSvg, segs, lanes })
   }
   return out
 })
@@ -166,13 +183,13 @@ function fmtRange(e: DovEvent): string {
             </div>
           </div>
 
-          <!-- Řádky objektů -->
-          <div v-for="row in rows" :key="row.id" class="flex border-b border-steel-100 last:border-0">
+          <!-- Řádky objektů (nahoře pinned „Celý areál", pak jednotlivé objekty) -->
+          <div v-for="row in rows" :key="row.id" class="flex last:border-0" :class="row.whole ? 'border-b-2 border-steel-200 bg-steel-50/60' : 'border-b border-steel-100'">
             <!-- Popisek objektu -->
             <div class="relative flex shrink-0 items-center gap-2.5 border-r border-steel-200 py-2.5 pl-4 pr-3" :style="{ width: labelW + 'px' }">
-              <span class="absolute left-0 top-0 h-full w-[3px]" :style="{ backgroundColor: row.color }" />
+              <span class="absolute left-0 top-0 h-full" :class="row.whole ? 'w-[4px]' : 'w-[3px]'" :style="{ backgroundColor: row.color }" />
               <VenueSilhouette :venue-id="row.silhouette" :svg="row.silhouetteSvg" :color="row.color" :size="compact ? 20 : 24" class="shrink-0" />
-              <span class="break-words text-[12.5px] font-600 leading-tight text-graphite-800">{{ row.label }}</span>
+              <span class="break-words text-[12.5px] leading-tight text-graphite-800" :class="row.whole ? 'font-700' : 'font-600'">{{ row.label }}</span>
             </div>
             <!-- Dráhy s pruhy -->
             <div class="relative flex-1" :style="{ height: row.lanes * laneH + 6 + 'px' }">

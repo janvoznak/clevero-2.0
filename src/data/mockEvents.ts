@@ -137,8 +137,13 @@ export interface DovEvent {
   performers: string
   /** Štítky akce. */
   tags: string[]
+  /** Akce se koná v celém areálu DOV (ne v konkrétních budovách). Vylučuje se
+      s `areaIds` — když je true, `areaIds` je prázdné a v kalendáři se akce
+      zobrazí ve zvláštním pruhu „Celý areál" nad budovami. */
+  wholeArea?: boolean
   /** Vazba na objekty v Areálu (IDs objektů). Akce se může konat na více
-      místech — v kalendáři se zobrazí v řádku každého z nich. */
+      místech — v kalendáři se zobrazí v řádku každého z nich. Prázdné, pokud
+      `wholeArea` = true. */
   areaIds: string[]
   /** Akce obsazuje budovu — po dobu konání je uzavřena pro širší veřejnost
       (soukromá akce, konference, festival). Řídí upozornění „Provoz budov". */
@@ -187,6 +192,8 @@ type RawEvent = {
   performers?: string
   tags?: string[]
   areaIds?: string[]
+  /** Akce v celém areálu DOV (vylučuje se s areaIds). */
+  wholeArea?: boolean
   /** Akce obsazuje budovu (uzavře ji pro veřejnost po dobu konání). */
   closesVenue?: boolean
   tourIds?: string[]
@@ -204,7 +211,7 @@ function ml(cs: string): ML {
 const RAW_EVENTS: RawEvent[] = [
   // — Dlouhodobé výstavy —
   { id: 'e-neuropolis', title: 'Krištof Kintera: Neuropolis', areaIds: ['v-galerie'], type: 'Výstava', from: '2026-05-01', to: '2026-12-31', summary: 'Rozsáhlá výstava propojující umění a technologie v Galerii Gong.', image: imageFor(3), published: true, price: '250 Kč', ageLimit: '', tags: ['Industriál'] },
-  { id: 'e-machac', title: 'David Macháč: Soukromé ráje', areaIds: ['v-areal'], type: 'Výstava', from: '2026-03-19', to: '2026-09-27', summary: 'Site-specific instalace v prostorách areálu.', image: imageFor(11), published: true },
+  { id: 'e-machac', title: 'David Macháč: Soukromé ráje', wholeArea: true, type: 'Výstava', from: '2026-03-19', to: '2026-09-27', summary: 'Site-specific instalace v prostorách areálu.', image: imageFor(11), published: true },
   { id: 'e-salon', title: 'Letní salón 2', areaIds: ['v-galerie'], type: 'Výstava', from: '2026-06-23', to: '2026-08-28', summary: 'Přehlídka současné regionální tvorby.', image: imageFor(6), published: true },
 
   // — Vzdělávací programy (konec července) —
@@ -214,12 +221,12 @@ const RAW_EVENTS: RawEvent[] = [
   { id: 'e-scienceshow', areaIds: ['v-u6'], title: 'Science Show: Živly', type: 'Vzdělávací program', from: '2026-07-29', to: '2026-07-29', time: '15:00', timeTo: '16:00', summary: 'Interaktivní představení o přírodních živlech.', image: imageFor(13), published: true, price: 'Vstup zdarma', duration: '60 min', tags: ['Rodinné', 'Zdarma'] },
   // — Srpen: festivaly a akce (více budov v jeden den) —
   // CZ živě, EN má vyplněný název, ale drží se skryté (připraveno) → amber stav.
-  { id: 'e-plameny', title: 'Ostrava v plamenech 2026', titleLangs: { en: 'Ostrava Ablaze 2026' }, publishedLangs: ['cs'], areaIds: ['v-areal', 'v-bolt', 'v-gong'], type: 'Festival', from: '2026-08-01', to: '2026-08-01', time: '18:00', summary: 'Ohnivá show a doprovodný program v celém areálu.', image: imageFor(1), published: true, price: 'od 290 Kč', tags: ['Venku', 'Hudba'], galleryIds: ['g-akce'] },
-  { id: 'e-race', title: 'Race the Streets', areaIds: ['v-areal', 'v-hopjump'], type: 'Sportovní akce', from: '2026-08-07', to: '2026-08-08', summary: 'Městské závody napříč industriálním areálem.', image: imageFor(2), published: true, tags: ['Sport', 'Venku'] },
+  { id: 'e-plameny', title: 'Ostrava v plamenech 2026', titleLangs: { en: 'Ostrava Ablaze 2026' }, publishedLangs: ['cs'], wholeArea: true, type: 'Festival', from: '2026-08-01', to: '2026-08-01', time: '18:00', summary: 'Ohnivá show a doprovodný program v celém areálu.', image: imageFor(1), published: true, price: 'od 290 Kč', tags: ['Venku', 'Hudba'], galleryIds: ['g-akce'] },
+  { id: 'e-race', title: 'Race the Streets', wholeArea: true, type: 'Sportovní akce', from: '2026-08-07', to: '2026-08-08', summary: 'Městské závody napříč industriálním areálem.', image: imageFor(2), published: true, tags: ['Sport', 'Venku'] },
   { id: 'e-gongkoncert', colosseumEventId: 'COL-EV-9002', areaIds: ['v-gong'], title: 'Letní koncert v Gongu', type: 'Koncert', from: '2026-08-07', to: '2026-08-07', time: '19:30', summary: 'Večerní koncert v multifunkční aule.', image: imageFor(8), published: true, price: 'od 490 Kč', tags: ['Hudba'] },
   { id: 'e-hopjump', title: 'HopJump večerní jam', areaIds: ['v-hopjump'], type: 'Sportovní akce', from: '2026-08-08', to: '2026-08-08', time: '20:00', summary: 'Trampolínový večer pro všechny věkové kategorie.', image: imageFor(9), published: true, tags: ['Sport', 'Rodinné'] },
   // CZ + EN živě, DE má vyplněný název, ale zatím skryté (připraveno) → amber stav.
-  { id: 'e-afrostrava', colosseumEventId: 'COL-EV-9004', title: 'Festival AFROSTRAVA', titleLangs: { en: 'AFROSTRAVA Festival', de: 'AFROSTRAVA Festival' }, publishedLangs: ['cs', 'en'], areaIds: ['v-areal'], type: 'Festival', from: '2026-08-14', to: '2026-08-15', summary: 'Přehlídka africké hudby, tance a gastronomie.', image: imageFor(7), published: true, tags: ['Hudba', 'Venku', 'Občerstvení'] },
+  { id: 'e-afrostrava', colosseumEventId: 'COL-EV-9004', title: 'Festival AFROSTRAVA', titleLangs: { en: 'AFROSTRAVA Festival', de: 'AFROSTRAVA Festival' }, publishedLangs: ['cs', 'en'], wholeArea: true, type: 'Festival', from: '2026-08-14', to: '2026-08-15', summary: 'Přehlídka africké hudby, tance a gastronomie.', image: imageFor(7), published: true, tags: ['Hudba', 'Venku', 'Občerstvení'] },
   { id: 'e-lezecka', colosseumEventId: 'COL-EV-9005', title: 'Závody na lezecké stěně', areaIds: ['v-lezecka'], type: 'Sportovní akce', from: '2026-08-15', to: '2026-08-15', time: '10:00', summary: 'Regionální kolo v lezení na obtížnost.', image: imageFor(10), published: true, tags: ['Sport'] },
   { id: 'e-hiphop', colosseumEventId: 'COL-EV-9003', areaIds: ['v-gong'], title: 'HIP HOP ŽIJE OSTRAVA', type: 'Koncert', from: '2026-08-28', to: '2026-08-29', summary: 'Dvoudenní hip-hopový festival v Gongu.', image: imageFor(12), published: true, tags: ['Hudba'] },
   { id: 'e-konference', title: 'Konference Industry 5.0', areaIds: ['v-u6'], type: 'Konference', from: '2026-08-20', to: '2026-08-21', summary: 'Odborná konference o budoucnosti průmyslu.', image: imageFor(14), published: false, tags: ['Pro školy'], closesVenue: true },
@@ -253,7 +260,8 @@ export const MOCK_EVENTS: DovEvent[] = RAW_EVENTS.map((r) => ({
   duration: r.duration ?? '',
   performers: r.performers ?? '',
   tags: r.tags ?? [],
-  areaIds: r.areaIds ?? [],
+  wholeArea: r.wholeArea ?? false,
+  areaIds: r.wholeArea ? [] : (r.areaIds ?? []),
   closesVenue: r.closesVenue ?? false,
   tourIds: r.tourIds ?? [],
   colosseumEventId: r.colosseumEventId ?? '',
@@ -313,6 +321,7 @@ export interface EventDraft {
   summary: string
   description: string
   type: string
+  wholeArea: boolean
   areaIds: string[]
   from: string
   to: string
@@ -343,7 +352,8 @@ export function aiImportFromUrl(url: string): EventDraft {
         '<p>Připraveny jsou kategorie pro jednotlivce i týmy, kratší dětská trasa a bohatý doprovodný program s občerstvením.</p>' +
         '<ul><li>Závod jednotlivců i štafet</li><li>Dětská trasa zdarma</li><li>Doprovodný program a food zóna</li></ul>',
       type: 'Sportovní akce',
-      areaIds: ['v-areal'],
+      wholeArea: true,
+      areaIds: [],
       from: '2026-08-07',
       to: '2026-08-08',
       time: '09:00',
@@ -368,6 +378,7 @@ export function aiImportFromUrl(url: string): EventDraft {
       description:
         '<p>Přední čeští komici rozezní halu Dolních Vítkovic. Připravte se na večer plný vtipu, improvizace a nečekaných situací.</p>',
       type: 'Stand-up',
+      wholeArea: false,
       areaIds: ['v-gong'],
       from: '2026-08-05',
       to: '2026-08-05',
@@ -391,7 +402,8 @@ export function aiImportFromUrl(url: string): EventDraft {
     summary: 'Přijďte zažít výjimečnou akci v industriálním areálu Dolních Vítkovic.',
     description: '<p>Podrobnosti programu doplníme. Sledujte web a rezervujte si vstupenky včas.</p>',
     type: 'Festival',
-    areaIds: ['v-areal'],
+    wholeArea: true,
+    areaIds: [],
     from: '',
     to: '',
     time: '',

@@ -19,6 +19,7 @@ import RowActionsMenu from '@/components/admin/RowActionsMenu.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import ClearFiltersButton from '@/components/ui/ClearFiltersButton.vue'
 import TagChip from '@/components/ui/TagChip.vue'
+import VenueSilhouette from '@/components/ui/VenueSilhouette.vue'
 import EventTimeline from '@/components/admin/calendar/EventTimeline.vue'
 import {
   MOCK_EVENTS,
@@ -28,7 +29,7 @@ import {
   EVENT_STATE_META,
   type DovEvent,
 } from '@/data/mockEvents'
-import { MOCK_VENUES, areaPlace } from '@/data/mockVenues'
+import { MOCK_VENUES, areaPlace, AREA_ALL_ITEM, AREA_ALL_ID } from '@/data/mockVenues'
 import { langPublishState, LANG_PUBLISH_META, filledLangsOf } from '@/utils/langPublish'
 import { LANGS } from '@/data/types'
 import type { LangCode } from '@/data/types'
@@ -45,13 +46,24 @@ const filterStatus = ref('all')
 /* Prototyp: smazané akce jen skryjeme (mock data nemutujeme). */
 const hiddenIds = ref<Set<string>>(new Set())
 
-const venueOptions = [{ value: 'all', label: 'Všechna místa' }, ...MOCK_VENUES.map((v) => ({ value: v.id, label: v.title.cs }))]
+const venueOptions = [
+  { value: 'all', label: 'Všechna místa' },
+  { value: AREA_ALL_ID, label: 'Celý areál DOV' },
+  ...MOCK_VENUES.filter((v) => v.id !== 'v-areal').map((v) => ({ value: v.id, label: v.title.cs })),
+]
 /** Popisek a barva místa (objektu v Areálu) pro výpis. */
 function placeLabel(id: string): string {
   return areaPlace(id)?.title.cs ?? '—'
 }
 function placeColor(id: string): string {
   return areaPlace(id)?.color ?? '#64748b'
+}
+/** Silueta místa (klíč vestavěného tvaru + vlastní SVG) pro výpis. */
+function placeSilhouette(id: string): string {
+  return areaPlace(id)?.silhouette ?? ''
+}
+function placeSilhouetteSvg(id: string): string {
+  return areaPlace(id)?.silhouetteSvg ?? ''
 }
 const typeOptions = [{ value: 'all', label: 'Všechny typy' }, ...EVENT_TYPES.map((t) => ({ value: t, label: t }))]
 const statusOptions = [
@@ -72,7 +84,9 @@ function clearFilters() {
 
 const visible = computed(() =>
   MOCK_EVENTS.filter((e) => {
-    const mV = filterVenue.value === 'all' || e.areaIds.includes(filterVenue.value)
+    const mV =
+      filterVenue.value === 'all' ||
+      (filterVenue.value === AREA_ALL_ID ? !!e.wholeArea : e.areaIds.includes(filterVenue.value))
     const mT = filterType.value === 'all' || e.type === filterType.value
     const mS = filterStatus.value === 'all' || eventStatus(e) === filterStatus.value
     return mV && mT && mS && !hiddenIds.value.has(e.id)
@@ -211,9 +225,18 @@ function confirmDelete() {
                   </button>
                 </td>
                 <td class="px-2 py-3 align-middle">
-                  <div class="flex flex-wrap items-center gap-1">
-                    <TagChip v-for="aid in e.areaIds" :key="aid" :label="placeLabel(aid)" :color="placeColor(aid)" />
-                    <span v-if="!e.areaIds.length" class="text-[12px] text-steel-400">—</span>
+                  <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <span v-if="e.wholeArea" class="inline-flex items-center gap-1.5">
+                      <VenueSilhouette :venue-id="AREA_ALL_ITEM.silhouette" :svg="AREA_ALL_ITEM.silhouetteSvg" :color="AREA_ALL_ITEM.color" :size="18" />
+                      <TagChip :label="AREA_ALL_ITEM.label" :color="AREA_ALL_ITEM.color" />
+                    </span>
+                    <template v-else>
+                      <span v-for="aid in e.areaIds" :key="aid" class="inline-flex items-center gap-1.5">
+                        <VenueSilhouette :venue-id="placeSilhouette(aid)" :svg="placeSilhouetteSvg(aid)" :color="placeColor(aid)" :size="18" />
+                        <TagChip :label="placeLabel(aid)" :color="placeColor(aid)" />
+                      </span>
+                      <span v-if="!e.areaIds.length" class="text-[12px] text-steel-400">—</span>
+                    </template>
                   </div>
                 </td>
                 <td class="px-2 py-3 align-middle">
