@@ -249,7 +249,7 @@ function onDuplicate() {
                         v-model="form.title[activeLang]"
                         type="text"
                         placeholder="Např. Malý svět techniky U6"
-                        class="h-11 w-full rounded-md border border-steel-200 px-3.5 text-[15px] font-500 text-graphite-900 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none"
+                        class="h-11 w-full rounded-md border border-steel-200 pl-3.5 pr-11 text-[15px] font-500 text-graphite-900 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none"
                       />
                     </div>
 
@@ -265,7 +265,7 @@ function onDuplicate() {
                         v-model="form.summary[activeLang]"
                         rows="3"
                         placeholder="Stručná charakteristika objektu do výpisu a náhledů"
-                        class="w-full resize-y rounded-md border border-steel-200 px-3.5 py-2.5 text-[14px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none"
+                        class="w-full resize-y rounded-md border border-steel-200 py-2.5 pl-3.5 pr-11 text-[14px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none"
                       />
                     </div>
 
