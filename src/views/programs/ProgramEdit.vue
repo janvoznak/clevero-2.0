@@ -223,9 +223,9 @@ function onDuplicate() {
                   <TagPicker v-model="form.focus" :options="FOCUS_AREAS" add-label="Přidat zaměření" empty-label="Zatím žádné zaměření." color-label="Barva zaměření" />
                 </div>
 
-                <!-- Rezervace (DOVIS) — dříve v pravém railu -->
+                <!-- Objednávka (Francesca) — dříve v pravém railu -->
                 <div class="rounded-md border border-steel-200 p-4">
-                  <p class="mb-3 flex items-center gap-2 text-[13px] font-600 text-graphite-800"><Icon name="externalLink" :size="15" class="text-steel-400" /> Rezervace (DOVIS)</p>
+                  <p class="mb-3 flex items-center gap-2 text-[13px] font-600 text-graphite-800"><Icon name="externalLink" :size="15" class="text-steel-400" /> Objednávka (Francesca)</p>
                   <div class="space-y-3">
                     <div>
                       <label class="mb-1.5 flex items-center justify-between">
@@ -234,7 +234,7 @@ function onDuplicate() {
                       </label>
                       <div class="relative">
                         <Icon name="link" :size="15" class="absolute left-3 top-1/2 -translate-y-1/2 text-steel-400" />
-                        <input v-model="form.reservationUrl" type="url" placeholder="https://vyuka.dolnivitkovice.cz/…" class="h-10 w-full rounded-md border border-steel-200 pl-9 pr-3 text-[13px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
+                        <input v-model="form.reservationUrl" type="url" placeholder="https://www.francesca.cz/objednavkovy-system/…" class="h-10 w-full rounded-md border border-steel-200 pl-9 pr-3 text-[13px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
                       </div>
                     </div>
                     <div>
@@ -243,7 +243,7 @@ function onDuplicate() {
                     </div>
                     <p class="flex items-start gap-1.5 rounded-md bg-steel-50 px-3 py-2 text-[11.5px] leading-relaxed text-steel-500">
                       <Icon name="integration" :size="13" class="mt-0.5 shrink-0 text-brand-500" />
-                      Odkaz se generuje v systému <span class="font-600 text-graphite-700">DOVIS</span> a vloží se sem. Na webu se u programu zobrazí jako tlačítko „{{ form.reservationLabel || 'Rezervace' }}".
+                      Prostý odkaz do objednávkového systému <span class="font-600 text-graphite-700">Francesca</span>, který sem u každého programu vložíte ručně. Na webu se u programu zobrazí jako tlačítko „{{ form.reservationLabel || 'Rezervace' }}".
                     </p>
                   </div>
                 </div>

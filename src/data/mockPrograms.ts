@@ -3,9 +3,11 @@ import { TAG_PALETTE } from './mockNews'
 
 /* ============================================================
    Modul „Vzdělávací programy" (entita `program`).
-   Katalog programů pro školy. Rezervace/objednávka běží v externím
-   systému DOVIS — v CMS se ukládá jen vygenerovaný URL odkaz
-   (u každého programu jiný), který se na webu zobrazí jako tlačítko.
+   Katalog programů pro školy. Objednávka běží v externím
+   systému Francesca (https://www.francesca.cz/objednavkovy-system/) —
+   v CMS se ukládá jen prostý URL odkaz, který klient u každého
+   programu ručně vyplní v Adminu; na webu se zobrazí jako tlačítko.
+   Žádné generování ani API — jen odkaz ven (viz §14g standardů).
    Stavy publikace zatím neřešíme.
    ============================================================ */
 
@@ -104,7 +106,7 @@ export interface Program {
   tags: string[]
   /** Popisek tlačítka rezervace (např. „Rezervace"). */
   reservationLabel: string
-  /** URL odkaz vygenerovaný v DOVIS — u každého programu jiný. */
+  /** Prostý URL odkaz do objednávkového systému Francesca — klient ho ručně vyplní u každého programu. */
   reservationUrl: string
   /** Stupeň školy. */
   categories: string[]
@@ -152,7 +154,7 @@ const RAW: RawProgram[] = [
     imageSeed: 4,
     date: '2025-08-04',
     tags: ['Novinka'],
-    reservationUrl: 'https://vyuka.dolnivitkovice.cz/rezervace/co-za-to-stoji',
+    reservationUrl: 'https://www.francesca.cz/objednavkovy-system/co-za-to-stoji',
     categories: ['Základní školy 1. stupeň', 'Základní školy 2. stupeň'],
     grades: ['2.tř.', '3.tř.', '4.tř.', '5.tř.'],
     focus: ['Finanční gramotnost'],
@@ -167,7 +169,7 @@ const RAW: RawProgram[] = [
     imageSeed: 7,
     date: '2023-02-07',
     tags: ['Novinka'],
-    reservationUrl: 'https://vyuka.dolnivitkovice.cz/rezervace/jeden-den-s-handicapem',
+    reservationUrl: 'https://www.francesca.cz/objednavkovy-system/jeden-den-s-handicapem',
     categories: ['Základní školy 1. stupeň', 'Základní školy 2. stupeň', 'Střední školy'],
     grades: ['5.tř.', '6.tř.', '7.tř.', '8.tř.', '9.tř.', 'SŠ'],
     focus: ['Člověk a jeho svět', 'Občanská výchova'],
@@ -181,7 +183,7 @@ const RAW: RawProgram[] = [
     imageSeed: 5,
     date: '2025-07-01',
     tags: ['Novinka', 'Sezónní'],
-    reservationUrl: 'https://vyuka.dolnivitkovice.cz/rezervace/od-podzimu-do-jara',
+    reservationUrl: 'https://www.francesca.cz/objednavkovy-system/od-podzimu-do-jara',
     categories: ['Základní školy 1. stupeň'],
     grades: ['1.tř.', '2.tř.', '3.tř.'],
     focus: ['Člověk a jeho svět', 'Environmentální výchova', 'Přírodověda'],
@@ -197,7 +199,7 @@ const RAW: RawProgram[] = [
     imageSeed: 13,
     date: '2025-08-04',
     tags: ['Novinka', 'Oblíbené'],
-    reservationUrl: 'https://vyuka.dolnivitkovice.cz/rezervace/a-i-deme-zavodit',
+    reservationUrl: 'https://www.francesca.cz/objednavkovy-system/a-i-deme-zavodit',
     categories: ['Základní školy 2. stupeň'],
     grades: ['6.tř.', '7.tř.', '8.tř.', '9.tř.'],
     focus: ['AI', 'Fyzika', 'IT/Robotika'],
@@ -212,7 +214,7 @@ const RAW: RawProgram[] = [
     imageSeed: 8,
     date: '2025-09-22',
     tags: ['Novinka'],
-    reservationUrl: 'https://vyuka.dolnivitkovice.cz/rezervace/geometrie-v-pohybu',
+    reservationUrl: 'https://www.francesca.cz/objednavkovy-system/geometrie-v-pohybu',
     categories: ['Základní školy 1. stupeň', 'Základní školy 2. stupeň'],
     grades: ['1.tř.', '2.tř.', '3.tř.', '4.tř.', '5.tř.', '6.tř.', '7.tř.', '8.tř.', '9.tř.'],
     focus: ['Člověk a příroda', 'Člověk a jeho svět', 'Geometrie', 'Matematika'],
@@ -226,7 +228,7 @@ const RAW: RawProgram[] = [
     imageSeed: 0,
     date: '2025-08-15',
     tags: ['Novinka'],
-    reservationUrl: 'https://vyuka.dolnivitkovice.cz/rezervace/robotovarna',
+    reservationUrl: 'https://www.francesca.cz/objednavkovy-system/robotovarna',
     categories: ['Základní školy 1. stupeň'],
     grades: ['1.tř.', '2.tř.', '3.tř.'],
     focus: ['Pracovní činnosti', 'Technická tvořivost'],

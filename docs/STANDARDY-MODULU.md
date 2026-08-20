@@ -429,3 +429,33 @@ Publikování je **per jazyková mutace**, sjednocené přes `src/utils/langPubl
 - **UI:** 3-stavová tečka v `LangBar` (`:published`), matice „Zobrazit jazyk na webu" v `PublishCard` (`:langs` + `@toggle-lang`), 3-stavové chipy ve výpisech (`LANG_PUBLISH_META`).
 - **Kde platí:** Aktuality, Události, Areál, Prohlídky (+ kategorie), Galerie (+ sekce), Programy, Stránky, Pop-up, FAQ.
 - **Výjimka — Produkty:** per-jazyk publikování nemají. Produkty se importují z Colossea (§14c), nemají `PublishCard` a publikace je řízená importem, ne ručním přepínačem mutací.
+
+### 14g. Vzdělávací programy → Francesca (odkaz ven, ne import)
+
+Modul **Vzdělávací programy** (`program`) se napojuje na externí objednávkový systém **Francesca** (`https://www.francesca.cz/objednavkovy-system/`), přes který si školy objednávají vzdělávací programy. Vazba je **opačná než Colosseum (§14c)**: nic se neimportuje ani nečte přes API — jde jen o **odkaz ven**, ideově stejný jako externí `event.ticketUrl` (§14b).
+
+| Data | Kam v CMS | Poznámka |
+|---|---|---|
+| Objednávkový odkaz programu | pole **`program.reservationUrl`** (jeden, jednojazyčný) | **Prostý URL** — žádné generování, žádné API. |
+
+- **Odkaz vyplňuje klient ručně** v Adminu **u každého programu zvlášť** (detail programu, sekce objednávky). Není generovaný žádným systémem — CMS ho jen uloží a na webu vykreslí jako tlačítko (popisek `program.reservationLabel`).
+- **Žádný import, žádná synchronizace, žádná zpětná vazba** — na rozdíl od Colossea sem nic neteče. Prázdný `reservationUrl` je legitimní stav (program bez objednávkového tlačítka).
+- Pozn.: objednávkový odkaz nemá nic společného s interním systémem **DOVIS** (viz §14h) — cílem je vždy Francesca a odkaz je ruční.
+
+### 14h. DOVIS — samostatně stojící interní systém (bez napojení)
+
+**DOVIS** je čistě **interní systém DOV**. Do mapy modulů patří proto jako **samostatně stojící ostrov** — stojí **mimo graf vazeb**, nemá žádnou hranu do žádného modulu:
+
+```
+   ┌──────────── nový web + Admin (CMS) ────────────┐
+   │  Areál ─ Kalendář akcí ─ Novinky ─ Prohlídky    │        ┌─────────────────────────┐
+   │  Galerie ─ Programy ─ Stránky ─ Pop-up ─ FAQ    │        │  DOVIS (interní DOV)    │
+   │        │                          │             │        │  dovis.dolnivitkovice.cz│
+   │   Colosseum (import)      Francesca (odkaz ven) │        │  — bez napojení —       │
+   └─────────────────────────────────────────────────┘        └─────────────────────────┘
+                                                                 ⟂ žádná vazba na web/CMS
+```
+
+- **Není a nebude propojen** s novým webem ani s Adminem — žádné API, žádný import, žádný odkaz, žádná sdílená data. Na rozdíl od Colossea (import, §14c) i Francescy (odkaz ven, §14g) sem/odsud **nic neteče**.
+- **Zachovává se pouze subdoména `dovis.dolnivitkovice.cz`** — musí zůstat funkční (DNS/hosting), ale s novým webem nijak neinteraguje. Je to jen věc, na kterou při migraci domény nesmíme zapomenout, ne integrace.
+- V jakékoli vizuální mapě modulů se DOVIS kreslí jako **izolovaný box bez hran**, vizuálně oddělený od bloku „web + CMS".
