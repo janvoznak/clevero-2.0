@@ -32,10 +32,20 @@ import ProductCategoriesList from './views/products/ProductCategoriesList.vue'
 import ProductCategoryDetail from './views/products/ProductCategoryDetail.vue'
 import TaxonomyManager from './views/settings/TaxonomyManager.vue'
 import Placeholder from './views/Placeholder.vue'
+import TicketPicker from './views/public/TicketPicker.vue'
+import CartPage from './views/public/CartPage.vue'
 
 const router = createRouter({
   history: createWebHistory(),
   routes: [
+    // Veřejný web (prototyp nákupní stránky vstupenek) — mimo AdminLayout.
+    { path: '/vstupenky', redirect: '/vstupenky/svet-techniky-a-maly-svet-u6' },
+    {
+      path: '/vstupenky/:id',
+      name: 'public-ticket-picker',
+      component: TicketPicker,
+    },
+    { path: '/kosik', name: 'public-cart', component: CartPage },
     {
       path: '/',
       component: AdminLayout,
