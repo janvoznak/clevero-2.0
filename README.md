@@ -23,7 +23,22 @@ npx vue-tsc -b       # jen typová kontrola
 | `src/views/news/` | Referenční implementace: seznam + editace Aktualit |
 | `src/components/ui/` | Univerzální prvky (`AppButton`, `AppSelect`, `Icon`) |
 | `src/components/admin/` | Bloky administrace (sidebar, topbar, galerie, přílohy…) |
-| `src/style.css` | Design tokeny (`@theme`) — jediný zdroj barev a fontů |
+| `src/style.css` | Design tokeny (`@theme`) — jediný zdroj barev a fontů (admin + veřejný web) |
+| `src/views/public/`, `src/components/public/` | **Veřejný web** — prototyp nákupu vstupenek (`/vstupenky/:id`, `/kosik`) |
+| `src/data/mockTicketing.ts` | Mock skladba vstupenek (v ostrém provozu z Colossea přes API) |
+| `src/data/mockCart.ts` | Sdílený stav košíku mezi výběrem a stránkou košíku |
+
+## Veřejný prototyp: nákup vstupenek
+Náhrada nákupního procesu Colossea (výběr vstupenek → košík). Běží mimo `AdminLayout`,
+v grafice nového webu dolnivitkovice.cz (tokeny `--color-dov-*`, Saira Condensed + Inter).
+
+| URL | Ukázka |
+|---|---|
+| `/vstupenky/svet-techniky-a-maly-svet-u6` | kombinovaná vstupenka, volitelné datum návštěvy |
+| `/vstupenky/maly-svet-techniky-u6` | dvě rodinná vstupná, vstupenka zdarma |
+| `/vstupenky/svet-techniky` | rodinné 2+2/3 a 1+2/3 |
+| `/vstupenky/farani-do-dolu` | pevný termín prohlídky + jazyk výkladu |
+| `/kosik` | krok 2 — košík, doručení, platba, údaje (předvyplněný ukázkovým obsahem) |
 
 ## Stav prací
 - ✅ **Aktuality** — kompletní (seznam + editace, jazykové mutace, galerie, SEO)
