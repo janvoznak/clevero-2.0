@@ -48,10 +48,12 @@ export interface TicketingItem {
   /** Objekt v areálu — do meta řádku. */
   venue: string
   /**
-   * `date` = vstupenka na volný termín (zákazník volí datum návštěvy),
-   * `slot` = pevný termín prohlídky přebraný z Colossea.
+   * `open` = NEDATOVANÁ vstupenka — neváže se na žádný den, platí 30 dnů
+   *   od nákupu a zákazník datum nikde nevybírá ani nevidí;
+   * `slot` = DATOVANÁ vstupenka na pevný termín prohlídky z Colossea,
+   *   ten se po nákupu nedá měnit.
    */
-  kind: 'date' | 'slot'
+  kind: 'open' | 'slot'
   /** Pevný termín (jen u `kind: 'slot'`). */
   slot?: { datetime: string; weekday: string; language: string }
   /** Krátká věta pod nadpisem. */
@@ -74,7 +76,7 @@ export const TICKETING_ITEMS: TicketingItem[] = [
     id: 'svet-techniky-a-maly-svet-u6',
     title: 'Svět techniky a Malý svět U6',
     venue: 'Velký svět techniky + Malý svět techniky U6',
-    kind: 'date',
+    kind: 'open',
     perex: 'Kombinovaná vstupenka do obou expozic — projdete je v jeden den, nebo kdykoli během 30 dnů.',
     info: [
       ...INFO_ETICKET,
@@ -107,7 +109,7 @@ export const TICKETING_ITEMS: TicketingItem[] = [
     id: 'maly-svet-techniky-u6',
     title: 'Malý svět techniky U6',
     venue: 'Malý svět techniky U6',
-    kind: 'date',
+    kind: 'open',
     perex: 'Expozice v bývalé plynojemové ústředně U6 — od parního stroje po vesmírné technologie.',
     info: [
       ...INFO_ETICKET,
@@ -153,7 +155,7 @@ export const TICKETING_ITEMS: TicketingItem[] = [
     id: 'svet-techniky',
     title: 'Svět techniky',
     venue: 'Velký svět techniky',
-    kind: 'date',
+    kind: 'open',
     perex: 'Čtyři interaktivní světy — Dětský svět, Svět vědy a objevů, Svět civilizace a Svět přírody.',
     info: [
       ...INFO_ETICKET,

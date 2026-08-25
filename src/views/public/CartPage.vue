@@ -200,16 +200,29 @@ const labelClass =
                 <template #items>
                   <div :class="itemsPanelClass">
                     <div v-for="group in cart.groups" :key="group.key" class="border border-dov-line">
-                      <!-- termín + odkaz na úpravu výběru (krok 1) -->
+                      <!-- co a (u datovaných) kdy + odkaz na úpravu výběru -->
                       <div class="flex items-start gap-2 border-b border-dov-line bg-dov-cream/60 px-3 py-2.5">
                         <div class="min-w-0 flex-1">
-                          <p class="line-clamp-2 font-dov-mono text-[9.5px] font-semibold uppercase leading-snug tracking-[0.18em] text-dov-mutedfg">
-                            {{ group.venue }} · {{ group.title }}
+                          <p class="font-dov-mono text-[9.5px] font-semibold uppercase leading-snug tracking-[0.18em] text-dov-rust">
+                            {{ group.venue }}
                           </p>
-                          <p class="mt-0.5 font-dov-display text-[15px] font-bold uppercase leading-tight text-dov-coal">
-                            {{ group.dateLabel }}
+                          <p class="mt-0.5 line-clamp-2 font-dov-display text-[15px] font-bold uppercase leading-tight text-dov-coal">
+                            {{ group.title }}
                           </p>
-                          <p v-if="group.extraMeta.length" class="mt-0.5 font-dov-sans text-[11.5px] leading-tight text-dov-mutedfg">
+                          <!-- Datovaná = pevný termín; nedatovaná žádné datum nemá. -->
+                          <p class="mt-1.5 flex items-start gap-1.5 font-dov-sans text-[12px] font-semibold leading-tight text-dov-coal">
+                            <svg v-if="group.dated" viewBox="0 0 24 24" class="mt-[1px] size-3.5 shrink-0 text-dov-mutedfg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                              <path d="M3 5h18v16H3zM3 10h18M8 3v4M16 3v4" />
+                            </svg>
+                            <svg v-else viewBox="0 0 24 24" class="mt-[1px] size-3.5 shrink-0 text-dov-mutedfg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                              <path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18M12 7v5l3.5 2" />
+                            </svg>
+                            <span v-if="group.dated">{{ group.dateLabel }}</span>
+                            <span v-else class="font-normal text-dov-mutedfg">
+                              Bez pevného termínu · platí <strong class="font-semibold text-dov-coal">30 dnů od nákupu</strong>
+                            </span>
+                          </p>
+                          <p v-if="group.extraMeta.length" class="mt-0.5 pl-5 font-dov-sans text-[11.5px] leading-tight text-dov-mutedfg">
                             {{ group.extraMeta.join(' · ') }}
                           </p>
                         </div>
@@ -255,7 +268,7 @@ const labelClass =
                       </ul>
 
                       <p class="flex items-baseline justify-between gap-2 border-t border-dashed border-dov-line px-3 py-2 font-dov-sans text-[12px] text-dov-mutedfg">
-                        <span>Za tento termín</span>
+                        <span>{{ group.dated ? 'Za tento termín' : 'Za tuto vstupenku' }}</span>
                         <span class="font-semibold tabular-nums text-dov-coal">{{ czk(groupTotal(group)) }}</span>
                       </p>
                     </div>
@@ -393,7 +406,7 @@ const labelClass =
                     <path d="M3 5h18v14H3zM3 7l9 6 9-6" />
                   </svg>
                   Vstupenky pošleme na uvedený e-mail během pár minut. Telefon použijeme jen v případě
-                  změny termínu.
+                  změny v objednávce.
                 </p>
 
                 <div class="grid gap-4 p-4 sm:grid-cols-2 sm:p-5">

@@ -34,7 +34,6 @@ const item = computed(() => ticketingItem(String(route.params.id)) ?? TICKETING_
 const counts = reactive<Record<string, number>>({})
 const pkgQty = reactive<Record<string, number>>({})
 const pkgChildren = reactive<Record<string, number>>({})
-const visitDate = ref('2026-08-24')
 const infoOpen = ref(false)
 
 /** Klíč upravované skupiny z URL (`?edit=`), pokud jsme přišli z košíku. */
@@ -55,7 +54,6 @@ function resetSelection() {
   // Úprava termínu z košíku — předvyplnit, co už je koupené.
   const group = editKey.value ? findGroup(editKey.value) : undefined
   if (!group) return
-  if (group.visitDate) visitDate.value = group.visitDate
   for (const line of group.lines) {
     if (line.id in counts) counts[line.id] = line.qty
     if (line.id in pkgQty) {
@@ -107,14 +105,6 @@ const lines = computed<OrderLine[]>(() => {
 const total = computed(() => lines.value.reduce((sum, l) => sum + l.total, 0))
 const persons = computed(() => lines.value.reduce((sum, l) => sum + l.persons, 0))
 
-const dateLabel = computed(() =>
-  new Date(visitDate.value).toLocaleDateString('cs-CZ', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  }),
-)
-
 const slotLabel = computed(() => {
   const s = item.value.slot
   if (!s) return ''
@@ -140,18 +130,19 @@ function buildGroup(): CartGroup {
         itemId: item.value.id,
         title: item.value.title,
         venue: item.value.venue,
+        dated: true,
         dateLabel: slotLabel.value,
         extraMeta: [item.value.slot?.language ?? ''].filter(Boolean),
         lines: cartLines,
       }
     : {
-        key: `${item.value.id}|${visitDate.value}`,
+        /* Nedatovaná vstupenka — žádný termín, proto ani v klíči. */
+        key: `${item.value.id}|open`,
         itemId: item.value.id,
         title: item.value.title,
         venue: item.value.venue,
-        dateLabel: `Návštěva ${dateLabel.value}`,
-        extraMeta: ['Vstupenka platí 30 dnů od nákupu'],
-        visitDate: visitDate.value,
+        dated: false,
+        extraMeta: [],
         lines: cartLines,
       }
 }
@@ -263,24 +254,25 @@ function submit() {
                   </a>
                 </template>
 
+                <!-- Nedatovaná vstupenka — datum se nevybírá ani nezobrazuje. -->
                 <template v-else>
-                  <div class="flex flex-wrap items-center gap-4">
-                    <svg viewBox="0 0 24 24" class="size-5 shrink-0 text-dov-rust" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M3 5h18v16H3zM3 10h18M8 3v4M16 3v4" />
-                    </svg>
-                    <label class="flex flex-col gap-1">
-                      <span class="font-dov-mono text-[10.5px] font-semibold uppercase tracking-[0.2em] text-dov-mutedfg">
-                        Plánované datum návštěvy
+                  <div class="flex flex-wrap items-center gap-x-8 gap-y-4">
+                    <div class="flex items-center gap-3">
+                      <svg viewBox="0 0 24 24" class="size-5 shrink-0 text-dov-rust" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18M12 7v5l3.5 2" />
+                      </svg>
+                      <span>
+                        <span class="block font-dov-mono text-[10.5px] font-semibold uppercase tracking-[0.2em] text-dov-mutedfg">
+                          Vstupenka
+                        </span>
+                        <span class="block font-dov-display text-[19px] font-bold uppercase leading-tight text-dov-coal">
+                          Nedatovaná
+                        </span>
                       </span>
-                      <input
-                        v-model="visitDate"
-                        type="date"
-                        class="border border-dov-coal/25 bg-white px-3 py-2 font-dov-display text-[17px] font-bold uppercase text-dov-coal outline-none transition-colors hover:border-dov-coal"
-                      />
-                    </label>
-                    <p class="max-w-xs font-dov-sans text-[12.5px] leading-snug text-dov-mutedfg">
-                      Vstupenka platí <strong class="font-semibold text-dov-coal">30 dnů od nákupu</strong> — {{ dateLabel }} je jen orientační,
-                      dorazit můžete i jindy.
+                    </div>
+                    <p class="max-w-sm font-dov-sans text-[12.5px] leading-snug text-dov-mutedfg">
+                      Vstupenka platí <strong class="font-semibold text-dov-coal">30 dnů od nákupu</strong> —
+                      dorazit můžete kterýkoli otevírací den, na nic se neobjednáváte.
                     </p>
                   </div>
                 </template>
