@@ -39,7 +39,9 @@ export interface CartGroup {
   dated: boolean
   /** Hlavní řádek termínu — „25. srpna 2026 · úterý 9:00" (jen datované). */
   dateLabel?: string
-  /** Doplňky — jazyk výkladu (datované), platnost (nedatované). */
+  /** Jazyk výkladu u prohlídek s průvodcem — vykresluje se s vlaječkou. */
+  language?: string
+  /** Ostatní doplňky k termínu. */
   extraMeta: string[]
   lines: CartLine[]
 }
@@ -55,7 +57,8 @@ export const cart = reactive<{ groups: CartGroup[] }>({
       venue: 'Landek Park',
       dated: true,
       dateLabel: '25. srpna 2026 · úterý 9:00',
-      extraMeta: ['Česky'],
+      language: 'Česky',
+      extraMeta: [],
       lines: [
         { id: 'adult', label: 'Dospělý', unitPrice: 295, qty: 2, personsPerUnit: 1 },
         { id: 'student', label: 'Student', sub: '15–26 let', unitPrice: 220, qty: 1, personsPerUnit: 1 },
