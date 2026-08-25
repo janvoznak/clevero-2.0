@@ -218,9 +218,10 @@ const labelClass =
                               <path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18M12 7v5l3.5 2" />
                             </svg>
                             <span v-if="group.dated">{{ group.dateLabel }}</span>
-                            <span v-else class="font-normal text-dov-mutedfg">
-                              Bez pevného termínu · platí <strong class="font-semibold text-dov-coal">30 dnů od nákupu</strong>
-                            </span>
+                            <span v-else>Platí 30 dnů od nákupu</span>
+                          </p>
+                          <p v-if="!group.dated" class="mt-0.5 pl-5 font-dov-sans text-[11.5px] leading-tight text-dov-mutedfg">
+                            Dorazte kterýkoli otevírací den
                           </p>
                           <p v-if="group.extraMeta.length" class="mt-0.5 pl-5 font-dov-sans text-[11.5px] leading-tight text-dov-mutedfg">
                             {{ group.extraMeta.join(' · ') }}

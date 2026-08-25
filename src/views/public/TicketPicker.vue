@@ -263,16 +263,16 @@ function submit() {
                       </svg>
                       <span>
                         <span class="block font-dov-mono text-[10.5px] font-semibold uppercase tracking-[0.2em] text-dov-mutedfg">
-                          Vstupenka
+                          Platnost vstupenky
                         </span>
                         <span class="block font-dov-display text-[19px] font-bold uppercase leading-tight text-dov-coal">
-                          Nedatovaná
+                          30 dnů od nákupu
                         </span>
                       </span>
                     </div>
                     <p class="max-w-sm font-dov-sans text-[12.5px] leading-snug text-dov-mutedfg">
-                      Vstupenka platí <strong class="font-semibold text-dov-coal">30 dnů od nákupu</strong> —
-                      dorazit můžete kterýkoli otevírací den, na nic se neobjednáváte.
+                      Termín návštěvy nevybíráte — dorazit můžete kterýkoli otevírací den
+                      během platnosti, na nic se neobjednáváte.
                     </p>
                   </div>
                 </template>
