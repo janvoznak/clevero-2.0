@@ -224,7 +224,7 @@ const labelClass =
                           <p v-if="!group.dated" class="mt-0.5 pl-5 font-dov-sans text-[11.5px] leading-tight text-dov-mutedfg">
                             Dorazte kterýkoli otevírací den
                           </p>
-                          <!-- Jazyk výkladu u prohlídek — s vlaječkou. -->
+                          <!-- Jazyk prohlídky — s vlaječkou. -->
                           <p v-if="group.language" class="mt-1 flex items-center gap-1.5 pl-5 font-dov-sans text-[11.5px] leading-tight text-dov-mutedfg">
                             <LangFlag :language="group.language" />
                             {{ group.language }}
