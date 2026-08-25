@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * Vlaječka jazyka výkladu — u prohlídek s průvodcem, kde je jazyk
+ * Vlaječka jazyka prohlídky — u prohlídek s průvodcem, kde je jazyk
  * součástí termínu („Fárání do DOLU · 9:00 · česky").
  *
  * Prototyp — vlajky jsou kreslené inline v SVG, žádné externí assety.
@@ -45,7 +45,7 @@ const code = computed(() => {
     viewBox="0 0 18 12"
     class="h-3 w-[18px] shrink-0"
     role="img"
-    :aria-label="`Jazyk výkladu: ${language}`"
+    :aria-label="`Jazyk prohlídky: ${language}`"
   >
     <!-- Česko -->
     <template v-if="code === 'cs'">

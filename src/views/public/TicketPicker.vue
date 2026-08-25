@@ -242,7 +242,7 @@ function submit() {
                     <LangFlag :language="item.slot?.language ?? ''" class="h-[15px] w-[22px] shrink-0" />
                     <span>
                       <span class="block font-dov-mono text-[10.5px] font-semibold uppercase tracking-[0.2em] text-dov-mutedfg">
-                        Jazyk výkladu
+                        Jazyk prohlídky
                       </span>
                       <span class="block font-dov-display text-[19px] font-bold uppercase leading-tight text-dov-coal">
                         {{ item.slot?.language }}

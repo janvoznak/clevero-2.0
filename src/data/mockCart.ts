@@ -39,7 +39,7 @@ export interface CartGroup {
   dated: boolean
   /** Hlavní řádek termínu — „25. srpna 2026 · úterý 9:00" (jen datované). */
   dateLabel?: string
-  /** Jazyk výkladu u prohlídek s průvodcem — vykresluje se s vlaječkou. */
+  /** Jazyk prohlídky s průvodcem — vykresluje se s vlaječkou. */
   language?: string
   /** Ostatní doplňky k termínu. */
   extraMeta: string[]
