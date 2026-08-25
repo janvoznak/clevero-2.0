@@ -3,10 +3,11 @@
    a stránkou košíku. V ostrém provozu drží košík Colosseum;
    tady je to jen reaktivní objekt v paměti.
 
-   Klíč skupiny (`key`) = akce + konkrétní termín/datum návštěvy.
-   Díky němu se opakovaný nákup téhož termínu slučuje do jedné
-   skupiny a „Upravit výběr" se vrací do TÉŽE skupiny místo
-   zakládání druhé, vizuálně shodné položky.
+   Klíč skupiny (`key`) = akce + termín (u datovaných), resp. akce
+   + `open` (u nedatovaných, které žádný termín nemají). Díky němu
+   se opakovaný nákup téhož slučuje do jedné skupiny a „Upravit
+   výběr" se vrací do TÉŽE skupiny místo zakládání druhé,
+   vizuálně shodné položky.
    ============================================================ */
 import { reactive } from 'vue'
 
@@ -26,17 +27,20 @@ export interface CartLine {
 }
 
 export interface CartGroup {
-  /** `itemId|termín` — viz komentář nahoře. */
+  /** `itemId|termín` nebo `itemId|open` — viz komentář nahoře. */
   key: string
   itemId: string
   title: string
   venue: string
-  /** Hlavní řádek termínu — „25. srpna 2026 · úterý 9:00". */
-  dateLabel: string
-  /** Doplňky k termínu — jazyk výkladu, platnost vstupenky. */
+  /**
+   * Datovaná vstupenka = váže se na pevný termín. U nedatovaných
+   * se datum NIKDE nezobrazuje — zákazník má 30 dnů a dorazí kdy chce.
+   */
+  dated: boolean
+  /** Hlavní řádek termínu — „25. srpna 2026 · úterý 9:00" (jen datované). */
+  dateLabel?: string
+  /** Doplňky — jazyk výkladu (datované), platnost (nedatované). */
   extraMeta: string[]
-  /** Datum návštěvy u vstupenek s volným termínem (ISO, kvůli editaci). */
-  visitDate?: string
   lines: CartLine[]
 }
 
@@ -49,6 +53,7 @@ export const cart = reactive<{ groups: CartGroup[] }>({
       itemId: 'farani-do-dolu',
       title: 'Fárání do DOLU a báňské záchranářství',
       venue: 'Landek Park',
+      dated: true,
       dateLabel: '25. srpna 2026 · úterý 9:00',
       extraMeta: ['Česky'],
       lines: [
