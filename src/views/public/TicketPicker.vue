@@ -15,6 +15,7 @@ import CheckoutSteps from '../../components/public/CheckoutSteps.vue'
 import TicketRow from '../../components/public/TicketRow.vue'
 import FamilyPackageCard from '../../components/public/FamilyPackageCard.vue'
 import SummaryPanel from '../../components/public/SummaryPanel.vue'
+import LangFlag from '../../components/public/LangFlag.vue'
 import { TICKETING_ITEMS, czk, ticketingItem, type OrderLine } from '../../data/mockTicketing'
 import {
   addToCart,
@@ -132,7 +133,8 @@ function buildGroup(): CartGroup {
         venue: item.value.venue,
         dated: true,
         dateLabel: slotLabel.value,
-        extraMeta: [item.value.slot?.language ?? ''].filter(Boolean),
+        language: item.value.slot?.language,
+        extraMeta: [],
         lines: cartLines,
       }
     : {
@@ -237,9 +239,7 @@ function submit() {
                     </span>
                   </div>
                   <div class="flex items-center gap-3">
-                    <svg viewBox="0 0 24 24" class="size-5 shrink-0 text-dov-rust" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18" />
-                    </svg>
+                    <LangFlag :language="item.slot?.language ?? ''" class="h-[15px] w-[22px] shrink-0" />
                     <span>
                       <span class="block font-dov-mono text-[10.5px] font-semibold uppercase tracking-[0.2em] text-dov-mutedfg">
                         Jazyk výkladu

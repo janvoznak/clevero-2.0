@@ -13,6 +13,7 @@ import CheckoutSteps from '../../components/public/CheckoutSteps.vue'
 import SummaryPanel from '../../components/public/SummaryPanel.vue'
 import QtyStepper from '../../components/public/QtyStepper.vue'
 import PaymentMark from '../../components/public/PaymentMark.vue'
+import LangFlag from '../../components/public/LangFlag.vue'
 import { czk } from '../../data/mockTicketing'
 import {
   cart,
@@ -222,6 +223,11 @@ const labelClass =
                           </p>
                           <p v-if="!group.dated" class="mt-0.5 pl-5 font-dov-sans text-[11.5px] leading-tight text-dov-mutedfg">
                             Dorazte kterýkoli otevírací den
+                          </p>
+                          <!-- Jazyk výkladu u prohlídek — s vlaječkou. -->
+                          <p v-if="group.language" class="mt-1 flex items-center gap-1.5 pl-5 font-dov-sans text-[11.5px] leading-tight text-dov-mutedfg">
+                            <LangFlag :language="group.language" />
+                            {{ group.language }}
                           </p>
                           <p v-if="group.extraMeta.length" class="mt-0.5 pl-5 font-dov-sans text-[11.5px] leading-tight text-dov-mutedfg">
                             {{ group.extraMeta.join(' · ') }}
