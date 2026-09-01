@@ -110,6 +110,9 @@ function openEvent(e: { id: string }) {
    Když v budově probíhá akce, která ji obsazuje (closesVenue), budova by
    měla být zavřená pro veřejnost; po skončení akce ji zase otevřít.
    Klient přepíná ručně — dashboard jen upozorní a nabídne akci na klik.
+   Ve widgetu jsou jen budovy s `showOnDashboard` — objekty provozované
+   externím subjektem (bez aktuálních provozních informací) se vypnou
+   v detailu budovy (Areál → budova → Dashboard).
    ============================================================ */
 interface VenueRow {
   id: string
@@ -119,7 +122,7 @@ interface VenueRow {
   closureEventId?: string
 }
 const venues = reactive<VenueRow[]>(
-  MOCK_VENUES.map((v) => ({
+  MOCK_VENUES.filter((v) => v.showOnDashboard).map((v) => ({
     id: v.id,
     title: v.title.cs,
     openState: v.openState,
@@ -156,6 +159,8 @@ const venueOps = computed<VenueOps[]>(() =>
     return { v, kind: 'open' }
   }),
 )
+/** Kolik budov je z přehledu vynecháno (kvůli srozumitelnosti, proč tu nejsou všechny). */
+const venuesHiddenCount = MOCK_VENUES.filter((v) => !v.showOnDashboard).length
 const venueAlerts = computed(() => venueOps.value.filter((o) => o.kind === 'needs-close' || o.kind === 'needs-reopen'))
 const venueRest = computed(() => venueOps.value.filter((o) => o.kind !== 'needs-close' && o.kind !== 'needs-reopen'))
 /** Widget stav budovy NEPŘEPÍNÁ (nebezpečné na překlik) — jen upozorní a navede
@@ -385,6 +390,9 @@ function onWidgetDragEnd() {
           <span class="shrink-0 text-[11px] font-600" :class="OPEN_STATE_META[o.v.openState].text">{{ OPEN_STATE_META[o.v.openState].label }}</span>
         </button>
       </div>
+      <p v-if="venuesHiddenCount" class="border-t border-steel-100 px-5 py-2.5 text-[11.5px] text-steel-400">
+        Skryté budovy: {{ venuesHiddenCount }} — zobrazení zapnete v detailu budovy volbou „Zobrazovat na dashboardu".
+      </p>
     </section>
 
     <!-- Widget: Klíčová čísla (celý blok = jeden widget) -->
