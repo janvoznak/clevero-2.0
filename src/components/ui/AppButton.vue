@@ -7,7 +7,7 @@
 withDefaults(
   defineProps<{
     variant?: 'primary' | 'secondary' | 'danger' | 'ghost'
-    size?: 'sm' | 'md'
+    size?: 'sm' | 'md' | 'icon'
   }>(),
   { variant: 'primary', size: 'md' },
 )
@@ -18,6 +18,8 @@ const base =
 const sizes: Record<string, string> = {
   md: 'h-10 px-4 text-[13px]',
   sm: 'h-9 px-3 text-[12.5px]',
+  // Jen ikona (bez textu) — čtvercové tlačítko; vždy doplň aria-label/title.
+  icon: 'h-10 w-10 p-0',
 }
 
 const variants: Record<string, string> = {

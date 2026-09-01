@@ -82,6 +82,7 @@ const nav: NavEntry[] = [
       { label: 'Prohlídky', to: '/admin/tours', match: '/admin/tours' },
       { label: 'Nová prohlídka', to: '/admin/tours/new', match: '/admin/tours/new' },
       { label: 'Vstupenky', to: '/admin/tickets', match: '/admin/tickets' },
+      { label: 'Statistiky', to: '/admin/tours/stats', match: '/admin/tours/stats' },
     ],
   },
   {

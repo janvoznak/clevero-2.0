@@ -49,6 +49,15 @@
   --color-danger-500: #dc2a2a;
   --color-danger-600: #bf2020;
 
+  /* Grafy (kategorická paleta) — pevné pořadí, barva patří entitě, nikdy se necykluje.
+     Ověřeno na kontrast a barvosleposti (deutan/protan/tritan) proti bílé ploše karty. */
+  --color-chart-1: #ee703d;
+  --color-chart-2: #3b6fb0;
+  --color-chart-3: #15916a;
+  --color-chart-4: #7b5ea7;
+  --color-chart-5: #e0a52a;
+  --color-chart-6: #c2568c;
+
   /* Typografie */
   --font-display: "Archivo", ui-sans-serif, system-ui, sans-serif;
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;

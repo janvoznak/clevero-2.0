@@ -396,6 +396,18 @@ function onDuplicate() {
                   </template>
                 </FormSection>
 
+                <!-- Sledování provozu na dashboardu -->
+                <FormSection title="Dashboard" hint="Řídí jen přehled v administraci — na web nemá vliv." tag="area-dashboard">
+                  <div class="flex items-center justify-between rounded-md bg-steel-50 px-3 py-2.5">
+                    <AppSwitch v-model="form.showOnDashboard" label="Zobrazovat na dashboardu" aria-label="Zobrazovat na dashboardu" />
+                    <span class="field-tag">area-show_dashboard</span>
+                  </div>
+                  <p class="mt-3 text-[12.5px] leading-relaxed text-steel-400">
+                    <template v-if="form.showOnDashboard">Objekt se zobrazí ve widgetu „Provoz budov" na dashboardu včetně upozornění na kolize s akcemi.</template>
+                    <template v-else>Objekt se ve widgetu „Provoz budov" nezobrazí. Vhodné pro objekty provozované externím subjektem, u kterých nemáte aktuální provozní informace.</template>
+                  </p>
+                </FormSection>
+
                 <!-- Zařazení a vazby (bez ikony, konzistentní karta) -->
                 <BackRefsCard title="Zařazení a vazby" icon="" :groups="backRefsForArea(form.id)" entity-label="tento objekt" />
               </TabsContent>

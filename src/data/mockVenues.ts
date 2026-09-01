@@ -85,6 +85,10 @@ export interface AreaObject {
   statusNote: ML
   openingHours: OpeningDay[]
   showOpeningHours: boolean
+  /** Zobrazovat budovu ve widgetu „Provoz budov" na dashboardu.
+      Budovy provozované externím subjektem nemají aktuální provozní informace,
+      proto se do přehledu nedávají. */
+  showOnDashboard: boolean
   /** Důvod uzavření (jen když openState = 'closed'): kvůli akci vs. rekonstrukce.
       Rozlišuje, jestli má dashboard nabízet „znovu otevřít" po skončení akce. */
   closureReason?: 'event' | 'maintenance'
@@ -132,6 +136,8 @@ type RawVenue = {
   openState: OpenState
   statusNote?: string
   showOpeningHours: boolean
+  /** Bez uvedení = zobrazuje se na dashboardu. */
+  showOnDashboard?: boolean
   published: boolean
   /** Důvod uzavření (kvůli akci vs. rekonstrukce). */
   closureReason?: 'event' | 'maintenance'
@@ -290,6 +296,8 @@ const RAW: RawVenue[] = [
     accessible: true,
     openState: 'open',
     showOpeningHours: true,
+    // Provozuje externí subjekt — na dashboardu se nesleduje.
+    showOnDashboard: false,
     published: true,
   },
   {
@@ -303,6 +311,8 @@ const RAW: RawVenue[] = [
     accessible: false,
     openState: 'seasonal',
     showOpeningHours: true,
+    // Provozuje externí subjekt — na dashboardu se nesleduje.
+    showOnDashboard: false,
     published: true,
   },
   {
@@ -329,6 +339,8 @@ const RAW: RawVenue[] = [
     accessible: true,
     openState: 'open',
     showOpeningHours: true,
+    // Provozuje externí subjekt — na dashboardu se nesleduje.
+    showOnDashboard: false,
     published: true,
   },
   {
@@ -376,6 +388,7 @@ export const MOCK_VENUES: AreaObject[] = RAW.map((r) => ({
   statusNote: ml(r.statusNote ?? ''),
   openingHours: defaultOpeningHours(),
   showOpeningHours: r.showOpeningHours,
+  showOnDashboard: r.showOnDashboard ?? true,
   published: r.published,
   closureReason: r.closureReason,
   closureEventId: r.closureEventId,
@@ -433,6 +446,7 @@ export function blankVenue(): AreaObject {
     statusNote: { cs: '', en: '', de: '', pl: '' },
     openingHours: defaultOpeningHours(),
     showOpeningHours: true,
+    showOnDashboard: true,
     published: false,
     // Nový objekt: každá mutace půjde živě, jakmile dostane obsah.
     publishedLangs: LANGS.map((l) => l.code),
