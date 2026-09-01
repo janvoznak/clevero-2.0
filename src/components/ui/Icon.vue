@@ -54,6 +54,8 @@ const paths: Record<string, string> = {
   file: 'M6 2h9l5 5v15H6zM15 2v5h5',
   box: 'M21 8l-9-5-9 5v8l9 5 9-5zM3 8l9 5 9-5M12 13v8',
   layers: 'M12 2l9 5-9 5-9-5zM3 12l9 5 9-5M3 17l9 5 9-5',
+  sheet: 'M6 2h9l5 5v15H6zM15 2v5h5M9 12h8M9 16h8M13 11v6',
+  chart: 'M4 3v16a2 2 0 0 0 2 2h15M8 16v-4M13 16V8M18 16v-6',
   ticket: 'M3 8a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2 2 2 0 0 0 0 4 2 2 0 0 1-2 2H5a2 2 0 0 1-2-2 2 2 0 0 0 0-4zM15 6v12',
   briefcase: 'M4 7h16v13H4zM9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M4 12h16',
   education: 'M12 4L2 9l10 5 10-5zM5 11v5c0 1.5 3 3 7 3s7-1.5 7-3v-5M21 9v6',

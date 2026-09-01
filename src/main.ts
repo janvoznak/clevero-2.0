@@ -18,6 +18,7 @@ import ToursList from './views/tours/ToursList.vue'
 import CategoryDetail from './views/tours/CategoryDetail.vue'
 import TourEdit from './views/tours/TourEdit.vue'
 import TicketsList from './views/tours/TicketsList.vue'
+import ToursStats from './views/tours/ToursStats.vue'
 import GalleriesList from './views/galleries/GalleriesList.vue'
 import GallerySectionDetail from './views/galleries/GallerySectionDetail.vue'
 import GalleryEdit from './views/galleries/GalleryEdit.vue'
@@ -69,6 +70,7 @@ const router = createRouter({
         { path: 'admin/area/:id/edit', name: 'area-edit', component: AreaEdit, props: true },
         { path: 'admin/tours', name: 'tours-list', component: ToursList },
         { path: 'admin/tickets', name: 'tours-tickets', component: TicketsList },
+        { path: 'admin/tours/stats', name: 'tours-stats', component: ToursStats },
         { path: 'admin/tours/new', name: 'tour-new', component: TourEdit },
         { path: 'admin/tours/category/new', name: 'category-new', component: CategoryDetail },
         { path: 'admin/tours/category/:id', name: 'category-edit', component: CategoryDetail, props: true },

@@ -78,7 +78,8 @@ src/
 │  │  ├─ FormSection.vue
 │  │  ├─ GalleryManager.vue
 │  │  ├─ AttachmentsManager.vue
-│  │  └─ RichTextEditor.vue
+│  │  ├─ RichTextEditor.vue
+│  │  └─ charts/           # grafy a KPI dlaždice (ChartCard, StatTile, …)
 │  └─ ui/                  # univerzální UI primitivy (napříč celým systémem)
 │     ├─ AppButton.vue
 │     ├─ AppSelect.vue
@@ -114,6 +115,7 @@ Všechny barvy a fonty jsou **výhradně** v `src/style.css` v bloku `@theme`. N
 | `forge-500/600` | ocelová zelená | stavová sémantika „úspěch/publikováno" — **NE tlačítka** |
 | `amber-500` | jantar | stav „naplánováno / upozornění" |
 | `danger-500/600` | červená | destruktivní akce (mazání) a chyby |
+| `chart-1…6` | kategorická paleta grafů | **jen grafy** — pevné pořadí, barva patří entitě (kategorie, jazyk), nikdy se necykluje |
 
 ### Typografie
 | Token | Font | Použití |
@@ -204,6 +206,26 @@ Placeholder WYSIWYG (`v-model`). Zastupuje CKEditor — viz [prototyp](#co-je-je
 
 ### `admin/TagPicker.vue` + `ui/TagChip.vue`
 Výběr štítků (`v-model="string[]"`, prop `options: Tag[]`) — hledání v předdefinovaných + vytvoření nového. `TagChip` = zobrazení jednoho štítku (barva + label, volitelně `removable`). Viz [konvence štítků](#7-konvence-ui-prvků).
+
+### `admin/charts/*` — grafy a číselné dlaždice
+Sada pro statistické obrazovky (referenční implementace: **Prohlídky → Statistiky**, `src/views/tours/ToursStats.vue`). Nikdy nekresli graf ad-hoc — použij tyto komponenty, případně přidej novou do `charts/`.
+
+| Komponenta | K čemu | Klíčové props |
+|---|---|---|
+| `ChartCard.vue` | rám karty grafu (nadpis, hint, `field-tag`, slot `actions` a `footer`) | `title`, `hint`, `tag`, `icon` |
+| `StatTile.vue` | KPI dlaždice s číslem, změnou vs. minulé období a sparkline | `label`, `value`, `delta`, `sub`, `icon`, `spark` |
+| `TrendAreaChart.vue` | vývoj **jedné** veličiny v čase (plocha + linka, zaměřovač, tooltip, klávesnice) | `points`, `color`, `seriesLabel`, `format` |
+| `BarListChart.vue` | vodorovný žebříček (srovnání položek), hodnota přímo u pruhu | `items`, `format`, `secondary*` |
+| `DonutChart.vue` | podíl na celku, max ~6 částí, legenda vždy | `items`, `centerLabel`, `format` |
+| `ColumnChart.vue` | svislé sloupce pro pevné pořadí kategorií (dny, měsíce) | `items`, `format`, `height` |
+
+**Pravidla pro grafy** (platí i pro nové komponenty):
+- **Nikdy dvě osy v jednom grafu.** Druhá veličina = přepínač nad grafem (viz „Vývoj prodeje") nebo druhý graf.
+- **Barva patří entitě, ne pořadí.** Kategorická paleta `--color-chart-1…6` v pevném pořadí; filtr nikdy nepřebarví to, co zůstalo. Přes 6 položek → zbytek do „Ostatní".
+- **Jedna řada = jedna barva.** Pruhy jednoho grafu nebarvi podle velikosti.
+- **Hover i fokus dávají stejná čísla**; tooltip nikdy není jediná cesta k hodnotě — přímé popisky + tabulka pod grafy.
+- **Přímý popisek jen selektivně** (koncový bod, nejvyšší sloupec), ne u každé hodnoty.
+- **Filtry v jednom řádku nad grafy** (období první) a scopují všechno pod sebou.
 
 ---
 
