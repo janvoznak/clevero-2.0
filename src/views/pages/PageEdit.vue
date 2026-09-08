@@ -62,9 +62,6 @@ function clone(): PageItem {
     text: empty(),
     contentBlocks: defaultContentBlocks(),
     associatedLinks: [],
-    allowMenu: false,
-    allowFooter: '0',
-    allowHp: false,
     priority: 0,
     enabled: true,
     // Nová stránka: každá mutace půjde živě, jakmile dostane obsah.
