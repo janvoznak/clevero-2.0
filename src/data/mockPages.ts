@@ -27,7 +27,6 @@ export function defaultOpeningHours(): OpeningDay[] {
 }
 
 /** Sloupec patičky (0 = nezobrazovat). Uloženo jako string kvůli AppSelect. */
-export type FooterCol = '0' | '1' | '2' | '3'
 export type InquiryFormType = 'none' | 'basic' | 'full'
 export type ContactFormType = 'none' | 'email_msg' | 'email_msg_phone' | 'email_msg_file' | 'full_contact'
 
@@ -49,9 +48,9 @@ export interface PageItem {
   contentBlocks: ContentBlock[]
   /** Externí odkazy zobrazené jako přidružené záložky (↗ otevře v novém okně). */
   associatedLinks: AssociatedLink[]
-  allowMenu: boolean
-  allowFooter: FooterCol
-  allowHp: boolean
+  /* Umístění v menu, v patičce a na homepage tu není: vlastníkem těch vazeb
+     jsou moduly Navigace a Patička (STANDARDY §14a). Dvě místa na totéž by se
+     rozešla — a v menu je potřeba i to, co stránka není (modulové výpisy). */
   priority: number
   enabled: boolean
   /** Zveřejněné jazykové mutace (explicitní seznam). Nezadáno = živé jsou
@@ -329,9 +328,6 @@ const base = {
   text: {} as MLInput,
   contentBlocks: [] as ContentBlock[],
   associatedLinks: [] as AssociatedLink[],
-  allowMenu: false,
-  allowFooter: '0' as FooterCol,
-  allowHp: false,
   priority: 0,
   enabled: true,
   formTemplateId: '',
@@ -370,8 +366,6 @@ const RAW: RawPage[] = [
         url: 'https://www.dolnivitkovice.cz/pro-skoly',
       },
     ],
-    allowMenu: true,
-    allowFooter: '1',
     priority: 1,
     // Demo: němčina je vyplněná, ale zatím skrytá na webu (stav „ready" — jantar).
     publishedLangs: ['cs', 'en'],
@@ -383,7 +377,6 @@ const RAW: RawPage[] = [
     title: { cs: 'Historie areálu', en: 'History' },
     slug: { cs: 'historie', en: 'history' },
     perex: { cs: 'Od těžby uhlí a výroby železa po kulturní centrum.' },
-    allowMenu: true,
     priority: 1,
   },
   {
@@ -393,7 +386,6 @@ const RAW: RawPage[] = [
     title: { cs: 'Kariéra' },
     slug: { cs: 'kariera' },
     perex: { cs: 'Přidejte se k našemu týmu.' },
-    allowMenu: true,
     priority: 2,
     dynamicFormId: 'df-career',
   },
@@ -413,8 +405,6 @@ const RAW: RawPage[] = [
     title: { cs: 'Kontakty', en: 'Contact', de: 'Kontakt' },
     slug: { cs: 'kontakty', en: 'contact', de: 'kontakt' },
     perex: { cs: 'Napište nám nebo se stavte osobně.' },
-    allowMenu: true,
-    allowFooter: '2',
     priority: 2,
     formTemplateId: 'ft-kontakt',
     contactForm: 'full_contact',
@@ -430,11 +420,21 @@ const RAW: RawPage[] = [
     title: { cs: 'Pro školy' },
     slug: { cs: 'pro-skoly' },
     perex: { cs: 'Vzdělávací programy a exkurze pro školní skupiny.' },
-    allowMenu: true,
-    allowHp: true,
     priority: 3,
     formTemplateId: 'ft-skoly',
     dynamicFormId: 'df-general',
+  },
+  {
+    ...base,
+    id: 'pg-projekty',
+    section: 'menu',
+    parentId: null,
+    title: { cs: 'Dotační projekty', en: 'Grant projects' },
+    slug: { cs: 'projekty', en: 'projects' },
+    perex: { cs: 'Přehled dotací, ze kterých Dolní oblast VÍTKOVICE čerpá.' },
+    // Úvodní a povinný text stránky se píše tady; samotný výpis projektů
+    // dodává modul Dotační projekty (/admin/grants).
+    priority: 8,
   },
   {
     ...base,
@@ -462,7 +462,6 @@ const RAW: RawPage[] = [
     parentId: null,
     title: { cs: 'Návštěvní řád' },
     slug: { cs: 'navstevni-rad' },
-    allowFooter: '3',
     priority: 1,
     enabled: false,
   },
@@ -473,7 +472,6 @@ const RAW: RawPage[] = [
     parentId: 'pg-rad',
     title: { cs: 'Zásady cookies' },
     slug: { cs: 'zasady-cookies' },
-    allowFooter: '3',
     priority: 1,
     usedCookies: ['analytics', 'marketing', 'preferences'],
   },
@@ -594,9 +592,6 @@ export function blankPage(overrides: Partial<PageItem> = {}): PageItem {
     text: emptyML(),
     contentBlocks: [],
     associatedLinks: [],
-    allowMenu: false,
-    allowFooter: '0',
-    allowHp: false,
     priority: 0,
     enabled: true,
     formTemplateId: '',
@@ -647,7 +642,6 @@ export function createChildPage(pages: PageItem[], parentId: string): PageItem {
     section: parent?.section ?? 'menu',
     parentId,
     priority,
-    allowMenu: parent?.allowMenu ?? false,
   })
   pages.push(page)
   return page

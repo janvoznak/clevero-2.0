@@ -9,6 +9,11 @@ import EventsList from './views/events/EventsList.vue'
 import EventDetail from './views/events/EventDetail.vue'
 import EventWizard from './views/events/EventWizard.vue'
 import InfoBarEdit from './views/infobar/InfoBarEdit.vue'
+import NavigationManager from './views/navigation/NavigationManager.vue'
+import FooterManager from './views/footer/FooterManager.vue'
+import GrantsList from './views/grants/GrantsList.vue'
+import GrantEdit from './views/grants/GrantEdit.vue'
+import GrantProviders from './views/grants/GrantProviders.vue'
 import PositionsList from './views/careers/PositionsList.vue'
 import PositionEdit from './views/careers/PositionEdit.vue'
 import ApplicantsList from './views/careers/ApplicantsList.vue'
@@ -67,6 +72,12 @@ const router = createRouter({
         { path: 'admin/events/new', name: 'event-new', component: EventWizard },
         { path: 'admin/events/:id', name: 'event-detail', component: EventDetail, props: true },
         { path: 'admin/infobar', name: 'infobar', component: InfoBarEdit },
+        { path: 'admin/navigation', name: 'navigation', component: NavigationManager },
+        { path: 'admin/footer', name: 'footer', component: FooterManager },
+        { path: 'admin/grants', name: 'grants-list', component: GrantsList },
+        { path: 'admin/grants/providers', name: 'grant-providers', component: GrantProviders },
+        { path: 'admin/grants/new', name: 'grant-new', component: GrantEdit },
+        { path: 'admin/grants/:id/edit', name: 'grant-edit', component: GrantEdit, props: true },
         { path: 'admin/careers/positions', name: 'positions-list', component: PositionsList },
         { path: 'admin/careers/positions/new', name: 'position-new', component: PositionEdit },
         { path: 'admin/careers/positions/:id/edit', name: 'position-edit', component: PositionEdit, props: true },
