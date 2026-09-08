@@ -96,6 +96,7 @@ const nav: NavEntry[] = [
       { label: 'Pop-up', to: '/admin/popups/list', match: '/admin/popups' },
       { label: 'FAQ', to: '/admin/faq' },
       { label: 'Galerie', to: '/admin/galleries' },
+      { label: 'Informační lišta', to: '/admin/infobar' },
       { label: 'Navigace', to: '/admin/navigation' },
       { label: 'Kontakty', to: '/admin/contacts' },
       { label: 'Patička', to: '/admin/footer' },
@@ -139,16 +140,6 @@ const nav: NavEntry[] = [
   },
   {
     kind: 'group',
-    key: 'integrace',
-    label: 'Integrace',
-    icon: 'integration',
-    children: [
-      { label: 'Colosseum', to: '/admin/integrations/colosseum' },
-      { label: 'Ecomail', to: '/admin/integrations/ecomail' },
-    ],
-  },
-  {
-    kind: 'group',
     key: 'nastaveni',
     label: 'Nastavení',
     icon: 'settings',
@@ -157,7 +148,6 @@ const nav: NavEntry[] = [
       { label: 'Uživatelé', to: '/admin/users' },
     ],
   },
-  { kind: 'link', label: 'Nápověda', icon: 'help', to: '/admin/help' },
 ]
 
 /** Moduly uvnitř skupin řadíme abecedně (česky). */

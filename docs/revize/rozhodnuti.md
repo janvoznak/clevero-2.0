@@ -89,7 +89,10 @@ zvlášť — viz B/02 a d15.
 - Záložka **Prohlídky** není psaný text, ale **automatický výpis** z modulu Prohlídky —
   na záložce se nezadává nic. [02/09] *(d15)*
 - **Poznámka k provozu** (`AreaEdit.vue`, pole „Poznámka k provozu (na web)“) se na webu
-  zobrazí v **horní informační liště**. [02/16] *(d20)*
+  zobrazí v **horní informační liště**. [02/16] *(d20)* — **k dořešení:** informační lišta
+  je od 8. 9. samostatný podmodul s vlastním ručně psaným textem (B/03b). Je potřeba
+  rozhodnout, jestli poznámka u budovy do téhož pruhu propadá automaticky (a co má
+  přednost, když je vyplněné obojí), nebo se ukazuje jen na stránce budovy.
 - Vazbu na modul Stránky z modelu odstranit, smazat `PageGroupBar.vue`. [02/11] *(d17, A7)*
 
 ### B/03 — Galerie

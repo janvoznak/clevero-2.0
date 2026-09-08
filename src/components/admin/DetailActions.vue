@@ -28,10 +28,13 @@ const props = withDefaults(
     isEdit?: boolean
     /** Umožnit duplikaci (u importovaných záznamů, např. produktů, bez smyslu). */
     canDuplicate?: boolean
+    /** Umožnit smazání. Vypíná se tam, kde nedává smysl — např. vlastní účet
+        v modulu Uživatelé (smazat sebe je vždycky chyba obsluhy). */
+    canDelete?: boolean
     /** Po uložení: tlačítko ukáže „Uloženo" + fajfku. */
     saved?: boolean
   }>(),
-  { name: '', entity: 'záznam', isEdit: true, canDuplicate: true, saved: false },
+  { name: '', entity: 'záznam', isEdit: true, canDuplicate: true, canDelete: true, saved: false },
 )
 
 const emit = defineEmits<{ save: []; 'save-back': []; duplicate: []; delete: [] }>()
@@ -41,7 +44,7 @@ const menuActions = computed(() => {
     { key: 'save-back', label: 'Uložit a zpět', icon: 'check' },
   ]
   if (props.isEdit && props.canDuplicate) list.push({ key: 'duplicate', label: 'Duplikovat', icon: 'copy' })
-  if (props.isEdit) list.push({ key: 'delete', label: 'Smazat', icon: 'trash', danger: true })
+  if (props.isEdit && props.canDelete) list.push({ key: 'delete', label: 'Smazat', icon: 'trash', danger: true })
   return list
 })
 

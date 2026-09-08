@@ -8,6 +8,13 @@ import NewsEdit from './views/news/NewsEdit.vue'
 import EventsList from './views/events/EventsList.vue'
 import EventDetail from './views/events/EventDetail.vue'
 import EventWizard from './views/events/EventWizard.vue'
+import InfoBarEdit from './views/infobar/InfoBarEdit.vue'
+import PositionsList from './views/careers/PositionsList.vue'
+import PositionEdit from './views/careers/PositionEdit.vue'
+import ApplicantsList from './views/careers/ApplicantsList.vue'
+import ApplicantDetail from './views/careers/ApplicantDetail.vue'
+import UsersList from './views/users/UsersList.vue'
+import UserEdit from './views/users/UserEdit.vue'
 import PopupList from './views/popups/PopupList.vue'
 import PopupEditCanvas from './views/popups/PopupEditCanvas.vue'
 import PageList from './views/pages/PageList.vue'
@@ -59,6 +66,15 @@ const router = createRouter({
         { path: 'admin/events', name: 'events-list', component: EventsList },
         { path: 'admin/events/new', name: 'event-new', component: EventWizard },
         { path: 'admin/events/:id', name: 'event-detail', component: EventDetail, props: true },
+        { path: 'admin/infobar', name: 'infobar', component: InfoBarEdit },
+        { path: 'admin/careers/positions', name: 'positions-list', component: PositionsList },
+        { path: 'admin/careers/positions/new', name: 'position-new', component: PositionEdit },
+        { path: 'admin/careers/positions/:id/edit', name: 'position-edit', component: PositionEdit, props: true },
+        { path: 'admin/careers/applicants', name: 'applicants-list', component: ApplicantsList },
+        { path: 'admin/careers/applicants/:id', name: 'applicant-detail', component: ApplicantDetail, props: true },
+        { path: 'admin/users', name: 'users-list', component: UsersList },
+        { path: 'admin/users/new', name: 'user-new', component: UserEdit },
+        { path: 'admin/users/:id/edit', name: 'user-edit', component: UserEdit, props: true },
         { path: 'admin/popups/list', name: 'popups-list', component: PopupList },
         { path: 'admin/popups/new', name: 'popup-new', component: PopupEditCanvas },
         { path: 'admin/popups/:id/edit', name: 'popup-edit', component: PopupEditCanvas, props: true },
