@@ -10,8 +10,10 @@
  * Datumová pole jsou volitelné v-modely (`publishFrom`, `publishTo`): moduly
  * s reálným časovým oknem je napojí (v-model:publish-from/publish-to), ostatní
  * je nechají neřízené a karta si drží vlastní lokální stav (vizuální prototyp).
+ * Stejně je volitelný i v-model `status` — modul, který stav opravdu drží
+ * (např. Informační lišta), ho napojí a karta je pak jediným ovladačem.
  */
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import Icon from '@/components/ui/Icon.vue'
 import AppSwitch from '@/components/ui/AppSwitch.vue'
 import FormSection from '@/components/admin/FormSection.vue'
@@ -68,7 +70,17 @@ const STATES: { value: Status; label: string }[] = [
   { value: 'published', label: 'Publikováno' },
   { value: 'scheduled', label: 'Naplánováno' },
 ]
-const status = ref<Status>(props.initialStatus ?? (props.published ? 'published' : 'draft'))
+/** Stav karty. Bez v-modelu si ho karta drží sama (vizuální prototyp),
+    s v-modelem ho řídí modul. */
+const statusModel = defineModel<Status | undefined>('status', { default: undefined })
+const fallbackStatus = ref<Status>(props.initialStatus ?? (props.published ? 'published' : 'draft'))
+const status = computed<Status>({
+  get: () => statusModel.value ?? fallbackStatus.value,
+  set: (v: Status) => {
+    fallbackStatus.value = v
+    statusModel.value = v
+  },
+})
 </script>
 
 <template>
