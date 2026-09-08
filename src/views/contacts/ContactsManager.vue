@@ -89,9 +89,6 @@ function save() {
           <span class="font-mono text-[11px] text-steel-400">/admin/contacts</span>
         </div>
         <h1 class="font-display text-[26px] font-700 leading-none tracking-tight text-graphite-900">Kontakty</h1>
-        <p class="mt-1 max-w-[74ch] text-[13px] text-steel-500">
-          Údaje organizace a kontaktní skupiny na webu. Jeden záznam — organizace má jednu identitu.
-        </p>
       </div>
       <div class="flex items-center gap-3">
         <LangBar v-model="activeLang" :filled="filledLangs" class="hidden lg:block" />

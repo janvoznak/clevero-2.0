@@ -64,17 +64,6 @@ const visible = computed(() =>
   }),
 )
 
-/** Počty po stavech — dlaždice nad tabulkou. */
-const counts = computed(() =>
-  APPLICANT_STATUS_OPTIONS.map((s) => ({
-    ...s,
-    count: rows.value.filter((a) => a.status === s.value).length,
-  })),
-)
-function filterByStatus(v: ApplicantStatus) {
-  filterStatus.value = filterStatus.value === v ? 'all' : v
-}
-
 /* ---------- Akce ---------- */
 function setStatus(a: Applicant, status: ApplicantStatus) {
   a.status = status
@@ -137,35 +126,10 @@ function bulkDelete() {
           <span class="font-mono text-[11px] text-steel-400">/admin/careers/applicants</span>
         </div>
         <h1 class="font-display text-[26px] font-700 leading-none tracking-tight text-graphite-900">Uchazeči</h1>
-        <p class="mt-1 text-[13px] text-steel-500">
-          Přihlášky z formulářů u
-          <RouterLink :to="{ name: 'positions-list' }" class="font-600 text-brand-600 hover:underline">pozic</RouterLink>.
-          Údaje přišly od uchazeče a neupravují se — mění se jen stav, kdo přihlášku řeší, a poznámka.
-        </p>
       </div>
     </div>
 
-    <!-- Počty po stavech (klik = filtr) -->
-    <div class="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      <button
-        v-for="s in counts"
-        :key="s.value"
-        type="button"
-        class="rounded-lg border bg-white px-4 py-3 text-left outline-none transition-colors"
-        :class="filterStatus === s.value ? 'border-brand-400 ring-1 ring-brand-400' : 'border-steel-200 hover:border-steel-300'"
-        @click="filterByStatus(s.value)"
-      >
-        <span class="flex items-center gap-1.5 text-[11.5px] font-600 uppercase tracking-wider text-steel-500">
-          <span class="h-1.5 w-1.5 rounded-full" :class="APPLICANT_STATUS_META[s.value].dot" />
-          {{ s.label }}
-        </span>
-        <span class="mt-1 block font-display text-[24px] font-700 leading-none text-graphite-900 tabular-nums">
-          {{ s.count }}
-        </span>
-      </button>
-    </div>
 
-    <!-- Filtr -->
     <div class="mb-4 rounded-lg border border-steel-200 bg-white p-3">
       <div class="flex flex-wrap items-end gap-x-3 gap-y-3">
         <div>
