@@ -85,6 +85,12 @@ export interface AreaObject {
   statusNote: ML
   openingHours: OpeningDay[]
   showOpeningHours: boolean
+  /* Kontakt na objekt. Vlastníkem je objekt — stejně jako otevírací doba.
+     Modul Kontakty je jen zrcadlí (STANDARDY §14a). */
+  email: string
+  phone: string
+  /** Vlastní web objektu ('' = nemá). */
+  web: string
   /** Zobrazovat budovu ve widgetu „Provoz budov" na dashboardu.
       Budovy provozované externím subjektem nemají aktuální provozní informace,
       proto se do přehledu nedávají. */
@@ -145,6 +151,9 @@ type RawVenue = {
   openState: OpenState
   statusNote?: string
   showOpeningHours: boolean
+  email?: string
+  phone?: string
+  web?: string
   /** Bez uvedení = zobrazuje se na dashboardu. */
   showOnDashboard?: boolean
   published: boolean
@@ -181,6 +190,8 @@ const RAW: RawVenue[] = [
     accessible: true,
     openState: 'open',
     showOpeningHours: true,
+    email: 'nkp@dolnivitkovice.cz',
+    phone: '+420 725 137 274',
     published: true,
     // Němčina je vyplněná, ale zatím skrytá na webu → stav „připraveno" (amber).
     publishedLangs: ['cs', 'en'],
@@ -215,6 +226,8 @@ const RAW: RawVenue[] = [
     accessible: true,
     openState: 'open',
     showOpeningHours: true,
+    email: 'u6@dolnivitkovice.cz',
+    phone: '+420 595 951 111',
     published: true,
     // Angličtina je vyplněná, ale zatím skrytá na webu → stav „připraveno" (amber).
     publishedLangs: ['cs'],
@@ -234,6 +247,22 @@ const RAW: RawVenue[] = [
     published: true,
   },
   {
+    id: 'v-infocentrum',
+    title: 'Infocentrum',
+    titleI18n: { en: 'Information centre' },
+    summary: 'Vstupní bod areálu — vstupenky, informace o prohlídkách a program na aktuální den.',
+    image: imageFor(11),
+    color: '#2f8a7e',
+    silhouette: 'gong',
+    tags: [],
+    accessible: true,
+    openState: 'open',
+    showOpeningHours: true,
+    email: 'infocentrum@dolnivitkovice.cz',
+    phone: '+420 724 955 121',
+    published: true,
+  },
+  {
     id: 'v-gong',
     title: 'Gong',
     summary: 'Bývalý plynojem přeměněný v multifunkční aulu pro koncerty, konference a společenské akce.',
@@ -244,6 +273,8 @@ const RAW: RawVenue[] = [
     accessible: true,
     openState: 'open',
     showOpeningHours: false,
+    email: 'gong@dolnivitkovice.cz',
+    phone: '+420 727 966 000',
     published: true,
     stats: [stat('1 500', 'míst k sezení')],
   },
@@ -258,6 +289,8 @@ const RAW: RawVenue[] = [
     accessible: true,
     openState: 'open',
     showOpeningHours: true,
+    email: 'galerie@dolnivitkovice.cz',
+    phone: '+420 727 966 001',
     published: true,
   },
   {
@@ -273,6 +306,9 @@ const RAW: RawVenue[] = [
     openState: 'seasonal',
     statusNote: 'Sezónní provoz duben–říjen. Mimo sezónu jen po předchozí domluvě pro skupiny.',
     showOpeningHours: true,
+    email: 'muzeum@dolnivitkovice.cz',
+    phone: '+420 596 131 803',
+    web: 'https://www.landekpark.cz/',
     published: true,
     stats: [stat('1852', 'rok založení dolu')],
   },
@@ -418,6 +454,9 @@ export const MOCK_VENUES: AreaObject[] = RAW.map((r) => ({
   statusNote: ml(r.statusNote ?? ''),
   openingHours: defaultOpeningHours(),
   showOpeningHours: r.showOpeningHours,
+  email: r.email ?? '',
+  phone: r.phone ?? '',
+  web: r.web ?? '',
   showOnDashboard: r.showOnDashboard ?? true,
   published: r.published,
   closureReason: r.closureReason,
@@ -474,6 +513,9 @@ export function blankVenue(): AreaObject {
     statusNote: { cs: '', en: '', de: '', pl: '' },
     openingHours: defaultOpeningHours(),
     showOpeningHours: true,
+    email: '',
+    phone: '',
+    web: '',
     showOnDashboard: true,
     published: false,
     // Nový objekt: každá mutace půjde živě, jakmile dostane obsah.

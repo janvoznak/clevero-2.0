@@ -449,6 +449,53 @@ function onDuplicate() {
                   </template>
                 </FormSection>
 
+                <!-- Kontakt na objekt — vlastníkem je objekt, Kontakty ho jen zrcadlí -->
+                <FormSection
+                  title="Kontakt na objekt"
+                  icon="mail"
+                  tag="area-contact"
+                  hint="Zobrazí se u objektu na webu a v modulu Kontakty ve skupině objektů. Nevyplněné se prostě neukáže."
+                >
+                  <div class="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <label class="mb-1.5 flex items-center justify-between">
+                        <span class="text-[13px] font-600 text-graphite-800">E-mail</span>
+                        <span class="field-tag">area-email</span>
+                      </label>
+                      <input
+                        v-model="form.email"
+                        type="email"
+                        placeholder="napr@dolnivitkovice.cz"
+                        class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13.5px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label class="mb-1.5 flex items-center justify-between">
+                        <span class="text-[13px] font-600 text-graphite-800">Telefon</span>
+                        <span class="field-tag">area-phone</span>
+                      </label>
+                      <input
+                        v-model="form.phone"
+                        type="tel"
+                        placeholder="+420 …"
+                        class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13.5px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none"
+                      />
+                    </div>
+                    <div class="sm:col-span-2">
+                      <label class="mb-1.5 flex items-center justify-between">
+                        <span class="text-[13px] font-600 text-graphite-800">Vlastní web objektu</span>
+                        <span class="field-tag">area-web</span>
+                      </label>
+                      <input
+                        v-model="form.web"
+                        type="text"
+                        placeholder="https://… (nepovinné)"
+                        class="h-10 w-full rounded-md border border-steel-200 px-3 font-mono text-[12.5px] text-graphite-800 placeholder:font-sans placeholder:text-steel-400 focus:border-brand-500 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                </FormSection>
+
                 <!-- Sledování provozu na dashboardu -->
                 <FormSection title="Dashboard" hint="Řídí jen přehled v administraci — na web nemá vliv." tag="area-dashboard">
                   <div class="flex items-center justify-between rounded-md bg-steel-50 px-3 py-2.5">
