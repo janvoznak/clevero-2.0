@@ -1,6 +1,6 @@
-import { imageFor } from './mockNews'
+import { imageFor, TAG_PALETTE } from './mockNews'
 import { LANGS } from './types'
-import type { ML, ContentBlock, LangCode, GalleryImage } from './types'
+import type { ML, ContentBlock, LangCode, GalleryImage, Tag } from './types'
 
 /* ============================================================
    Modul „Prohlídky" (dříve Vstupenky).
@@ -13,6 +13,39 @@ export const TOURS_NOW = new Date('2026-07-28T12:00:00')
 
 function ml(cs: string): ML {
   return { cs, en: '', de: '', pl: '' }
+}
+
+/* ---------- Číselníky prohlídky (rozhodnutí 00/01) ----------
+   Typ prohlídky a náročnost jsou badge na kartě i v detailu webu a zároveň
+   hodnoty filtru. Skupina (kategorie) je něco jiného než typ — viz nález 06/13. */
+export const TOUR_TYPE_OPTIONS = [
+  { value: 'guided', label: 'S průvodcem' },
+  { value: 'allday', label: 'Celodenní' },
+  { value: 'experience', label: 'Zážitkový program' },
+  { value: 'combined', label: 'Kombinovaný' },
+  { value: 'camp', label: 'Tábor & kroužek' },
+]
+export const TOUR_DIFFICULTY_OPTIONS = [
+  { value: 'stairs', label: 'Schody / vyhlídka' },
+  { value: 'barrierFree', label: 'Bezbariérové' },
+]
+/** Popisek číselníkové hodnoty (prázdné = nezadáno). */
+export function optionLabel(opts: { value: string; label: string }[], value: string): string {
+  return opts.find((o) => o.value === value)?.label ?? ''
+}
+
+/** Ruční štítky prohlídky (rozhodnutí 00/12) — web je dřív dopočítával z textu. */
+export const PREDEFINED_TOUR_TAGS: Tag[] = [
+  { label: 'Pro děti', color: '#3b6fb0' },
+  { label: 'Zdarma', color: '#15916a' },
+]
+/** Barva štítku prohlídky — stejná logika jako v Aktualitách a Areálu. */
+export function tourTagColor(label: string): string {
+  const f = PREDEFINED_TOUR_TAGS.find((t) => t.label.toLowerCase() === label.toLowerCase())
+  if (f) return f.color
+  let h = 0
+  for (let i = 0; i < label.length; i++) h = (h * 31 + label.charCodeAt(i)) >>> 0
+  return TAG_PALETTE[h % TAG_PALETTE.length]
 }
 
 /* ---------- Kategorie prohlídek ---------- */
@@ -70,6 +103,20 @@ export interface Tour {
   image: string
   /** Délka prohlídky (např. „100 minut"). */
   duration: string
+  /** Typ prohlídky — badge na kartě i ve filtru (`TOUR_TYPE_OPTIONS`). */
+  tourType: string
+  /** Náročnost / bezbariérovost — badge na kartě (`TOUR_DIFFICULTY_OPTIONS`). */
+  difficulty: string
+  /** Ruční štítky prohlídky (průřezová kategorizace, ne per-jazyk). */
+  tags: string[]
+  /** Dočasně nedostupná: zůstane ve výpisu, ale nejde koupit vstupenku. */
+  unavailable?: boolean
+  /** Volitelná poznámka k dočasné nedostupnosti (zobrazí web u karty). */
+  unavailableNote?: ML
+  /** Bez termínů (vstup kdykoli) — web ukáže „Koupit vstupenku" místo výběru termínu. */
+  undated?: boolean
+  /** Platnost vstupenky u nedatované prohlídky (např. „30 dnů"). */
+  ticketValidity?: string
   /** „Co vás při prohlídce čeká" — odrážky. */
   highlights: TourHighlight[]
   /** „Kdy prohlídky začínají" — volný text. */
@@ -178,6 +225,9 @@ const RAW_TOURS: RawTour[] = [
       '<p>Vydejte se po stopách výroby surového železa. Průvodce vás provede areálem bývalého vysokopecního závodu a vysvětlí, jak fungoval jeden z nejdůležitějších provozů Vítkovic.</p>',
     image: imageFor(0),
     duration: '100 minut',
+    tourType: 'guided',
+    difficulty: 'stairs',
+    tags: [],
     highlights: [
       'Procházka částí areálu DOV.',
       'Jízda skipovým a skleněným výtahem.',
@@ -208,6 +258,11 @@ const RAW_TOURS: RawTour[] = [
       '<p>Vyjeďte prosklenou nástavbou Bolt Tower do kavárny Bolt Café na vrcholu vysoké pece č. 1 a vychutnejte si panoramatický výhled na celý areál Dolních Vítkovic.</p>',
     image: imageFor(2),
     duration: '45 minut',
+    tourType: 'allday',
+    difficulty: 'barrierFree',
+    tags: [],
+    undated: true,
+    ticketValidity: '30 dnů',
     highlights: ['Výjezd na vrchol vysoké pece.', 'Kavárna Bolt Café.', 'Panoramatický výhled na Ostravu.'],
     scheduleNote: 'Denně v provozní době kavárny.',
     contactEmail: 'nkp@dolnivitkovice.cz',
@@ -226,6 +281,9 @@ const RAW_TOURS: RawTour[] = [
       '<p>Poznejte příběhy vítkovických pecí, které po generace utvářely Ostravu — od prvních tavieb až po konec výroby.</p>',
     image: imageFor(4),
     duration: '60 minut',
+    tourType: 'guided',
+    difficulty: 'stairs',
+    tags: [],
     highlights: ['Historie vítkovických železáren.', 'Vliv průmyslu na podobu Ostravy.'],
     scheduleNote: 'Vybrané termíny, nutná rezervace předem.',
     contactEmail: 'nkp@dolnivitkovice.cz',
@@ -244,6 +302,9 @@ const RAW_TOURS: RawTour[] = [
       '<p>Tematický okruh, který propojuje těžbu, koksování a vysokopecní výrobu — kompletní „cesta uhlí“ areálem.</p>',
     image: imageFor(6),
     duration: '90 minut',
+    tourType: 'experience',
+    difficulty: 'stairs',
+    tags: [],
     highlights: ['Od těžby po zpracování.', 'Provázané provozy areálu.'],
     scheduleNote: 'Vybrané termíny, nutná rezervace předem.',
     contactEmail: 'nkp@dolnivitkovice.cz',
@@ -262,6 +323,9 @@ const RAW_TOURS: RawTour[] = [
       '<p>Nahlédněte do prostor bývalé koksovny KOX a poznejte, jak se z uhlí vyráběl koks pro vysoké pece.</p>',
     image: imageFor(7),
     duration: '60 minut',
+    tourType: 'guided',
+    difficulty: 'stairs',
+    tags: ['Pro děti'],
     highlights: ['Prostory bývalé koksovny.', 'Výroba koksu.'],
     scheduleNote: 'Vybrané termíny, nutná rezervace předem.',
     contactEmail: 'nkp@dolnivitkovice.cz',
@@ -280,6 +344,9 @@ const RAW_TOURS: RawTour[] = [
       '<p>Zažijte vysokou pec po setmění — nasvícená industriální architektura a jedinečná večerní atmosféra areálu.</p>',
     image: imageFor(13),
     duration: '60 minut',
+    tourType: 'experience',
+    difficulty: 'stairs',
+    tags: [],
     highlights: ['Večerní nasvícení pece.', 'Omezená kapacita.'],
     scheduleNote: 'Vybrané večery, nutná rezervace předem.',
     contactEmail: 'nkp@dolnivitkovice.cz',
@@ -298,6 +365,9 @@ const RAW_TOURS: RawTour[] = [
       '<p>Vystupte pěšky po schodišti na ochozy vysoké pece — odměnou vám bude výhled na celý areál i Ostravu.</p>',
     image: imageFor(9),
     duration: '75 minut',
+    tourType: 'guided',
+    difficulty: 'stairs',
+    tags: [],
     highlights: ['Výstup po schodech.', 'Vyhlídkové ochozy.', 'Fyzicky náročnější program.'],
     scheduleNote: 'Vybrané termíny, nutná rezervace předem.',
     contactEmail: 'nkp@dolnivitkovice.cz',
@@ -316,6 +386,9 @@ const RAW_TOURS: RawTour[] = [
       '<p>Objevte architekturu Dolních Vítkovic — od industriálních staveb po jejich současné konverze.</p>',
     image: imageFor(11),
     duration: '60 minut',
+    tourType: 'guided',
+    difficulty: 'barrierFree',
+    tags: [],
     highlights: ['Industriální architektura.', 'Konverze industriálních staveb.'],
     scheduleNote: 'Vybrané termíny, nutná rezervace předem.',
     contactEmail: 'nkp@dolnivitkovice.cz',
@@ -335,6 +408,9 @@ const RAW_TOURS: RawTour[] = [
       '<p>Nejnavštěvovanější program Landek Parku — sfárejte do podzemí nejstarší ostravské šachty, projděte řetízkové šatny a projeďte se historickým důlním vláčkem. Nově i historický tunel z 50. let.</p>',
     image: imageFor(5),
     duration: '90 minut',
+    tourType: 'guided',
+    difficulty: 'stairs',
+    tags: [],
     highlights: ['Sfárání do podzemí dolu Anselm.', 'Řetízkové šatny.', 'Jízda důlním vláčkem.', 'Historický tunel z 50. let.'],
     scheduleNote: 'Denně, prohlídky ve stanovených časech; doporučujeme rezervaci předem.',
     contactEmail: 'muzeum@dolnivitkovice.cz',
@@ -353,6 +429,9 @@ const RAW_TOURS: RawTour[] = [
       '<p>Poznejte práci báňských záchranářů — historickou i současnou techniku, dýchací přístroje a dramatické příběhy záchranných akcí.</p>',
     image: imageFor(14),
     duration: '60 minut',
+    tourType: 'guided',
+    difficulty: 'barrierFree',
+    tags: ['Zdarma'],
     highlights: ['Záchranářská technika.', 'Dýchací přístroje.', 'Příběhy záchranných akcí.'],
     scheduleNote: 'Denně v otevírací době muzea.',
     contactEmail: 'muzeum@dolnivitkovice.cz',
@@ -371,6 +450,9 @@ const RAW_TOURS: RawTour[] = [
       '<p>Interaktivní zážitkový program: pod vedením štajgra si vyzkoušíte hornické nářadí, práci v podzemí a tradice spjaté s fáráním.</p>',
     image: imageFor(15),
     duration: '120 minut',
+    tourType: 'experience',
+    difficulty: 'stairs',
+    tags: [],
     highlights: ['Práce se štajgrem.', 'Hornické nářadí a tradice.', 'Interaktivní program.'],
     scheduleNote: 'Vybrané termíny, nutná rezervace předem.',
     contactEmail: 'muzeum@dolnivitkovice.cz',
@@ -388,6 +470,9 @@ const RAW_TOURS: RawTour[] = [
     description: '<p>Svezte se původním důlním vláčkem a projeďte areálem Landek Parku pohodlně a s výkladem průvodce.</p>',
     image: imageFor(16),
     duration: '30 minut',
+    tourType: 'guided',
+    difficulty: 'barrierFree',
+    tags: ['Pro děti'],
     highlights: ['Jízda původním vláčkem.', 'Výklad průvodce.'],
     scheduleNote: 'Od května denně.',
     contactEmail: 'muzeum@dolnivitkovice.cz',
@@ -407,6 +492,9 @@ const RAW_TOURS: RawTour[] = [
       '<p>Seznamte se s rozmanitou historií vítkovického zámku, a to od jeho počátků v polovině 19. století až po jeho současné proměny. Trasa je bezbariérová.</p>',
     image: imageFor(10),
     duration: '45 minut',
+    tourType: 'guided',
+    difficulty: 'barrierFree',
+    tags: [],
     highlights: ['Historie zámku od 19. století.', 'Bezbariérová trasa.'],
     scheduleNote: 'Prohlídky každou celou hodinu; příchod 10 minut předem.',
     contactEmail: 'infocentrum@dolnivitkovice.cz',
@@ -425,6 +513,11 @@ const RAW_TOURS: RawTour[] = [
       '<p>Prohlídka zaměřená na obyvatele zámku — generální ředitele a osobnosti, jejichž osudy byly svázány s vítkovickými železárnami.</p>',
     image: imageFor(12),
     duration: '45 minut',
+    tourType: 'guided',
+    difficulty: 'stairs',
+    tags: [],
+    unavailable: true,
+    unavailableNote: ml('Prohlídka je do konce srpna pozastavená kvůli rekonstrukci interiéru.'),
     highlights: ['Osobnosti vítkovických železáren.', 'Generální ředitelé.'],
     scheduleNote: 'Prohlídky každou celou hodinu; příchod 10 minut předem.',
     contactEmail: 'infocentrum@dolnivitkovice.cz',
@@ -520,9 +613,13 @@ export function freeSeats(t: Tour, now = TOURS_NOW): number {
   return upcomingSlots(t, now).reduce((sum, s) => sum + remaining(s), 0)
 }
 
-export type Availability = 'available' | 'lastSpots' | 'soldout' | 'none'
-/** Odvozený stav dostupnosti z nejbližších termínů. */
+export type Availability = 'unavailable' | 'undated' | 'available' | 'lastSpots' | 'soldout' | 'none'
+/** Odvozený stav dostupnosti. Ruční příznaky (rozhodnutí 00/08) mají přednost
+    před termíny z Colossea — dočasně nedostupná prohlídka zůstává ve výpisu,
+    nedatovaná termíny vůbec nepoužívá. */
 export function availability(t: Tour, now = TOURS_NOW): Availability {
+  if (t.unavailable) return 'unavailable'
+  if (t.undated) return 'undated'
   const up = upcomingSlots(t, now)
   if (!up.length) return 'none'
   const free = up.reduce((sum, s) => sum + remaining(s), 0)
@@ -531,6 +628,8 @@ export function availability(t: Tour, now = TOURS_NOW): Availability {
   return 'available'
 }
 export const AVAILABILITY_META: Record<Availability, { label: string; dot: string; text: string; bg: string }> = {
+  unavailable: { label: 'Dočasně nedostupné', dot: 'bg-danger-500', text: 'text-danger-600', bg: 'bg-danger-500/10' },
+  undated: { label: 'Vstup kdykoli', dot: 'bg-forge-500', text: 'text-forge-600', bg: 'bg-forge-500/10' },
   available: { label: 'Volná místa', dot: 'bg-forge-500', text: 'text-forge-600', bg: 'bg-forge-500/10' },
   lastSpots: { label: 'Poslední místa', dot: 'bg-amber-500', text: 'text-amber-600', bg: 'bg-amber-500/10' },
   soldout: { label: 'Vyprodáno', dot: 'bg-danger-500', text: 'text-danger-600', bg: 'bg-danger-500/10' },
@@ -558,6 +657,13 @@ export function blankTour(categoryId = 'cat-dov'): Tour {
     galleryIds: [],
     image: '',
     duration: '',
+    tourType: 'guided',
+    difficulty: 'stairs',
+    tags: [],
+    unavailable: false,
+    unavailableNote: ml(''),
+    undated: false,
+    ticketValidity: '',
     highlights: [],
     scheduleNote: ml(''),
     contactEmail: '',

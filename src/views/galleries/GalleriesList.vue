@@ -11,7 +11,7 @@ import type { ML, LangCode } from '@/data/types'
 import { langPublishState, LANG_PUBLISH_META, filledLangsOf } from '@/utils/langPublish'
 
 const router = useRouter()
-const rows = ref<GallerySection[]>([...MOCK_SECTIONS])
+const rows = ref<GallerySection[]>([...MOCK_SECTIONS].sort((a, b) => a.order - b.order))
 
 /* Zanoření galerií pod sekce (vizuální strom jako Prohlídky) —
    defaultně rozbalené, aby byly galerie rovnou vidět. */
@@ -51,10 +51,57 @@ function confirmDelete() {
   deleteTarget.value = null
 }
 
+/* ---------- Řazení přetažením (rozhodnutí 00/40, nález 03/03) ----------
+   Sekce se přeskládávají mezi sebou, alba v rámci své sekce. Prototyp — pořadí
+   se drží jen v lokálním stavu (`order`), neukládá se. */
+type DragKind = 'section' | 'gallery'
+const drag = ref<{ kind: DragKind; id: string; sectionId?: string } | null>(null)
+const dropId = ref<string | null>(null)
+
+function resetDnd() {
+  drag.value = null
+  dropId.value = null
+}
+function onDragStart(kind: DragKind, id: string, sectionId?: string) {
+  drag.value = { kind, id, sectionId }
+}
+function onDragOver(e: DragEvent, kind: DragKind, id: string, sectionId?: string) {
+  const d = drag.value
+  if (!d || d.kind !== kind || d.id === id) return
+  // Alba lze přeskládat jen v rámci vlastní sekce.
+  if (kind === 'gallery' && d.sectionId !== sectionId) return
+  e.preventDefault()
+  dropId.value = id
+}
+function onDrop(kind: DragKind, targetId: string) {
+  const d = drag.value
+  resetDnd()
+  if (!d || d.kind !== kind || d.id === targetId) return
+  if (kind === 'section') {
+    const list = [...rows.value].sort((a, b) => a.order - b.order)
+    reorder(list, d.id, targetId)
+    rows.value = list
+  } else {
+    const list = galleriesInSection(d.sectionId!).slice().sort((a, b) => a.order - b.order)
+    reorder(list, d.id, targetId)
+  }
+}
+/** Přesune `id` na pozici `targetId` a přečísluje `order` (1..n). */
+function reorder(list: { id: string; order: number }[], id: string, targetId: string) {
+  const from = list.findIndex((x) => x.id === id)
+  const to = list.findIndex((x) => x.id === targetId)
+  if (from < 0 || to < 0) return
+  const [moved] = list.splice(from, 1)
+  list.splice(to, 0, moved)
+  list.forEach((x, i) => (x.order = i + 1))
+}
+
 /* ---------- Galerie v řádku: stejné kebab ⋮ menu jako u sekcí ---------- */
 const deletedGalleryIds = ref<Set<string>>(new Set())
 function galleriesIn(s: GallerySection): Gallery[] {
-  return galleriesInSection(s.id).filter((g) => !deletedGalleryIds.value.has(g.id))
+  return galleriesInSection(s.id)
+    .filter((g) => !deletedGalleryIds.value.has(g.id))
+    .sort((a, b) => a.order - b.order)
 }
 const galleryRowActions = [
   { key: 'edit', label: 'Otevřít galerii', icon: 'edit' },
@@ -93,6 +140,10 @@ function confirmDeleteGallery() {
 
     <!-- Table -->
     <div class="overflow-hidden rounded-lg border border-steel-200 bg-white">
+      <p class="flex items-center gap-2 border-b border-steel-200 bg-white px-4 py-2.5 text-[12px] text-steel-500">
+        <Icon name="grip" :size="13" class="shrink-0 text-steel-400" />
+        Pořadí na webu změníte přetažením řádku — sekce mezi sebou, galerie v rámci své sekce.
+      </p>
       <table class="w-full border-collapse text-left">
         <thead>
           <tr class="border-b border-steel-200 bg-steel-50 text-[11px] uppercase tracking-wider text-steel-500">
@@ -106,9 +157,22 @@ function confirmDeleteGallery() {
         <tbody>
           <template v-for="s in rows" :key="s.id">
             <!-- Sekce (skupinová hlavička — výrazně odlišená od galerií) -->
-            <tr class="group border-b border-steel-200 bg-steel-50/70 transition-colors hover:bg-steel-100/70">
+            <tr
+              draggable="true"
+              class="group border-b border-steel-200 bg-steel-50/70 transition-colors hover:bg-steel-100/70"
+              :class="[
+                drag?.kind === 'section' && drag?.id === s.id && 'opacity-40',
+                dropId === s.id && drag?.kind === 'section' && 'shadow-[inset_0_2px_0_0_var(--color-brand-500)]',
+              ]"
+              @dragstart="onDragStart('section', s.id)"
+              @dragover="onDragOver($event, 'section', s.id)"
+              @dragleave="dropId === s.id && (dropId = null)"
+              @drop="onDrop('section', s.id)"
+              @dragend="resetDnd"
+            >
               <td class="px-4 py-3 align-middle">
                 <div class="flex items-center gap-2">
+                  <Icon name="grip" :size="15" class="shrink-0 cursor-grab text-steel-400" aria-hidden="true" />
                   <button
                     class="grid h-6 w-6 shrink-0 place-items-center rounded text-steel-500 transition-colors hover:bg-steel-200 hover:text-graphite-700"
                     :title="expanded.has(s.id) ? 'Sbalit galerie' : 'Rozbalit galerie'"
@@ -117,9 +181,9 @@ function confirmDeleteGallery() {
                     <Icon name="chevronDown" :size="16" class="transition-transform" :class="!expanded.has(s.id) && '-rotate-90'" />
                   </button>
                   <button class="flex items-center gap-3 text-left" @click="goEdit(s.id)">
+                    <!-- Sekce nemá náhledový obrázek — je to jen filtr (rozhodnutí 00/41) -->
                     <span class="grid h-11 w-16 shrink-0 place-items-center overflow-hidden rounded-md bg-steel-200 text-steel-400 ring-1 ring-steel-300/60">
-                      <img v-if="s.cover" :src="s.cover" :alt="s.name.cs" class="h-full w-full object-cover" />
-                      <Icon v-else name="gallery" :size="17" />
+                      <Icon name="filter" :size="17" />
                     </span>
                     <span class="min-w-0">
                       <span class="block font-mono text-[10px] uppercase tracking-wider text-steel-400">Sekce</span>
@@ -160,12 +224,23 @@ function confirmDeleteGallery() {
               <tr
                 v-for="g in galleriesIn(s)"
                 :key="g.id"
+                draggable="true"
                 class="group border-b border-steel-100 bg-white transition-colors last:border-0 hover:bg-steel-50/60"
+                :class="[
+                  drag?.kind === 'gallery' && drag?.id === g.id && 'opacity-40',
+                  dropId === g.id && drag?.kind === 'gallery' && 'shadow-[inset_0_2px_0_0_var(--color-brand-500)]',
+                ]"
+                @dragstart="onDragStart('gallery', g.id, s.id)"
+                @dragover="onDragOver($event, 'gallery', g.id, s.id)"
+                @dragleave="dropId === g.id && (dropId = null)"
+                @drop="onDrop('gallery', g.id)"
+                @dragend="resetDnd"
               >
                 <td class="py-2.5 pl-4 pr-2 align-middle">
                   <!-- Odsazení + svislá vodicí linka stromu → jasně „patří pod sekci" -->
                   <div class="flex items-stretch">
                     <span class="ml-3 w-6 shrink-0 border-l-2 border-steel-200" aria-hidden="true" />
+                    <Icon name="grip" :size="15" class="mr-1.5 shrink-0 cursor-grab self-center text-steel-300" aria-hidden="true" />
                     <button class="flex items-center gap-2.5 text-left" @click="goGallery(g.id)">
                       <span class="h-8 w-11 shrink-0 overflow-hidden rounded-md bg-steel-100 text-steel-400">
                         <img v-if="g.photos[0]" :src="g.photos[0].src" :alt="g.name.cs" class="h-full w-full object-cover" />

@@ -42,7 +42,6 @@ function clone(): Product {
   const s = source.value
   if (s) {
     const c = JSON.parse(JSON.stringify(s)) as Product
-    c.galleryIds = c.galleryIds ?? []
     c.slug = c.slug ?? empty()
     c.contentBlocks = c.contentBlocks ?? defaultContentBlocks()
     return c
@@ -59,15 +58,13 @@ function clone(): Product {
     importedAt: '2026-08-06T09:00',
     syncedAt: '',
     nameOverride: empty(),
+    perex: empty(),
     description: empty(),
     gallery: [],
     categoryIds: [],
-    galleryIds: [],
     slug: empty(),
     contentBlocks: defaultContentBlocks(),
     cartUrl: '',
-    metaTitle: empty(),
-    metaDescription: empty(),
     published: false,
   }
 }
@@ -118,7 +115,7 @@ const { markManual } = useAutoSlug(
 )
 
 /* ---------- AI překlad mutací (prototyp) — sdílené řešení ---------- */
-const mlFields: (keyof Product)[] = ['nameOverride']
+const mlFields: (keyof Product)[] = ['nameOverride', 'perex']
 const { translating, translateLang, translateField } = useMlTranslate(form, mlFields)
 
 const saved = ref(false)
@@ -223,6 +220,23 @@ function saveBack() {
                       type="text"
                       :placeholder="activeLang === 'cs' ? (form.name || 'Název produktu') : 'Přeložený název pro tuto mutaci'"
                       class="h-11 w-full rounded-md border border-steel-200 px-3.5 text-[15px] font-500 text-graphite-900 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <!-- Perex na kartu produktu (rozhodnutí 00/03) — jediný text z výpisu -->
+                  <div>
+                    <MlFieldHeader
+                      label="Perex"
+                      :lang="activeLang"
+                      tag="product-perex"
+                      hint="Jeden až dva řádky na kartu produktu ve výpisu. Bez perexu se produkt hlásí na nástěnce jako „bez popisu“."
+                      @translate="translateField('perex')"
+                    />
+                    <textarea
+                      v-model="form.perex[activeLang]"
+                      rows="2"
+                      placeholder="Krátký popis na kartu produktu (1–2 věty)"
+                      class="w-full resize-y rounded-md border border-steel-200 px-3.5 py-2.5 text-[14px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none"
                     />
                   </div>
 
@@ -382,10 +396,11 @@ function saveBack() {
                     <p class="flex items-center gap-1.5 field-tag"><Icon name="integration" :size="12" class="text-brand-500" /> Obrázek z Colossea <HelpTip text="Zobrazí se, dokud nepřidáte vlastní hlavní fotku." /></p>
                   </div>
                 </div>
+                <!-- Připojené galerie z modulu Galerie odebrány — na webu se u produktu
+                     neprojeví (rozhodnutí 00/38, nález 05/11). Zůstávají vlastní fotky. -->
                 <GalleryField
-                  v-model:galleries="form.galleryIds"
                   v-model:photos="form.gallery"
-                  link-tag="product-gallery_ids"
+                  :linked="false"
                   photos-tag="product-gallery"
                 />
               </TabsContent>

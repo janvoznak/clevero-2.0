@@ -78,10 +78,6 @@ function clone(): NewsItem {
     videoLink: '',
     dateFrom: null,
     dateTo: null,
-    metaTitle: empty(),
-    metaDescription: empty(),
-    metaKeywords: empty(),
-    ogImage: null,
     gallery: [],
     attachments: [],
     tags: [],
@@ -202,7 +198,9 @@ const { translating, toast, translateLang, translateField } = useMlTranslate(for
 
 /* Propagace na FB — banner/text z aktuality (obrázek = OG nebo hlavní fotka). */
 const promoPlace = computed(() => (form.areaId ? areaPlace(form.areaId) : undefined))
-const promoImage = computed(() => form.ogImage || form.gallery.find((g) => g.isMain)?.src || form.gallery[0]?.src || '')
+/* Obrázek pro sdílení se odvozuje z hlavní fotky galerie — vlastní OG obrázek
+   se v administraci nezadává (rozhodnutí 00/24). */
+const promoImage = computed(() => form.gallery.find((g) => g.isMain)?.src || form.gallery[0]?.src || '')
 function fmtPromoDate(iso: string | null): string {
   return iso ? new Date(iso).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'numeric', year: 'numeric' }) : ''
 }

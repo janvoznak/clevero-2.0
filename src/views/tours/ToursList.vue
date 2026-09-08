@@ -5,7 +5,8 @@ import { DialogRoot, DialogPortal, DialogOverlay, DialogContent, DialogTitle, Di
 import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import RowActionsMenu from '@/components/admin/RowActionsMenu.vue'
-import { MOCK_CATEGORIES, toursForCategory, availability, AVAILABILITY_META, type TourCategory, type Tour } from '@/data/mockTours'
+import TagChip from '@/components/ui/TagChip.vue'
+import { MOCK_CATEGORIES, toursForCategory, availability, AVAILABILITY_META, tourTagColor, type TourCategory, type Tour } from '@/data/mockTours'
 import { LANGS } from '@/data/types'
 import type { ML, LangCode } from '@/data/types'
 import { langPublishState, LANG_PUBLISH_META, filledLangsOf } from '@/utils/langPublish'
@@ -171,6 +172,10 @@ function confirmDeleteTour() {
                       </span>
                       <span class="min-w-0">
                         <span class="block truncate text-[13.5px] font-500 text-graphite-800 group-hover:text-brand-600">{{ t.title.cs || 'Bez názvu' }}</span>
+                        <!-- Štítky pod názvem (standard §7) -->
+                        <span v-if="t.tags.length" class="mt-0.5 flex flex-wrap items-center gap-1">
+                          <TagChip v-for="tag in t.tags" :key="tag" :label="tag" :color="tourTagColor(tag)" />
+                        </span>
                         <span v-if="!t.published" class="text-[11px] text-steel-400">Koncept</span>
                       </span>
                     </button>

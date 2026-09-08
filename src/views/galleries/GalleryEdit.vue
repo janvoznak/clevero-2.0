@@ -10,7 +10,6 @@ import FormSection from '@/components/admin/FormSection.vue'
 import PublishCard from '@/components/admin/PublishCard.vue'
 import BackRefsCard from '@/components/admin/BackRefsCard.vue'
 import { backRefsForGallery } from '@/data/backrefs'
-import ContentBuilder from '@/components/admin/ContentBuilder.vue'
 import GalleryManager from '@/components/admin/GalleryManager.vue'
 import SlugField from '@/components/admin/SlugField.vue'
 import { useAutoSlug } from '@/utils/useAutoSlug'
@@ -18,7 +17,7 @@ import TagPicker from '@/components/admin/TagPicker.vue'
 import LangBar from '@/components/admin/LangBar.vue'
 import MlFieldHeader from '@/components/admin/MlFieldHeader.vue'
 import { useMlTranslate } from '@/utils/useMlTranslate'
-import { LANGS, defaultContentBlocks } from '@/data/types'
+import { LANGS } from '@/data/types'
 import type { LangCode } from '@/data/types'
 import {
   MOCK_GALLERIES,
@@ -29,6 +28,7 @@ import {
   blankGallery,
   type Gallery,
 } from '@/data/mockGalleries'
+import { EVENT_OPTIONS } from '@/data/mockEvents'
 import {
   filledLangsOf,
   publishedLangsOf,
@@ -49,13 +49,11 @@ function clone(): Gallery {
   if (s) {
     const c = JSON.parse(JSON.stringify(s)) as Gallery
     c.slug = c.slug ?? { cs: '', en: '', de: '', pl: '' }
-    c.contentBlocks = c.contentBlocks ?? defaultContentBlocks()
     // Zhmotnit fallback do explicitního seznamu, aby šlo přepínat.
     c.publishedLangs = publishedLangsOf(filledLangsOf(c.name), c.publishedLangs)
     return c
   }
   const c = blankGallery(typeof route.query.section === 'string' ? route.query.section : '')
-  c.contentBlocks = c.contentBlocks ?? defaultContentBlocks()
   // Nová galerie: každá mutace půjde živě, jakmile dostane obsah.
   c.publishedLangs = LANGS.map((l) => l.code)
   return c
@@ -75,11 +73,18 @@ const areaModel = computed({
 })
 const areaLabel = computed(() => PLACE_OPTIONS.find((o) => o.value === form.areaId)?.label ?? '')
 
+/** Akce, ze které album je (vlastník vazby = Galerie, rozhodnutí 00/44). */
+const EVENT_NONE = '__none__'
+const eventOptions = [{ value: EVENT_NONE, label: '— není z akce' }, ...EVENT_OPTIONS]
+const eventModel = computed({
+  get: () => form.eventId || EVENT_NONE,
+  set: (v: string) => (form.eventId = v === EVENT_NONE ? '' : v),
+})
+
 /** Sekce detailu jako podtržené záložky. */
 const activeSection = ref('basic')
 const sections = [
   { value: 'basic', label: 'Základní informace', icon: 'page' },
-  { value: 'content', label: 'Obsah', icon: 'text' },
   { value: 'relations', label: 'Zařazení a vazby', icon: 'layers' },
   { value: 'photos', label: 'Fotografie', icon: 'gallery' },
 ]
@@ -122,7 +127,7 @@ function save() {
 }
 
 /* ---------- AI překlad mutací (prototyp) — sdílené řešení ---------- */
-const mlFields: (keyof Gallery)[] = ['name']
+const mlFields: (keyof Gallery)[] = ['name', 'perex']
 const { translating, toast, translateLang, translateField } = useMlTranslate(form, mlFields)
 
 function backToSection() {
@@ -215,20 +220,23 @@ function onDuplicate() {
                     :tag="`gallery-url · ${activeLang.toUpperCase()}`"
                     @edit="markManual(activeLang)"
                   />
+                  <!-- Perex (rozhodnutí 00/04 a 00/45) — nahradil blokový editor -->
                   <div>
-                    <label class="mb-1.5 flex items-center justify-between">
-                      <span class="text-[13px] font-600 text-graphite-800">Datum pořízení / konání</span>
-                      <span class="field-tag">gallery-date</span>
-                    </label>
-                    <input v-model="form.date" type="date" class="h-10 rounded-md border border-steel-200 px-3 text-[13px] text-graphite-800 focus:border-brand-500 focus:outline-none" />
+                    <MlFieldHeader
+                      label="Perex"
+                      :lang="activeLang"
+                      tag="gallery-perex"
+                      hint="Věta pod názvem albumu. Web z ní plní i popisek pro vyhledávače a sdílení."
+                      @translate="translateField('perex')"
+                    />
+                    <textarea
+                      v-model="form.perex[activeLang]"
+                      rows="2"
+                      placeholder="Např. Nejvyšší vyhlídka v Ostravě — 80 m nad areálem."
+                      class="w-full resize-y rounded-md border border-steel-200 px-3.5 py-2.5 text-[14px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none"
+                    />
                   </div>
-
                 </div>
-              </TabsContent>
-
-              <!-- Sekce: Obsah (jednotný ContentBuilder — nic dalšího pod ním) -->
-              <TabsContent value="content" class="outline-none">
-                <ContentBuilder v-model="form.contentBlocks" />
               </TabsContent>
 
               <!-- Sekce: Zařazení a vazby -->
@@ -238,6 +246,14 @@ function onDuplicate() {
                 </FormSection>
                 <FormSection title="Objekt v areálu" icon="map" hint="Na webu se galerie zobrazí u daného objektu (např. Bolt Tower). Nepovinné." tag="gallery-area_id">
                   <AppSelect v-model="areaModel" :options="areaOptions" />
+                </FormSection>
+                <FormSection
+                  title="Album z akce"
+                  icon="calendar"
+                  hint="Album z proběhlé akce. Vazbu drží album — v Kalendáři akcí se nenastavuje, jen se tam zrcadlí. Nepovinné."
+                  tag="gallery-event_id"
+                >
+                  <AppSelect v-model="eventModel" :options="eventOptions" />
                 </FormSection>
               </TabsContent>
 

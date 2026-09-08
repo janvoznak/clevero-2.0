@@ -38,6 +38,9 @@ export interface PageItem {
   /** Nadřazená stránka (null = kořen). */
   parentId: string | null
   title: ML
+  /** Menší nadpis nad nadpisem stránky (na webu „eyebrow") — nepovinný
+      (rozhodnutí 00/48, nález 04/06). */
+  eyebrow: ML
   /** Část URL (slug) — ML. */
   slug: ML
   perex: ML
@@ -61,11 +64,9 @@ export interface PageItem {
   contactForm: ContactFormType
   contactFormText: ML
   /* Marketing & SEO */
-  metaTitle: ML
-  metaDescription: ML
-  metaKeywords: ML
-  canonicalUrl: ML
-  allowIndexing: boolean
+  /* SEO pole tu nejsou vůbec: titulek i popisek se odvozují z názvu a perexu
+     a nepřepisují se, indexování se v administraci neřídí (rozhodnutí 00/24,
+     nález 04/07). */
   /* Média */
   gallery: GalleryImage[]
   /** Připojené fotogalerie (ID z modulu Galerie). */
@@ -310,22 +311,20 @@ function toML(m: MLInput): ML {
 
 type RawPage = Omit<
   PageItem,
-  'title' | 'slug' | 'perex' | 'text' | 'contactFormText' | 'metaTitle' | 'metaDescription' | 'metaKeywords' | 'canonicalUrl'
+  'title' | 'eyebrow' | 'slug' | 'perex' | 'text' | 'contactFormText'
 > & {
   title: MLInput
+  eyebrow: MLInput
   slug: MLInput
   perex: MLInput
   text: MLInput
   contactFormText: MLInput
-  metaTitle: MLInput
-  metaDescription: MLInput
-  metaKeywords: MLInput
-  canonicalUrl: MLInput
 }
 
 /** Výchozí (prázdné) hodnoty společné mock stránkám — zkrátí literály. */
 const base = {
   section: 'menu' as PageSection,
+  eyebrow: {} as MLInput,
   perex: {} as MLInput,
   text: {} as MLInput,
   contentBlocks: [] as ContentBlock[],
@@ -340,11 +339,6 @@ const base = {
   inquiryFormType: 'none' as InquiryFormType,
   contactForm: 'none' as ContactFormType,
   contactFormText: {} as MLInput,
-  metaTitle: {} as MLInput,
-  metaDescription: {} as MLInput,
-  metaKeywords: {} as MLInput,
-  canonicalUrl: {} as MLInput,
-  allowIndexing: true,
   gallery: [] as GalleryImage[],
   attachments: [] as Attachment[],
   jsCodes: '',
@@ -460,7 +454,6 @@ const RAW: RawPage[] = [
     title: { cs: 'Archiv akcí 2023' },
     slug: { cs: 'archiv-akci-2023' },
     priority: 2,
-    allowIndexing: false,
   },
   {
     ...base,
@@ -472,7 +465,6 @@ const RAW: RawPage[] = [
     allowFooter: '3',
     priority: 1,
     enabled: false,
-    allowIndexing: false,
   },
   {
     ...base,
@@ -490,14 +482,11 @@ const RAW: RawPage[] = [
 export const MOCK_PAGES: PageItem[] = RAW.map((r) => ({
   ...r,
   title: toML(r.title),
+  eyebrow: toML(r.eyebrow),
   slug: toML(r.slug),
   perex: toML(r.perex),
   text: toML(r.text),
   contactFormText: toML(r.contactFormText),
-  metaTitle: toML(r.metaTitle),
-  metaDescription: toML(r.metaDescription),
-  metaKeywords: toML(r.metaKeywords),
-  canonicalUrl: toML(r.canonicalUrl),
   openingHours: defaultOpeningHours(),
 }))
 
@@ -599,6 +588,7 @@ export function blankPage(overrides: Partial<PageItem> = {}): PageItem {
     section: 'menu',
     parentId: null,
     title: emptyML(),
+    eyebrow: emptyML(),
     slug: emptyML(),
     perex: emptyML(),
     text: emptyML(),
@@ -614,11 +604,6 @@ export function blankPage(overrides: Partial<PageItem> = {}): PageItem {
     inquiryFormType: 'none',
     contactForm: 'none',
     contactFormText: emptyML(),
-    metaTitle: emptyML(),
-    metaDescription: emptyML(),
-    metaKeywords: emptyML(),
-    canonicalUrl: emptyML(),
-    allowIndexing: true,
     gallery: [],
     attachments: [],
     jsCodes: '',

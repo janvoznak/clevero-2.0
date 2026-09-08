@@ -6,6 +6,9 @@ import Icon from '@/components/ui/Icon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import DetailActions from '@/components/admin/DetailActions.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
+import SelectWithCustom from '@/components/admin/SelectWithCustom.vue'
+import HelpTip from '@/components/ui/HelpTip.vue'
+import AppSwitch from '@/components/ui/AppSwitch.vue'
 import TagChip from '@/components/ui/TagChip.vue'
 import TagPicker from '@/components/admin/TagPicker.vue'
 import FormSection from '@/components/admin/FormSection.vue'
@@ -19,6 +22,7 @@ import AiPanel from '@/components/admin/AiPanel.vue'
 import DovikUrlImport from '@/components/admin/DovikUrlImport.vue'
 import DovikSocialPost from '@/components/admin/DovikSocialPost.vue'
 import RelationPicker from '@/components/admin/RelationPicker.vue'
+import { galleriesForEvent, galleryCover } from '@/data/mockGalleries'
 import GalleryField from '@/components/admin/GalleryField.vue'
 import ContentBuilder from '@/components/admin/ContentBuilder.vue'
 import { LANGS, SOURCE_LANG, defaultContentBlocks } from '@/data/types'
@@ -85,7 +89,6 @@ function clone(): DovEvent {
     areaIds: [],
     tourIds: [],
     colosseumEventId: '',
-    galleryIds: [],
     gallery: [],
     published: false,
     // Nová akce: každá mutace půjde živě, jakmile dostane obsah.
@@ -94,6 +97,9 @@ function clone(): DovEvent {
 }
 const form = reactive<DovEvent>(clone())
 const activeLang = ref<LangCode>('cs')
+/** Alba z této akce — vazbu vlastní album (`gallery.eventId`), tady read-only. */
+const eventGalleries = computed(() => galleriesForEvent(form.id))
+
 
 /* Napojení na Colosseum → předvyplnění kapacity a volných míst (posílá Colosseum přes API).
    Reaguje jen na změnu výběru, ne na načtení uložené akce, aby nepřepsalo ručně upravené hodnoty. */
@@ -160,6 +166,13 @@ const ageLimitOptions = [{ value: AGE_NONE, label: 'Bez omezení' }, ...AGE_LIMI
 const ageLimitModel = computed({
   get: () => form.ageLimit || AGE_NONE,
   set: (v: string) => (form.ageLimit = v === AGE_NONE ? '' : v),
+})
+
+/** Akce obsazuje objekt — příznak je v modelu volitelný, formulář ho drží přes proxy
+    (rozhodnutí 00/31). U akce v celém areálu se nenastavuje. */
+const closesVenue = computed({
+  get: () => !!form.closesVenue && !form.wholeArea,
+  set: (v: boolean) => { form.closesVenue = v },
 })
 
 /** Sekce detailu (podtržené záložky). */
@@ -367,17 +380,31 @@ function onDuplicate() {
                 <div class="grid gap-4 sm:grid-cols-2">
                   <div>
                     <label class="mb-1.5 flex items-center justify-between">
-                      <span class="text-[13px] font-600 text-graphite-800">Typ akce</span>
+                      <span class="flex items-center gap-1.5 text-[13px] font-600 text-graphite-800">
+                        Typ akce
+                        <HelpTip text="Typ je zároveň filtr na webu. Když v číselníku chybí, napište vlastní hodnotu." />
+                      </span>
                       <span class="field-tag">event-type</span>
                     </label>
-                    <AppSelect v-model="form.type" :options="typeOptions" />
+                    <SelectWithCustom
+                      v-model="form.type"
+                      :options="typeOptions"
+                      custom-label="— vlastní typ akce…"
+                      input-placeholder="Např. Soukromá akce"
+                    />
                   </div>
                   <div>
                     <label class="mb-1.5 flex items-center justify-between">
                       <span class="text-[13px] font-600 text-graphite-800">Věkové omezení</span>
                       <span class="field-tag">event-age_limit</span>
                     </label>
-                    <AppSelect v-model="ageLimitModel" :options="ageLimitOptions" placeholder="Bez omezení" />
+                    <SelectWithCustom
+                      v-model="ageLimitModel"
+                      :options="ageLimitOptions"
+                      placeholder="Bez omezení"
+                      custom-label="— vlastní hodnota…"
+                      input-placeholder="Např. 6–12 let, do 15 let, 60+"
+                    />
                   </div>
                 </div>
 
@@ -419,6 +446,23 @@ function onDuplicate() {
                 </FormSection>
 
                 <!-- Termín -->
+                <!-- Obsazení objektu (rozhodnutí 00/31, nález 01/15) -->
+                <FormSection
+                  title="Obsazení objektu"
+                  icon="home"
+                  tag="event-closes_venue"
+                  hint="Zapněte u akcí, které objekt po dobu konání uzavírají pro veřejnost (soukromá akce, konference, tábor). Administrace podle toho upozorňuje na dashboardu v „Provozu budov“."
+                >
+                  <AppSwitch
+                    v-model="closesVenue"
+                    label="Akce obsazuje objekt (uzavřen pro veřejnost)"
+                    :disabled="form.wholeArea"
+                    :hint="form.wholeArea
+                      ? 'U akce v celém areálu se obsazení jednoho objektu nenastavuje.'
+                      : 'Po dobu konání se objekt na webu i na dashboardu hlásí jako uzavřený.'"
+                  />
+                </FormSection>
+
                 <FormSection title="Termín" icon="calendar" tag="event-datetime">
                   <div class="grid gap-4 sm:grid-cols-2">
                     <div>
@@ -559,10 +603,39 @@ function onDuplicate() {
                   </div>
                 </FormSection>
 
+                <!-- Vazbu na album vlastní modul Galerie (rozhodnutí 00/44, standard §14a) —
+                     tady se proto jen zrcadlí, needituje. -->
+                <FormSection
+                  title="Alba z této akce"
+                  icon="gallery"
+                  tag="gallery-event_id · read-only"
+                  hint="Vazbu drží album v modulu Galerie („Album z akce“). Tady se jen zrcadlí."
+                >
+                  <ul v-if="eventGalleries.length" class="space-y-1.5">
+                    <li v-for="g in eventGalleries" :key="g.id">
+                      <button
+                        class="flex w-full items-center gap-3 rounded-md border border-steel-200 px-3 py-2 text-left transition-colors hover:border-brand-400 hover:bg-brand-50/40"
+                        @click="router.push({ name: 'gallery-edit', params: { id: g.id } })"
+                      >
+                        <span class="h-8 w-11 shrink-0 overflow-hidden rounded bg-steel-100">
+                          <img v-if="galleryCover(g)" :src="galleryCover(g)" alt="" class="h-full w-full object-cover" />
+                        </span>
+                        <span class="min-w-0 flex-1">
+                          <span class="block truncate text-[13px] font-500 text-graphite-800">{{ g.name.cs }}</span>
+                          <span class="block font-mono text-[11px] text-steel-400">{{ g.photos.length }} fotek</span>
+                        </span>
+                        <Icon name="chevronRight" :size="15" class="shrink-0 text-steel-400" />
+                      </button>
+                    </li>
+                  </ul>
+                  <p v-else class="text-[12.5px] text-steel-400">
+                    Zatím žádné album. Vazbu nastavíte v modulu Galerie u konkrétního albumu.
+                  </p>
+                </FormSection>
+
                 <GalleryField
-                  v-model:galleries="form.galleryIds"
                   v-model:photos="form.gallery"
-                  link-tag="event-gallery_ids"
+                  :linked="false"
                   photos-tag="event-gallery"
                 />
               </TabsContent>
