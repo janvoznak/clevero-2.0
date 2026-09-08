@@ -9,6 +9,7 @@ import EventsList from './views/events/EventsList.vue'
 import EventDetail from './views/events/EventDetail.vue'
 import EventWizard from './views/events/EventWizard.vue'
 import InfoBarEdit from './views/infobar/InfoBarEdit.vue'
+import ContactsManager from './views/contacts/ContactsManager.vue'
 import NavigationManager from './views/navigation/NavigationManager.vue'
 import FooterManager from './views/footer/FooterManager.vue'
 import GrantsList from './views/grants/GrantsList.vue'
@@ -72,6 +73,7 @@ const router = createRouter({
         { path: 'admin/events/new', name: 'event-new', component: EventWizard },
         { path: 'admin/events/:id', name: 'event-detail', component: EventDetail, props: true },
         { path: 'admin/infobar', name: 'infobar', component: InfoBarEdit },
+        { path: 'admin/contacts', name: 'contacts', component: ContactsManager },
         { path: 'admin/navigation', name: 'navigation', component: NavigationManager },
         { path: 'admin/footer', name: 'footer', component: FooterManager },
         { path: 'admin/grants', name: 'grants-list', component: GrantsList },
