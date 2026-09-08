@@ -248,9 +248,9 @@ Plná šířka `px-8 py-6`. Skladba shora dolů:
 
 ### Edit/Detail obrazovka (`<Modul>Edit.vue`) — vzor dle `NewsEdit.vue`
 Dvousloupcový layout `xl:grid-cols-[minmax(0,1fr)_360px]`, plná šířka `px-8`.
-- ⚠️ **Vícejazyčnost je POVINNÁ pro každý obsahový modul** (Aktuality, Kalendář akcí, Blog, Stránky…). Texty určené pro web (název, shrnutí, popis, SEO) jsou vždy `ML` (CZ/EN/DE/PL) — **nikdy nedělej obsahový modul jednojazyčně.** Nejazykové údaje (datum, budova, typ, cena, obrázek) `ML` nejsou. Stejný vzor jako Aktuality: jazykový přepínač `Tabs` v hlavičce + karta „Jazykové mutace" v railu + „Přeložit z CZ přes AI". V seznamu/kalendáři se zobrazuje CZ (`.cs`). Mock data: píšeš jen CZ, `ML` doplní normalizace (`ml()`/`toML()`).
+- ⚠️ **Vícejazyčnost je POVINNÁ pro každý obsahový modul** (Aktuality, Kalendář akcí, Blog, Stránky…). Texty určené pro web (název, shrnutí, popis) jsou vždy `ML` (CZ/EN/DE/PL) — **nikdy nedělej obsahový modul jednojazyčně.** Nejazykové údaje (datum, budova, typ, cena, obrázek) `ML` nejsou. Stejný vzor jako Aktuality: jazykový přepínač `Tabs` v hlavičce + karta „Jazykové mutace" v railu + „Přeložit z CZ přes AI". V seznamu/kalendáři se zobrazuje CZ (`.cs`). Mock data: píšeš jen CZ, `ML` doplní normalizace (`ml()`/`toML()`).
 - **Sticky hlavička**: zpět, cesta+nadpis, přepínač **jazykových mutací** (Reka `Tabs`, **pilulkový** styl), `Zrušit` + `Uložit` (`AppButton`).
-- **Levý sloupec = obsahové sekce v záložkách** (Reka `Tabs` + `TabsContent`): Základní informace / Fotogalerie / Přílohy / Marketing (SEO)… v jedné kartě. Zkracuje scrollování a zaostřuje pozornost.
+- **Levý sloupec = obsahové sekce v záložkách** (Reka `Tabs` + `TabsContent`): Základní informace / Obsah / Fotogalerie / Přílohy… v jedné kartě. **SEO sekce se nedělá** — titulek i popisek se odvozují z názvu a perexu a v administraci se nepřepisují (revize administrace, rozhodnutí 00/24); meta pole proto v modelech nejsou. Zkracuje scrollování a zaostřuje pozornost.
   - ⚠️ **Dvě roviny záložek se MUSÍ vizuálně lišit**, aby nevznikla záměna: **jazyk = pilulky** v hlavičce, **sekce = podtržené záložky** na jemném pruhu (`bg-steel-50/60`). Nikdy obojí stejným stylem.
   - Aktivní záložka sekce musí být **dostatečně viditelná**: podbarvení `bg-brand-50` + `text-brand-700` + spodní linka `border-b-2 border-brand-500` (samotné podtržení je málo — snadno se přehlédne).
   - Jazyk je globální (přepíná napříč všemi sekcemi), sekce je lokální (co je vidět). Jsou to ortogonální osy — proto jeden ovladač nahoře + záložky v kartě.
@@ -333,6 +333,7 @@ AI má klientům usnadnit práci; v prototypu je ale vždy jen **UI + předstír
 - **Jazyky: CZ (zdroj) + EN, DE, PL.** ML pole = `Record<LangCode,string>` (všechny jazyky přítomné). V mock datech stačí uvést jen některé — zbytek doplní normalizace (`toML` v `mockNews.ts`), takže literály nemusí vypisovat prázdné jazyky.
 - Per modul `data/mock<Modul>.ts`: pole `MOCK_<MODUL>`, odvozovací helpery (stav, obrázek) a `STATE_META`.
 - Entita = interface s ML poli jako `ML` a kolekcemi (galerie, přílohy) jako pole objektů s `id`.
+- **Žádná mrtvá pole.** Co administrace needituje a web nezobrazuje, do modelu nepatří — model prototypu je zároveň zadáním pro vývojáře. Která pole zůstávají a která padla, je v [`docs/revize/rozhodnuti.md`](revize/rozhodnuti.md).
 
 ---
 
@@ -376,8 +377,10 @@ Každá vazba má **jednoho vlastníka** (modul, v jehož detailu se nastavuje).
 | Prohlídka → objekt (místo konání) | Prohlídky (detail prohlídky) | Areál („nabízené prohlídky") | `tour.areaId` (jeden) |
 | Akce → prohlídky | Kalendář akcí (detail akce) | Prohlídky | `event.tourIds` (více) |
 | Novinka → prohlídky | Novinky (detail novinky) | Prohlídky | `news.tourIds` (více) |
-| Akce → galerie | Kalendář akcí (detail akce, záložka Galerie) | Galerie | `event.galleryIds` (více) |
 | Galerie → objekt | Galerie (detail galerie) | Areál („fotogalerie objektu") | `gallery.areaId` (jeden) |
+| Galerie → akce | Galerie (detail alba, „Album z akce") | Kalendář akcí (záložka Galerie, read-only) | `gallery.eventId` (jeden) |
+
+> **Vazbu album ↔ akce vlastní album.** Dřívější `event.galleryIds` byl zrušen (revize administrace, rozhodnutí 00/44, nález 03/08): směr vazby se rozcházel — u budov ji vlastnilo album, u akcí naopak akce. Teď ji drží vždy album (`gallery.eventId`, nastavuje se v Galerii); v detailu akce se alba jen zrcadlí read-only. U akce zůstávají **vlastní fotky** (`event.gallery`), ne výběr existujících alb.
 
 > **Nabízené prohlídky u objektu se needitují — jsou odvozené.** Dřívější `venue.tourIds` byl zrušen: „nabízené prohlídky" = všechny prohlídky, které mají daný objekt jako **místo konání** (`tour.areaId`). Jediný zdroj pravdy je tedy `tour.areaId` (nastavuje se v Prohlídkách); Areál je jen zrcadlí (read-only). Tím zmizela dvojí správa i riziko rozporu.
 
@@ -439,7 +442,7 @@ Nová „kategorizace" → nejdřív ověř, že nespadá pod jeden z těchto č
 Vazba se ukládá **jednosměrně** u odkazujícího (§14a). Cílový záznam proto vazby **neukládá** — zpětné vazby („kde se na tento záznam odkazuje") se **dopočítávají read-only** z existujících dat. Zdroj pravdy zůstává u odkazujícího; cíl je jen zrcadlí a proklikává.
 
 - **Jedno řešení pro všechny cíle:** helper `src/data/backrefs.ts` (`backRefsForTour` / `backRefsForArea` / `backRefsForGallery`) + sdílená karta `admin/BackRefsCard.vue`.
-- **Kam patří:** do editoru cíle odkazů — Prohlídka (← aktuality, události), Areál (← aktuality, události, prohlídky, galerie), Galerie (← aktuality, události, stránky, produkty, areál).
+- **Kam patří:** do editoru cíle odkazů — Prohlídka (← aktuality, události), Areál (← aktuality, události, prohlídky, galerie), Galerie (← aktuality, stránky, areál). Akce mezi zpětnými vazbami galerie nejsou — vazbu vlastní album (§14a) a v detailu akce se zrcadlí přímo. Produkty tam nejsou — připojené galerie u produktu byly zrušeny (rozhodnutí revize 00/38).
 - **Needitovat na cílové straně** — karta jen zobrazuje a proklikává; přidání/odebrání vazby se dělá v odkazujícím záznamu.
 - Kategorie (prohlídek, galerií, produktů) svoje „děti" ukazují jako parent→child (`toursForCategory` apod.) — to je jiný vztah než zpětná vazba.
 

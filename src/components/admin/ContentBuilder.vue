@@ -27,6 +27,13 @@ function isTextKind(kind: string): boolean {
   return TEXT_KINDS.has(kind)
 }
 
+/* Vzory s nadpisem — jen ty mají „Menší nadpis" nad nadpisem
+   (rozhodnutí 00/48, nález 04/06). */
+const HEADING_KINDS = new Set(['hero', 'h1-text', 'h2-text', 'about'])
+function isHeadingKind(kind: string): boolean {
+  return HEADING_KINDS.has(kind)
+}
+
 const aiOpenId = ref('')
 const aiPrompt = ref('')
 const aiBusy = ref(false)
@@ -235,9 +242,24 @@ function resetDnd() {
             </button>
           </div>
 
+          <!-- Menší nadpis (jen vzory s nadpisem) -->
+          <div v-if="isHeadingKind(block.kind)" class="flex items-center gap-2 border-b border-dashed border-steel-200 px-4 pb-2.5 pt-3">
+            <label class="shrink-0 text-[11.5px] font-600 text-steel-500" :for="`eyebrow-${block.id}`">Menší nadpis</label>
+            <input
+              :id="`eyebrow-${block.id}`"
+              v-model="block.eyebrow"
+              type="text"
+              draggable="false"
+              placeholder="Nepovinný text nad nadpisem"
+              class="h-8 min-w-0 flex-1 rounded border border-steel-200 px-2.5 text-[12.5px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none"
+              @dragstart.prevent
+            />
+            <span class="field-tag shrink-0">block-eyebrow</span>
+          </div>
+
           <!-- Náhled vzoru -->
           <div class="rounded-md px-4 py-4 transition-colors group-hover:bg-steel-50/50">
-            <GraphicPattern :kind="block.kind" :text="block.text" />
+            <GraphicPattern :kind="block.kind" :text="block.text" :eyebrow="block.eyebrow" />
           </div>
         </div>
       </div>

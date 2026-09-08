@@ -4,7 +4,6 @@ import { MOCK_TOURS } from './mockTours'
 import { MOCK_GALLERIES } from './mockGalleries'
 import { MOCK_VENUES } from './mockVenues'
 import { MOCK_PAGES } from './mockPages'
-import { MOCK_PRODUCTS } from './mockProducts'
 
 /* ============================================================
    Zpětné vazby (kdo na tento záznam odkazuje) — sjednotné napříč moduly.
@@ -59,17 +58,16 @@ export function backRefsForArea(id: string): BackRefGroup[] {
   ]
 }
 
-/* ---------- Galerie ← aktuality, události, stránky, produkty, areál ---------- */
+/* ---------- Galerie ← aktuality, stránky, areál ----------
+   Produkty tu nejsou: připojené galerie u produktu byly odebrány (rozhodnutí 00/38).
+   Akce tu nejsou: vazbu album ↔ akce vlastní album (`gallery.eventId`, rozhodnutí 00/44)
+   — v detailu akce se zrcadlí přes `galleriesForEvent`. */
 export function backRefsForGallery(id: string): BackRefGroup[] {
   return [
     ...group('news', 'Aktuality', 'news',
       MOCK_NEWS.filter((n) => (n.galleryIds ?? []).includes(id)).map((n) => ({ id: n.id, title: T(n.title), routeName: 'news-edit' }))),
-    ...group('events', 'Události', 'calendar',
-      MOCK_EVENTS.filter((e) => (e.galleryIds ?? []).includes(id)).map((e) => ({ id: e.id, title: T(e.title), routeName: 'event-detail' }))),
     ...group('pages', 'Stránky', 'page',
       MOCK_PAGES.filter((p) => (p.galleryIds ?? []).includes(id)).map((p) => ({ id: p.id, title: T(p.title), routeName: 'page-edit' }))),
-    ...group('products', 'Produkty', 'box',
-      MOCK_PRODUCTS.filter((p) => (p.galleryIds ?? []).includes(id)).map((p) => ({ id: p.id, title: p.nameOverride.cs || p.name, routeName: 'product-edit' }))),
     ...group('area', 'Areál', 'map',
       MOCK_VENUES.filter((v) => (v.galleryIds ?? []).includes(id)).map((v) => ({ id: v.id, title: T(v.title), routeName: 'area-edit' }))),
   ]

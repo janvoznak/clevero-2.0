@@ -97,21 +97,30 @@ export interface AreaObject {
   published: boolean
   /** Zveřejněné jazykové mutace (které se na webu zobrazí). Bez seznamu = všechny vyplněné. */
   publishedLangs?: LangCode[]
-  /** Hlavní přidružená stránka objektu (ID z modulu Stránky). Kořen skupiny
-      přidružených stránek (hlavní stránka + podstránky + externí odkazy),
-      která se zobrazí jako záložky v detailu budovy. */
-  mainPageId?: string
-  /** Individuální záložky přidružených stránek (kopírují záložky na FE webu) —
-      zobrazí se v detailu budovy za záložkou Galerie. Každá má vlastní obsah
-      (blokový editor). Per budova. */
+  /* Vazba na modul Stránky (`mainPageId`) byla z modelu odstraněna — obsah
+     záložek drží budova sama (rozhodnutí 00/17, nález 02/11). */
+  /** Záložky budovy (kopírují záložky na FE webu) — zobrazí se v detailu budovy
+      za záložkou Galerie. Redakce je spravuje (přidat, přejmenovat, přeskládat,
+      smazat, přepnout na externí odkaz). Per budova. */
   pageTabs?: AreaPageTab[]
 }
 
-/** Jedna přidružená záložka budovy — kopíruje záložku na FE webu; má vlastní obsah. */
+/** Typ záložky budovy (rozhodnutí 00/06 a 00/15, nálezy 02/06 a 02/09):
+    - `content`  — vlastní obsah v content builderu (výchozí u nové záložky),
+    - `tours`    — automatický výpis prohlídek objektu (nic se nezadává),
+    - `external` — odkaz na jiný web (otevře se v novém okně). */
+export type AreaTabKind = 'content' | 'tours' | 'external'
+
+/** Jedna záložka budovy — kopíruje záložku na FE webu. */
 export interface AreaPageTab {
-  /** Název záložky (např. Expozice, Vstupenky, Pro školy). */
-  label: string
-  /** Obsah záložky — blokový editor (ContentBuilder). */
+  id: string
+  /** Název záložky na webu (např. Expozice, Prohlídky, Pro školy). */
+  label: ML
+  /** Typ záložky — určuje, co se v ní na webu objeví. */
+  kind: AreaTabKind
+  /** Cílová adresa u záložky typu `external`. */
+  externalUrl?: string
+  /** Obsah záložky (jen u typu `content`) — content builder. */
   contentBlocks: ContentBlock[]
 }
 
@@ -147,10 +156,8 @@ type RawVenue = {
   publishedLangs?: LangCode[]
   stats?: VenueStat[]
   photos?: GalleryImage[]
-  /** Hlavní přidružená stránka objektu (ID z modulu Stránky). */
-  mainPageId?: string
-  /** Individuální záložky přidružených stránek (kopírují jejich názvy). */
-  pageTabs?: string[]
+  /** Vlastní sada záložek budovy (bez uvedení = výchozí sada podle webu). */
+  pageTabs?: { label: string; kind?: AreaTabKind; externalUrl?: string }[]
 }
 
 /** Základní fotky objektu (prototyp — placeholdery přes imageFor). */
@@ -361,15 +368,38 @@ const RAW: RawVenue[] = [
   },
 ]
 
-/** Výchozí záložky přidružených stránek — kopírují záložky na FE webu.
-    Stejné pro všechny budovy (lze přepsat per budova polem RawVenue.pageTabs). */
-export const DEFAULT_PAGE_TAB_LABELS = ['Expozice', 'Vstupenky', 'Pro školy']
+/** Výchozí sada záložek budovy — kopíruje záložky na FE webu (nález 02/10).
+    „Galerie" je samostatná fixní záložka administrace, proto tu není.
+    Lze přepsat per budova polem `RawVenue.pageTabs`. */
+export const DEFAULT_PAGE_TABS: { label: string; kind?: AreaTabKind; externalUrl?: string }[] = [
+  { label: 'Expozice' },
+  { label: 'Doprovodný program' },
+  { label: 'Prohlídky', kind: 'tours' },
+  { label: 'Výjezdní akce' },
+  { label: 'Letní tábory' },
+  { label: 'Pro školy', kind: 'external', externalUrl: 'https://www.dolnivitkovice.cz/pro-skoly/' },
+]
 /** Sestaví záložky s vlastní výchozí sadou bloků (unikátní ID přes index). */
-function makePageTabs(labels: string[]): AreaPageTab[] {
-  return labels.map((label, i) => ({
-    label,
-    contentBlocks: defaultContentBlocks().map((b) => ({ ...b, id: `${b.id}-pt${i}` })),
+function makePageTabs(defs: { label: string; kind?: AreaTabKind; externalUrl?: string }[], venueId: string): AreaPageTab[] {
+  return defs.map((d, i) => ({
+    id: `${venueId}-tab${i}`,
+    label: ml(d.label),
+    kind: d.kind ?? 'content',
+    externalUrl: d.externalUrl,
+    contentBlocks:
+      (d.kind ?? 'content') === 'content'
+        ? defaultContentBlocks().map((b) => ({ ...b, id: `${b.id}-${venueId}-pt${i}` }))
+        : [],
   }))
+}
+/** Nová prázdná záložka (obsahová — viz standard: nová záložka = content builder). */
+export function blankPageTab(seq: number): AreaPageTab {
+  return {
+    id: `tab-new-${seq}`,
+    label: ml(''),
+    kind: 'content',
+    contentBlocks: defaultContentBlocks().map((b) => ({ ...b, id: `${b.id}-new${seq}` })),
+  }
 }
 
 export const MOCK_VENUES: AreaObject[] = RAW.map((r) => ({
@@ -393,10 +423,8 @@ export const MOCK_VENUES: AreaObject[] = RAW.map((r) => ({
   closureReason: r.closureReason,
   closureEventId: r.closureEventId,
   publishedLangs: r.publishedLangs,
-  mainPageId: r.mainPageId,
-  // Všechny budovy mají stejné záložky (Expozice/Vstupenky/Pro školy), pokud si
-  // budova neurčí vlastní přes RawVenue.pageTabs.
-  pageTabs: makePageTabs(r.pageTabs ?? DEFAULT_PAGE_TAB_LABELS),
+  // Výchozí sada záložek podle webu, pokud si budova neurčí vlastní.
+  pageTabs: makePageTabs(r.pageTabs ?? DEFAULT_PAGE_TABS, r.id),
 }))
 
 /** Vyhledání místa/objektu podle ID (pro kalendář, výpisy, detaily akcí). */
@@ -450,7 +478,7 @@ export function blankVenue(): AreaObject {
     published: false,
     // Nový objekt: každá mutace půjde živě, jakmile dostane obsah.
     publishedLangs: LANGS.map((l) => l.code),
-    // Nová budova má stejné záložky jako ostatní.
-    pageTabs: makePageTabs(DEFAULT_PAGE_TAB_LABELS),
+    // Nová budova startuje s výchozí sadou záložek podle webu.
+    pageTabs: makePageTabs(DEFAULT_PAGE_TABS, 'nova'),
   }
 }

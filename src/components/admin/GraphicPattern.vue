@@ -6,7 +6,7 @@
  */
 import Icon from '@/components/ui/Icon.vue'
 
-defineProps<{ kind: string; text?: string }>()
+defineProps<{ kind: string; text?: string; eyebrow?: string }>()
 
 const LOREM =
   'Areál Dolních Vítkovic patří k unikátním průmyslovým památkám Evropy. Bývalý těžní a hutní komplex se proměnil v živé centrum kultury, vzdělávání a společenského dění.'
@@ -19,12 +19,15 @@ const QUOTE =
 const imgClass =
   'grid w-full place-items-center overflow-hidden rounded bg-gradient-to-br from-amber-500/25 via-brand-100 to-steel-200 text-steel-400/80'
 const textClass = 'text-[13px] leading-relaxed text-steel-600 text-justify'
+/* Menší nadpis nad hlavním nadpisem (rozhodnutí 00/48). */
+const eyebrowClass = 'mb-1 text-[11px] font-600 uppercase tracking-[0.14em] text-brand-600'
 </script>
 
 <template>
   <div class="w-full text-graphite-900">
     <!-- Úvodní nadpis (hero) -->
     <div v-if="kind === 'hero'" class="py-6 text-center">
+      <p v-if="eyebrow?.trim()" :class="eyebrowClass">{{ eyebrow }}</p>
       <h2 class="text-[26px] font-800 leading-tight">Objevte Dolní Vítkovice</h2>
       <p class="mx-auto mt-2 max-w-md text-[13px] text-steel-500">
         Národní kulturní památka a živé centrum kultury v srdci Ostravy.
@@ -36,12 +39,14 @@ const textClass = 'text-[13px] leading-relaxed text-steel-600 text-justify'
 
     <!-- Nadpis 1 + text -->
     <div v-else-if="kind === 'h1-text'">
+      <p v-if="eyebrow?.trim()" :class="eyebrowClass">{{ eyebrow }}</p>
       <h1 class="text-[22px] font-700">Nadpis první úrovně</h1>
       <p class="mt-2" :class="textClass">{{ text?.trim() ? text : LOREM }}</p>
     </div>
 
     <!-- Nadpis 2 + text -->
     <div v-else-if="kind === 'h2-text'">
+      <p v-if="eyebrow?.trim()" :class="eyebrowClass">{{ eyebrow }}</p>
       <h2 class="text-[18px] font-700">Nadpis druhé úrovně</h2>
       <p class="mt-2" :class="textClass">{{ text?.trim() ? text : LOREM }}</p>
     </div>
@@ -53,6 +58,7 @@ const textClass = 'text-[13px] leading-relaxed text-steel-600 text-justify'
 
     <!-- O nás -->
     <div v-else-if="kind === 'about'" class="py-3">
+      <p v-if="eyebrow?.trim()" :class="eyebrowClass">{{ eyebrow }}</p>
       <h2 class="text-[24px] font-800">O nás</h2>
       <p class="mt-0.5 text-[12px] uppercase tracking-wide text-steel-400">Založeno 1828</p>
     </div>

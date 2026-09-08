@@ -49,6 +49,9 @@ export interface ContentBlock {
   kind: string
   /** Text bloku rozepsaný DOVíkem (jinak náhled používá zástupný text). */
   text?: string
+  /** Menší nadpis nad hlavním nadpisem bloku (na webu „eyebrow") —
+      nepovinný, jen u vzorů s nadpisem (rozhodnutí 00/48, nález 04/06). */
+  eyebrow?: string
 }
 /** Výchozí sada bloků pro nový obsah — ContentBuilder nezačíná prázdný. */
 export function defaultContentBlocks(): ContentBlock[] {
@@ -80,10 +83,9 @@ export interface NewsItem {
   videoLink: string
   dateFrom: string | null
   dateTo: string | null
-  metaTitle: ML
-  metaDescription: ML
-  metaKeywords: ML
-  ogImage: string | null
+  /* SEO pole (titulek, popisek, klíčová slova, obrázek pro sdílení) tu nejsou:
+     titulek i popisek se odvozují z názvu a perexu a v administraci se nepřepisují
+     (rozhodnutí 00/24, nález 01/07). */
   gallery: GalleryImage[]
   attachments: Attachment[]
   /** Štítky (průřezové, nezávislé na jazyce) — z předdefinovaných nebo vlastní. */

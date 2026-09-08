@@ -38,7 +38,7 @@ const form = reactive<DovEvent>({
   id: 'nová', title: empty(), subtitle: empty(), type: 'Festival',
   from: '', to: '', time: '', timeTo: '', summary: empty(), description: empty(),
   image: '', price: '', ticketUrl: '', ticketMode: 'external', ageLimit: '', duration: '', performers: '',
-  tags: [], wholeArea: true, areaIds: [], tourIds: [], colosseumEventId: '', galleryIds: [], gallery: [], published: false,
+  tags: [], wholeArea: true, areaIds: [], tourIds: [], colosseumEventId: '', gallery: [], published: false,
   contentBlocks: defaultContentBlocks(),
 })
 
@@ -477,10 +477,10 @@ const canFinish = computed(() => !!form.title.cs.trim() && !!form.from && hasPla
 
         <div class="rounded-2xl border border-steel-200 bg-white p-5">
           <h3 class="mb-3 flex items-center gap-2 text-[13px] font-700 text-graphite-900"><Icon name="gallery" :size="15" class="text-steel-400" /> Galerie</h3>
+          <!-- Vazbu na album vlastní modul Galerie (rozhodnutí 00/44) -->
           <GalleryField
-            v-model:galleries="form.galleryIds"
             v-model:photos="form.gallery"
-            link-tag="event-gallery_ids"
+            :linked="false"
             photos-tag="event-gallery"
           />
         </div>

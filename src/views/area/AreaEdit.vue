@@ -28,7 +28,9 @@ import {
   OPEN_STATE_OPTIONS,
   OPEN_STATE_META,
   blankVenue,
+  blankPageTab,
   type AreaObject,
+  type AreaPageTab,
 } from '@/data/mockVenues'
 import {
   filledLangsOf,
@@ -37,6 +39,7 @@ import {
   toggleLangPublish,
 } from '@/utils/langPublish'
 import { galleriesForVenue } from '@/data/mockGalleries'
+import { toursForVenue } from '@/data/mockTours'
 import BackRefsCard from '@/components/admin/BackRefsCard.vue'
 import { backRefsForArea } from '@/data/backrefs'
 
@@ -83,8 +86,49 @@ const baseSections = computed(() => [
   { value: 'basic', label: basicTabLabel.value, icon: 'page' },
   { value: 'gallery', label: 'Galerie', icon: 'gallery' },
 ])
-/** Individuální záložky přidružených stránek (kopírují záložky na FE webu; obsah = ContentBuilder). */
+/** Záložky budovy (kopírují záložky na FE webu). */
 const pageTabs = computed(() => form.pageTabs ?? [])
+/** Popisek záložky v aktivní mutaci (fallback na češtinu). */
+function tabLabel(t: AreaPageTab): string {
+  return t.label[activeLang.value].trim() || t.label.cs.trim() || 'Bez názvu'
+}
+/** Ikona podle typu záložky. */
+function tabIcon(t: AreaPageTab): string {
+  return t.kind === 'tours' ? 'ticket' : t.kind === 'external' ? 'externalLink' : 'text'
+}
+
+/* ---------- Správa záložek budovy (rozhodnutí 00/06, nález 02/06) ----------
+   Přidat, přejmenovat, přeskládat, smazat, přepnout na externí odkaz.
+   Nová záložka je vždy obsahová (content builder) — viz standard. */
+const TAB_KIND_OPTIONS = [
+  { value: 'content', label: 'Vlastní obsah (content builder)' },
+  { value: 'tours', label: 'Automatický výpis prohlídek' },
+  { value: 'external', label: 'Odkaz na jiný web' },
+]
+let tabSeq = 0
+function addTab() {
+  tabSeq += 1
+  const list = (form.pageTabs ??= [])
+  list.push(blankPageTab(tabSeq))
+  activeSection.value = `pgtab-${list.length - 1}`
+}
+function removeTab(i: number) {
+  const list = form.pageTabs
+  if (!list) return
+  list.splice(i, 1)
+  if (activeSection.value.startsWith('pgtab-')) activeSection.value = 'basic'
+}
+function moveTab(i: number, dir: -1 | 1) {
+  const list = form.pageTabs
+  if (!list) return
+  const j = i + dir
+  if (j < 0 || j >= list.length) return
+  const [moved] = list.splice(i, 1)
+  list.splice(j, 0, moved)
+  activeSection.value = 'basic'
+}
+/** Prohlídky, které se v automatické záložce na webu vypíšou (read-only). */
+const venueTours = computed(() => toursForVenue(form.id))
 
 /* ---------- Silueta objektu (nahrání vlastního SVG) ---------- */
 const svgInput = ref<HTMLInputElement | null>(null)
@@ -225,16 +269,25 @@ function onDuplicate() {
                 <Icon :name="s.icon" :size="16" />
                 {{ s.label }}
               </TabsTrigger>
-              <!-- Individuální záložky přidružených stránek (per budova) -->
+              <!-- Záložky budovy (per budova, spravuje redakce) -->
               <TabsTrigger
                 v-for="(p, i) in pageTabs"
-                :key="`pgtab-${i}`"
+                :key="p.id"
                 :value="`pgtab-${i}`"
                 class="-mb-px inline-flex shrink-0 items-center gap-2 rounded-t-md border-b-2 border-transparent px-4 py-2.5 text-[13px] font-600 text-steel-500 outline-none transition-colors hover:bg-steel-100 hover:text-graphite-800 data-[state=active]:border-brand-500 data-[state=active]:bg-brand-50 data-[state=active]:text-brand-700"
               >
-                <Icon name="text" :size="16" />
-                {{ p.label }}
+                <Icon :name="tabIcon(p)" :size="16" />
+                {{ tabLabel(p) }}
               </TabsTrigger>
+              <!-- Přidat záložku (rozhodnutí 00/06) — nová je vždy obsahová -->
+              <button
+                type="button"
+                class="-mb-px ml-1 inline-flex shrink-0 items-center gap-1.5 self-center rounded-md border border-dashed border-steel-300 px-2.5 py-1.5 text-[12.5px] font-500 text-steel-500 outline-none transition-colors hover:border-brand-400 hover:bg-brand-50/40 hover:text-brand-600"
+                title="Přidat záložku budovy"
+                @click="addTab"
+              >
+                <Icon name="plus" :size="14" /> Záložka
+              </button>
             </TabsList>
 
             <div class="p-5">
@@ -369,7 +422,7 @@ function onDuplicate() {
 
                   <!-- Poznámka k provozu (na web, ML) -->
                   <div class="mt-4">
-                    <MlFieldHeader label="Poznámka k provozu (na web)" :lang="activeLang" tag="area-status_note" hint="Zobrazí se na webu u objektu (nepovinné). Vhodné hlavně při dočasném uzavření nebo sezónním provozu." @translate="translateField('statusNote')" />
+                    <MlFieldHeader label="Poznámka k provozu (na web)" :lang="activeLang" tag="area-status_note" hint="Zobrazí se na webu v horní informační liště (rozhodnutí 00/20). Vhodné hlavně při dočasném uzavření nebo sezónním provozu." @translate="translateField('statusNote')" />
                     <textarea
                       v-model="form.statusNote[activeLang]"
                       rows="2"
@@ -442,14 +495,122 @@ function onDuplicate() {
                 />
               </TabsContent>
 
-              <!-- Sekce: Přidružené záložky budovy (kopírují FE web) — obsah přes ContentBuilder -->
+              <!-- Sekce: Záložky budovy — obsah podle typu záložky (rozhodnutí 00/06 a 00/15) -->
               <TabsContent
                 v-for="(p, i) in pageTabs"
-                :key="`pgtabc-${i}`"
+                :key="`pgtabc-${p.id}`"
                 :value="`pgtab-${i}`"
-                class="outline-none"
+                class="space-y-5 outline-none"
               >
-                <ContentBuilder v-model="p.contentBlocks" />
+                <!-- Název, typ a odebrání záložky -->
+                <FormSection title="Záložka" icon="layout" :tag="`area-page_tab · ${p.id}`">
+                  <div class="space-y-4">
+                    <div class="grid gap-4 sm:grid-cols-2">
+                      <div>
+                        <MlFieldHeader :label="'Název záložky'" :lang="activeLang" tag="tab-label" required />
+                        <input
+                          v-model="p.label[activeLang]"
+                          type="text"
+                          placeholder="Např. Expozice"
+                          class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13.5px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label class="mb-1.5 flex items-center justify-between">
+                          <span class="text-[13px] font-600 text-graphite-800">Typ záložky</span>
+                          <span class="field-tag">tab-kind</span>
+                        </label>
+                        <AppSelect v-model="p.kind" :options="TAB_KIND_OPTIONS" />
+                      </div>
+                    </div>
+
+                    <!-- Externí odkaz -->
+                    <div v-if="p.kind === 'external'">
+                      <label class="mb-1.5 flex items-center justify-between">
+                        <span class="flex items-center gap-1.5 text-[13px] font-600 text-graphite-800">
+                          Adresa odkazu
+                          <HelpTip text="Záložka na webu nevede na obsah, ale na tuto adresu — otevře se v novém okně." />
+                        </span>
+                        <span class="field-tag">tab-external_url</span>
+                      </label>
+                      <input
+                        v-model="p.externalUrl"
+                        type="text"
+                        placeholder="https://…"
+                        class="h-10 w-full rounded-md border border-steel-200 px-3 font-mono text-[12.5px] text-graphite-800 placeholder:font-sans placeholder:text-steel-400 focus:border-brand-500 focus:outline-none"
+                      />
+                    </div>
+
+                    <div class="flex items-center justify-between gap-3 border-t border-steel-100 pt-3">
+                      <div class="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          class="inline-flex items-center gap-1.5 rounded-md border border-steel-200 px-2.5 py-1.5 text-[12.5px] font-500 text-graphite-700 transition-colors hover:border-brand-400 hover:text-brand-600 disabled:opacity-40"
+                          :disabled="i === 0"
+                          @click="moveTab(i, -1)"
+                        >
+                          <Icon name="chevronLeft" :size="14" /> Posunout vlevo
+                        </button>
+                        <button
+                          type="button"
+                          class="inline-flex items-center gap-1.5 rounded-md border border-steel-200 px-2.5 py-1.5 text-[12.5px] font-500 text-graphite-700 transition-colors hover:border-brand-400 hover:text-brand-600 disabled:opacity-40"
+                          :disabled="i === pageTabs.length - 1"
+                          @click="moveTab(i, 1)"
+                        >
+                          Posunout vpravo <Icon name="chevronRight" :size="14" />
+                        </button>
+                      </div>
+                      <button
+                        type="button"
+                        class="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12.5px] font-500 text-danger-500 transition-colors hover:bg-danger-500/10 hover:text-danger-600"
+                        @click="removeTab(i)"
+                      >
+                        <Icon name="trash" :size="14" /> Odebrat záložku
+                      </button>
+                    </div>
+                  </div>
+                </FormSection>
+
+                <!-- Obsah podle typu -->
+                <ContentBuilder v-if="p.kind === 'content'" v-model="p.contentBlocks" />
+
+                <!-- Automatický výpis prohlídek (rozhodnutí 00/15, nález 02/09) -->
+                <FormSection
+                  v-else-if="p.kind === 'tours'"
+                  title="Automatický výpis prohlídek"
+                  icon="ticket"
+                  tag="tour-area_id · read-only"
+                  hint="Záložku plní modul Prohlídky — vypíšou se všechny prohlídky, které mají tento objekt jako místo konání. Tady se nic nezadává."
+                >
+                  <ul v-if="venueTours.length" class="space-y-1.5">
+                    <li
+                      v-for="t in venueTours"
+                      :key="t.id"
+                      class="flex items-center justify-between gap-3 rounded-md border border-steel-200 px-3 py-2"
+                    >
+                      <span class="min-w-0">
+                        <span class="block truncate text-[13px] font-500 text-graphite-800">{{ t.title.cs }}</span>
+                        <span class="block font-mono text-[11px] text-steel-400">{{ t.duration }}</span>
+                      </span>
+                      <button
+                        type="button"
+                        class="shrink-0 text-[12px] font-500 text-brand-600 hover:underline"
+                        @click="router.push({ name: 'tour-edit', params: { id: t.id } })"
+                      >
+                        Otevřít
+                      </button>
+                    </li>
+                  </ul>
+                  <p v-else class="text-[12.5px] text-steel-400">
+                    Žádná prohlídka nemá tento objekt jako místo konání — záložka by na webu zůstala prázdná.
+                  </p>
+                </FormSection>
+
+                <!-- Externí odkaz -->
+                <p v-else class="flex items-start gap-2 rounded-md border border-steel-200 bg-steel-50 px-3.5 py-3 text-[12.5px] leading-relaxed text-steel-600">
+                  <Icon name="externalLink" :size="15" class="mt-0.5 shrink-0 text-brand-500" />
+                  <span>Záložka vede na jiný web, obsah se v administraci nezadává. Na webu se otevře v novém okně.</span>
+                </p>
               </TabsContent>
             </div>
           </TabsRoot>

@@ -70,6 +70,9 @@ export interface Product {
   /* --- Obsah doplňovaný v CMS (editovatelné) --- */
   /** Přeložený/upravený název pro web (ML). Prázdné = použije se název z Colossea. */
   nameOverride: ML
+  /** Perex na kartu produktu — jediný text, který web ve výpisu ukáže
+      (rozhodnutí 00/03). Na něj je navázaná i kontrola „chybí popis". */
+  perex: ML
   /** Formátovaný popis produktu (richtext, ML). */
   description: ML
   /** Obsah produktu jako bloky (ContentBuilder) — jednotná sekce „Obsah". */
@@ -78,14 +81,11 @@ export interface Product {
   gallery: GalleryImage[]
   /** Členění — ID kategorií produktů (naše taxonomie v CMS). */
   categoryIds: string[]
-  /** Připojené fotogalerie (ID z modulu Galerie). */
-  galleryIds?: string[]
   /** Část URL (slug) — ML. Titulek/meta se odvozují automaticky. */
   slug?: ML
   /** Odkaz do košíku Colossea (websale). Na webu z něj je tlačítko „Do košíku". */
   cartUrl: string
-  metaTitle: ML
-  metaDescription: ML
+  /* SEO pole tu nejsou — titulek i popisek se odvozují (rozhodnutí 00/24). */
   /** Zveřejněno na webu (řídí se v CMS, nezávisle na dostupnosti v Colosseu). */
   published: boolean
 }
@@ -126,13 +126,12 @@ export const MOCK_PRODUCT_CATEGORIES: ProductCategory[] = [
 
 type RawProduct = Omit<
   Product,
-  'nameOverride' | 'description' | 'metaTitle' | 'metaDescription' | 'gallery'
+  'nameOverride' | 'perex' | 'description' | 'gallery'
 > & {
   gallery?: GalleryImage[]
   nameOverride?: Partial<Record<LangCode, string>>
+  perex?: Partial<Record<LangCode, string>>
   description?: Partial<Record<LangCode, string>>
-  metaTitle?: Partial<Record<LangCode, string>>
-  metaDescription?: Partial<Record<LangCode, string>>
 }
 
 function toML(m?: Partial<Record<LangCode, string>>): ML {
@@ -151,6 +150,7 @@ const RAW_PRODUCTS: RawProduct[] = [
     importedAt: '2026-03-12T09:00',
     syncedAt: '2026-08-05T06:30',
     nameOverride: { cs: 'Magnetka Bolt Tower' },
+    perex: { cs: 'Sběratelská kovová magnetka s dominantou areálu — Bolt Tower.' },
     description: {
       cs: '<p>Sběratelská magnetka s dominantou areálu — <strong>Bolt Tower</strong>. Kovová, průměr 55 mm.</p>',
     },
@@ -169,6 +169,7 @@ const RAW_PRODUCTS: RawProduct[] = [
     importedAt: '2026-03-12T09:00',
     syncedAt: '2026-08-05T06:30',
     nameOverride: { cs: 'Hrnek Vysoká pec č. 1' },
+    perex: { cs: 'Keramický hrnek s motivem vysoké pece č. 1.' },
     description: {
       cs: '<p>Keramický hrnek s motivem Vysoké pece č. 1. Objem 330 ml, vhodný do myčky.</p>',
     },
@@ -187,6 +188,7 @@ const RAW_PRODUCTS: RawProduct[] = [
     importedAt: '2026-02-01T09:00',
     syncedAt: '2026-08-05T06:30',
     nameOverride: { cs: 'Vítkovice — příběh železa' },
+    perex: { cs: 'Obrazová publikace o historii vítkovických železáren.' },
     description: {
       cs: '<p>Reprezentativní obrazová publikace mapující více než 180 let historie vítkovických železáren. 240 stran, pevná vazba.</p>',
     },
@@ -205,6 +207,7 @@ const RAW_PRODUCTS: RawProduct[] = [
     importedAt: '2026-04-20T09:00',
     syncedAt: '2026-08-05T06:30',
     nameOverride: { cs: 'Dárkový voucher — Vysokopecní okruh' },
+    perex: { cs: 'Dárkový voucher na komentovanou prohlídku areálu.' },
     description: {
       cs: '<p>Darujte zážitek. Voucher lze uplatnit na <strong>Vysokopecní okruh vč. Bolt Tower</strong>. Platnost 12 měsíců od zakoupení.</p>',
     },
@@ -268,6 +271,7 @@ const RAW_PRODUCTS: RawProduct[] = [
     importedAt: '2026-05-15T09:00',
     syncedAt: '2026-08-05T06:30',
     nameOverride: { cs: 'Jak se rodí železo' },
+    perex: { cs: 'Ilustrovaná knížka o výrobě železa pro děti od 6 let.' },
     description: { cs: '<p>Ilustrovaná dětská knížka, která hravou formou vysvětlí výrobu železa. Pro děti od 6 let.</p>' },
     categoryIds: ['pc-publikace'],
     cartUrl: 'https://websale.colosseum.eu/dov/goods/2085',
@@ -284,6 +288,7 @@ const RAW_PRODUCTS: RawProduct[] = [
     importedAt: '2026-08-05T08:00',
     syncedAt: '2026-08-06T09:00',
     nameOverride: { cs: 'Dárková taška DOV' },
+    perex: { cs: 'Papírová dárková taška s potiskem industriálního areálu.' },
     description: { cs: '<p>Papírová dárková taška s potiskem industriálního areálu Dolních Vítkovic.</p>' },
     categoryIds: ['pc-suvenyry'],
     cartUrl: '',
@@ -296,9 +301,8 @@ export const MOCK_PRODUCTS: Product[] = RAW_PRODUCTS.map((r) => ({
   ...r,
   gallery: (r.gallery ?? []) as GalleryImage[],
   nameOverride: toML(r.nameOverride),
+  perex: toML(r.perex),
   description: toML(r.description),
-  metaTitle: toML(r.metaTitle),
-  metaDescription: toML(r.metaDescription),
 }))
 
 /* ============================================================
@@ -321,7 +325,7 @@ export function displayName(p: Product): string {
 
 /** Má produkt vyplněný popis (v češtině)? Bez popisu = kandidát na nástěnku. */
 export function hasDescription(p: Product): boolean {
-  return p.description.cs.replace(/<[^>]+>/g, '').trim().length > 0
+  return p.perex.cs.trim().length > 0
 }
 
 /** „Čerstvě importovaný" = naimportováno v posledních 7 dnech. */

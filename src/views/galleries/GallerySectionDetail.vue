@@ -8,7 +8,6 @@ import DetailActions from '@/components/admin/DetailActions.vue'
 import AppSwitch from '@/components/ui/AppSwitch.vue'
 import FormSection from '@/components/admin/FormSection.vue'
 import PublishCard from '@/components/admin/PublishCard.vue'
-import RichTextEditor from '@/components/admin/RichTextEditor.vue'
 import RowActionsMenu from '@/components/admin/RowActionsMenu.vue'
 import LangBar from '@/components/admin/LangBar.vue'
 import MlFieldHeader from '@/components/admin/MlFieldHeader.vue'
@@ -77,7 +76,7 @@ function onToggleLang(code: LangCode) {
 const galleries = computed(() => (isEdit.value ? galleriesInSection(props.id!) : []))
 
 /* ---------- AI překlad mutací (prototyp) — sdílené řešení ---------- */
-const mlFields: (keyof GallerySection)[] = ['name', 'description']
+const mlFields: (keyof GallerySection)[] = ['name']
 const { translating, toast, translateLang, translateField } = useMlTranslate(form, mlFields)
 
 const saved = ref(false)
@@ -107,10 +106,6 @@ const galleryActions = [
 function onGalleryAction(key: string, g: Gallery) {
   if (key === 'edit') goGallery(g.id)
   // delete v prototypu na této obrazovce neřešíme
-}
-function fmtDate(d: string | null): string {
-  if (!d) return '—'
-  return new Date(d).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'numeric', year: 'numeric' })
 }
 </script>
 
@@ -178,23 +173,16 @@ function fmtDate(d: string | null): string {
                   <MlFieldHeader label="Název sekce" :lang="activeLang" tag="section-name" required @translate="translateField('name')" />
                   <input v-model="form.name[activeLang]" type="text" placeholder="Např. Fotografie atraktivit" class="h-11 w-full rounded-md border border-steel-200 px-3.5 text-[15px] font-500 text-graphite-900 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
                 </div>
-                <div>
-                  <MlFieldHeader label="Popis sekce" :lang="activeLang" tag="section-description" :overlay="false" @translate="translateField('description')" />
-                  <RichTextEditor v-model="form.description[activeLang]" ai="dovik" />
-                </div>
-                <div>
-                  <label class="mb-1.5 flex items-center justify-between">
-                    <span class="text-[13px] font-600 text-graphite-800">Náhledový obrázek</span>
-                    <span class="field-tag">section-cover</span>
-                  </label>
-                  <div class="flex items-center gap-4">
-                    <span class="h-20 w-28 shrink-0 overflow-hidden rounded-lg bg-steel-100">
-                      <img v-if="form.cover" :src="form.cover" alt="" class="h-full w-full object-cover" />
-                      <span v-else class="grid h-full w-full place-items-center text-steel-400"><Icon name="image" :size="20" /></span>
-                    </span>
-                    <button class="inline-flex items-center gap-2 rounded-md border border-dashed border-steel-300 px-3 py-2 text-[12.5px] font-500 text-graphite-700 transition-colors hover:border-brand-400 hover:bg-brand-50/40 hover:text-brand-600"><Icon name="upload" :size="15" /> Nahrát</button>
-                  </div>
-                </div>
+                <!-- Popis ani náhledový obrázek sekce tu nejsou: sekce je na webu jen
+                     filtrovací záložka nad výpisem (rozhodnutí 00/41). -->
+                <p class="flex items-start gap-2 rounded-md border border-steel-200 bg-steel-50 px-3.5 py-3 text-[12.5px] leading-relaxed text-steel-600">
+                  <Icon name="filter" :size="15" class="mt-0.5 shrink-0 text-brand-500" />
+                  <span>
+                    <span class="font-600 text-graphite-800">Sekce je jen filtrovací záložka nad výpisem galerií.</span>
+                    Vlastní stránku na webu nemá — proto se u ní nezadává popis ani náhledový obrázek.
+                    Zveřejnění po jazycích ale platí (vpravo).
+                  </span>
+                </p>
               </TabsContent>
 
               <!-- Sekce: Galerie v sekci -->
@@ -212,7 +200,6 @@ function fmtDate(d: string | null): string {
                         <tr class="border-b border-steel-200 bg-steel-50 text-[11px] uppercase tracking-wider text-steel-500">
                           <th class="px-3 py-2.5 font-600">Galerie</th>
                           <th class="w-24 px-2 py-2.5 font-600">Fotek</th>
-                          <th class="w-32 px-2 py-2.5 font-600">Datum</th>
                           <th class="w-28 px-2 py-2.5 font-600">Stav</th>
                           <th class="w-12 px-2 py-2.5 text-right font-600"></th>
                         </tr>
@@ -229,7 +216,6 @@ function fmtDate(d: string | null): string {
                             </button>
                           </td>
                           <td class="px-2 py-2.5 align-middle text-[13px] text-graphite-700 tabular-nums">{{ galleryCount(g) }}</td>
-                          <td class="px-2 py-2.5 align-middle text-[13px] text-graphite-700 tabular-nums">{{ fmtDate(g.date) }}</td>
                           <td class="px-2 py-2.5 align-middle">
                             <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-600" :class="[GALLERY_STATE_META[galleryState(g)].bg, GALLERY_STATE_META[galleryState(g)].text]">
                               <span class="h-1.5 w-1.5 rounded-full" :class="GALLERY_STATE_META[galleryState(g)].dot" />

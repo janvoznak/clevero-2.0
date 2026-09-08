@@ -56,6 +56,7 @@ function clone(): PageItem {
     section: parent?.section ?? sectionFromQuery ?? 'menu',
     parentId,
     title: empty(),
+    eyebrow: empty(),
     slug: empty(),
     perex: empty(),
     text: empty(),
@@ -73,11 +74,6 @@ function clone(): PageItem {
     inquiryFormType: 'none',
     contactForm: 'none',
     contactFormText: empty(),
-    metaTitle: empty(),
-    metaDescription: empty(),
-    metaKeywords: empty(),
-    canonicalUrl: empty(),
-    allowIndexing: true,
     gallery: [],
     galleryIds: [],
     attachments: [],
@@ -142,7 +138,7 @@ function onDuplicate() {
 }
 
 /* ---------- AI překlad mutací (prototyp) — sdílené řešení ---------- */
-const mlFields: (keyof PageItem)[] = ['title', 'perex', 'text', 'contactFormText']
+const mlFields: (keyof PageItem)[] = ['title', 'eyebrow', 'perex', 'text', 'contactFormText']
 const { translating, toast, translateLang, translateField } = useMlTranslate(form, mlFields)
 </script>
 
@@ -224,6 +220,22 @@ const { translating, toast, translateLang, translateField } = useMlTranslate(for
                   Nadpis, perex a text existují samostatně v každé jazykové mutaci.
                   <span class="field-tag rounded bg-steel-100 px-1.5 py-0.5">ML</span>
                 </p>
+                <!-- Menší nadpis nad nadpisem (rozhodnutí 00/48, nález 04/06) -->
+                <div>
+                  <MlFieldHeader
+                    label="Menší nadpis"
+                    :lang="activeLang"
+                    tag="page-eyebrow"
+                    hint="Nepovinný krátký text nad hlavním nadpisem (např. „Sály a objekty k pronájmu“). Stejné pole mají i bloky s nadpisem v obsahu."
+                    @translate="translateField('eyebrow')"
+                  />
+                  <input
+                    v-model="form.eyebrow[activeLang]"
+                    type="text"
+                    placeholder="Nepovinný text nad nadpisem"
+                    class="h-10 w-full rounded-md border border-steel-200 px-3.5 text-[13.5px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none"
+                  />
+                </div>
                 <div>
                   <MlFieldHeader label="Nadpis" :lang="activeLang" tag="page-title" required @translate="translateField('title')" />
                   <input

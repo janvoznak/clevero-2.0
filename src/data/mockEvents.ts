@@ -157,8 +157,6 @@ export interface DovEvent {
   capacity?: number
   /** Aktuálně volných míst — typicky přebráno z napojené akce v Colosseu. */
   freeSpots?: number
-  /** Připojené fotogalerie (ID z modulu Galerie) — např. „fotky z minulého ročníku". */
-  galleryIds: string[]
   /** Fotky nahrané přímo k akci (mimo připojené galerie). */
   gallery?: GalleryImage[]
   published: boolean
@@ -198,7 +196,6 @@ type RawEvent = {
   closesVenue?: boolean
   tourIds?: string[]
   colosseumEventId?: string
-  galleryIds?: string[]
   /** Volitelné jazykové mutace názvu (mimo CZ) — pro demonstraci stavů publikace. */
   titleLangs?: Partial<Record<LangCode, string>>
   /** Které mutace jsou zveřejněné (živě). Nevyplněno = fallback na všechny vyplněné. */
@@ -221,7 +218,7 @@ const RAW_EVENTS: RawEvent[] = [
   { id: 'e-scienceshow', areaIds: ['v-u6'], title: 'Science Show: Živly', type: 'Vzdělávací program', from: '2026-07-29', to: '2026-07-29', time: '15:00', timeTo: '16:00', summary: 'Interaktivní představení o přírodních živlech.', image: imageFor(13), published: true, price: 'Vstup zdarma', duration: '60 min', tags: ['Rodinné', 'Zdarma'] },
   // — Srpen: festivaly a akce (více budov v jeden den) —
   // CZ živě, EN má vyplněný název, ale drží se skryté (připraveno) → amber stav.
-  { id: 'e-plameny', title: 'Ostrava v plamenech 2026', titleLangs: { en: 'Ostrava Ablaze 2026' }, publishedLangs: ['cs'], wholeArea: true, type: 'Festival', from: '2026-08-01', to: '2026-08-01', time: '18:00', summary: 'Ohnivá show a doprovodný program v celém areálu.', image: imageFor(1), published: true, price: 'od 290 Kč', tags: ['Venku', 'Hudba'], galleryIds: ['g-akce'] },
+  { id: 'e-plameny', title: 'Ostrava v plamenech 2026', titleLangs: { en: 'Ostrava Ablaze 2026' }, publishedLangs: ['cs'], wholeArea: true, type: 'Festival', from: '2026-08-01', to: '2026-08-01', time: '18:00', summary: 'Ohnivá show a doprovodný program v celém areálu.', image: imageFor(1), published: true, price: 'od 290 Kč', tags: ['Venku', 'Hudba'] },
   { id: 'e-race', title: 'Race the Streets', wholeArea: true, type: 'Sportovní akce', from: '2026-08-07', to: '2026-08-08', summary: 'Městské závody napříč industriálním areálem.', image: imageFor(2), published: true, tags: ['Sport', 'Venku'] },
   { id: 'e-gongkoncert', colosseumEventId: 'COL-EV-9002', areaIds: ['v-gong'], title: 'Letní koncert v Gongu', type: 'Koncert', from: '2026-08-07', to: '2026-08-07', time: '19:30', summary: 'Večerní koncert v multifunkční aule.', image: imageFor(8), published: true, price: 'od 490 Kč', tags: ['Hudba'] },
   { id: 'e-hopjump', title: 'HopJump večerní jam', areaIds: ['v-hopjump'], type: 'Sportovní akce', from: '2026-08-08', to: '2026-08-08', time: '20:00', summary: 'Trampolínový večer pro všechny věkové kategorie.', image: imageFor(9), published: true, tags: ['Sport', 'Rodinné'] },
@@ -265,13 +262,18 @@ export const MOCK_EVENTS: DovEvent[] = RAW_EVENTS.map((r) => ({
   closesVenue: r.closesVenue ?? false,
   tourIds: r.tourIds ?? [],
   colosseumEventId: r.colosseumEventId ?? '',
-  galleryIds: r.galleryIds ?? [],
   published: r.published,
   publishedLangs: r.publishedLangs,
 }))
 
 /** Barva štítku akce — z předdefinovaných, jinak stabilní z palety (stejná
     logika jako `tagColor` v Aktualitách → shodné barvy v pickeru i výpisu). */
+/** Volby akcí pro AppSelect (výběr akce u albumu v Galerii). */
+export const EVENT_OPTIONS: { value: string; label: string }[] = MOCK_EVENTS.map((e) => ({
+  value: e.id,
+  label: e.title.cs,
+}))
+
 export function eventTagColor(label: string): string {
   const f = PREDEFINED_EVENT_TAGS.find((t) => t.label.toLowerCase() === label.toLowerCase())
   if (f) return f.color

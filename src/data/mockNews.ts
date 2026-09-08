@@ -61,14 +61,11 @@ function makeGallery(count: number, offset = 0): GalleryImage[] {
 type MLInput = Partial<Record<LangCode, string>>
 type RawNews = Omit<
   NewsItem,
-  'title' | 'summary' | 'text' | 'metaTitle' | 'metaDescription' | 'metaKeywords' | 'tourIds' | 'areaId'
+  'title' | 'summary' | 'text' | 'tourIds' | 'areaId'
 > & {
   title: MLInput
   summary: MLInput
   text: MLInput
-  metaTitle: MLInput
-  metaDescription: MLInput
-  metaKeywords: MLInput
   tourIds?: string[]
   areaId?: string
 }
@@ -106,10 +103,6 @@ const RAW: RawNews[] = [
     videoLink: 'https://www.youtube.com/watch?v=dov-bolt-tower',
     dateFrom: '2026-07-01T08:00',
     dateTo: '2026-09-30T20:00',
-    metaTitle: { cs: 'Bolt Tower — letní sezóna | Dolní Vítkovice', en: '', de: '' },
-    metaDescription: { cs: 'Vyhlídka z vrcholu vysoké pece č. 1 v areálu Dolní Vítkovice.', en: '', de: '' },
-    metaKeywords: { cs: 'Bolt Tower, vyhlídka, Ostrava, vysoká pec', en: '', de: '' },
-    ogImage: null,
     gallery: makeGallery(6, 0),
     attachments: [
       { id: 'a1', name: 'tiskova-zprava-bolt-tower.pdf', size: '248 kB', ext: 'pdf', lang: 'cs' },
@@ -134,10 +127,6 @@ const RAW: RawNews[] = [
     videoLink: '',
     dateFrom: '2026-07-15T00:00',
     dateTo: '2026-07-20T23:59',
-    metaTitle: empty,
-    metaDescription: empty,
-    metaKeywords: empty,
-    ogImage: null,
     gallery: makeGallery(4, 2),
     attachments: [{ id: 'a3', name: 'program-gong.pdf', size: '512 kB', ext: 'pdf', lang: 'cs' }],
     tags: ['Festival', 'Akce'],
@@ -154,10 +143,6 @@ const RAW: RawNews[] = [
     videoLink: '',
     dateFrom: '2026-08-01T18:00',
     dateTo: null,
-    metaTitle: empty,
-    metaDescription: empty,
-    metaKeywords: empty,
-    ogImage: null,
     gallery: makeGallery(3, 1),
     attachments: [],
     tags: ['Prohlídky', 'Akce'],
@@ -173,10 +158,6 @@ const RAW: RawNews[] = [
     videoLink: '',
     dateFrom: '2026-05-10T09:00',
     dateTo: '2026-06-30T18:00',
-    metaTitle: empty,
-    metaDescription: empty,
-    metaKeywords: empty,
-    ogImage: null,
     gallery: makeGallery(5, 3),
     attachments: [],
     tags: ['Výstava', 'Pro rodiny'],
@@ -191,10 +172,6 @@ const RAW: RawNews[] = [
     videoLink: '',
     dateFrom: null,
     dateTo: null,
-    metaTitle: empty,
-    metaDescription: empty,
-    metaKeywords: empty,
-    ogImage: null,
     gallery: [],
     attachments: [],
     tags: ['Akce', 'Sezónní'],
@@ -209,10 +186,6 @@ const RAW: RawNews[] = [
     videoLink: '',
     dateFrom: '2026-03-01T10:00',
     dateTo: '2026-03-02T17:00',
-    metaTitle: empty,
-    metaDescription: empty,
-    metaKeywords: empty,
-    ogImage: null,
     gallery: makeGallery(2, 4),
     attachments: [],
     tags: ['Akce', 'Prohlídky'],
@@ -228,9 +201,6 @@ export const MOCK_NEWS: NewsItem[] = RAW.map((r) => ({
   title: toML(r.title),
   summary: toML(r.summary),
   text: toML(r.text),
-  metaTitle: toML(r.metaTitle),
-  metaDescription: toML(r.metaDescription),
-  metaKeywords: toML(r.metaKeywords),
 }))
 
 /** Odvození stavu publikace z časového okna OD–DO vůči „dnešku" prototypu. */

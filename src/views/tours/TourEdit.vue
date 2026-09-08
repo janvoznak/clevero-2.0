@@ -8,6 +8,8 @@ import DetailActions from '@/components/admin/DetailActions.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import RelationPicker from '@/components/admin/RelationPicker.vue'
 import AppSwitch from '@/components/ui/AppSwitch.vue'
+import HelpTip from '@/components/ui/HelpTip.vue'
+import TagPicker from '@/components/admin/TagPicker.vue'
 import FormSection from '@/components/admin/FormSection.vue'
 import PublishCard from '@/components/admin/PublishCard.vue'
 import BackRefsCard from '@/components/admin/BackRefsCard.vue'
@@ -40,6 +42,9 @@ import {
   fmtSlot,
   COLOSSEUM_TOURS,
   colosseumTourById,
+  TOUR_TYPE_OPTIONS,
+  TOUR_DIFFICULTY_OPTIONS,
+  PREDEFINED_TOUR_TAGS,
   type Tour,
   type TourHighlight,
 } from '@/data/mockTours'
@@ -58,6 +63,9 @@ function clone(): Tour {
     c.contentBlocks = c.contentBlocks ?? defaultContentBlocks()
     c.photos = c.photos ?? []
     c.galleryIds = c.galleryIds ?? []
+    c.tags = c.tags ?? []
+    // Volitelné příznaky dostupnosti zhmotnit, aby šly editovat (rozhodnutí 00/08).
+    c.unavailableNote = c.unavailableNote ?? { cs: '', en: '', de: '', pl: '' }
     // Zhmotnit fallback do explicitního seznamu, aby šlo přepínat.
     c.publishedLangs = publishedLangsOf(filledLangsOf(c.title), c.publishedLangs)
     return c
@@ -88,6 +96,23 @@ const slugText = computed({
   },
 })
 const { markManual } = useAutoSlug(() => form.title, () => (form.slug ??= emptyML()))
+
+/* ---------- Dostupnost prohlídky (rozhodnutí 00/08) ----------
+   Příznaky jsou v modelu volitelné (staré záznamy je nemají), formulář s nimi
+   pracuje přes proxy, aby v šabloně nebylo `undefined`. */
+const unavailable = computed({
+  get: () => !!form.unavailable,
+  set: (v: boolean) => { form.unavailable = v },
+})
+const unavailableNote = computed<ML>(() => form.unavailableNote as ML)
+const undated = computed({
+  get: () => !!form.undated,
+  set: (v: boolean) => { form.undated = v },
+})
+const ticketValidity = computed({
+  get: () => form.ticketValidity ?? '',
+  set: (v: string) => { form.ticketValidity = v },
+})
 
 /* ---------- Publikování per jazyk ----------
    Stav prohlídky (PublishCard) řídí, KDY je prohlídka živá; tyto přepínače
@@ -167,7 +192,7 @@ function aiDescribe() {
 }
 
 /* ---------- AI překlad mutací (prototyp) — sdílené řešení ---------- */
-const mlFields: (keyof Tour)[] = ['title', 'perex', 'scheduleNote', 'paymentNote']
+const mlFields: (keyof Tour)[] = ['title', 'perex', 'scheduleNote', 'paymentNote', 'unavailableNote']
 const { translating, translateLang, translateField } = useMlTranslate(form, mlFields)
 
 const toast = ref('')
@@ -274,17 +299,39 @@ function onDuplicate() {
                   <AppSelect v-model="form.categoryId" :options="CATEGORY_OPTIONS" />
                 </div>
 
-                <div class="grid gap-4 sm:grid-cols-[minmax(0,1fr)_180px]">
-                  <div>
-                    <MlFieldHeader label="Perex" :lang="activeLang" tag="tour-perex" @translate="translateField('perex')" />
-                    <textarea v-model="form.perex[activeLang]" rows="2" placeholder="Krátký úvod do výpisu (1–2 věty)" class="w-full resize-y rounded-md border border-steel-200 px-3.5 py-2.5 text-[14px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
-                  </div>
+                <div>
+                  <MlFieldHeader label="Perex" :lang="activeLang" tag="tour-perex" @translate="translateField('perex')" />
+                  <textarea v-model="form.perex[activeLang]" rows="2" placeholder="Krátký úvod do výpisu (1–2 věty)" class="w-full resize-y rounded-md border border-steel-200 px-3.5 py-2.5 text-[14px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
+                </div>
+
+                <!-- Údaje na kartě prohlídky (rozhodnutí 00/01) -->
+                <div class="grid gap-4 sm:grid-cols-3">
                   <div>
                     <label class="mb-1.5 flex items-center justify-between">
                       <span class="text-[13px] font-600 text-graphite-800">Délka</span>
                       <span class="field-tag">tour-duration</span>
                     </label>
                     <input v-model="form.duration" type="text" placeholder="např. 100 minut" class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13.5px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
+                  </div>
+                  <div>
+                    <label class="mb-1.5 flex items-center justify-between">
+                      <span class="flex items-center gap-1.5 text-[13px] font-600 text-graphite-800">
+                        Typ prohlídky
+                        <HelpTip text="Badge na kartě i v detailu na webu a zároveň hodnota filtru. Není to totéž jako kategorie (skupina ve výpisu)." />
+                      </span>
+                      <span class="field-tag">tour-type</span>
+                    </label>
+                    <AppSelect v-model="form.tourType" :options="TOUR_TYPE_OPTIONS" />
+                  </div>
+                  <div>
+                    <label class="mb-1.5 flex items-center justify-between">
+                      <span class="flex items-center gap-1.5 text-[13px] font-600 text-graphite-800">
+                        Náročnost
+                        <HelpTip text="Badge „Schody / vyhlídka“ nebo „Bezbariérové“ na kartě prohlídky. Bezbariérovost se řeší u prohlídky, ne u objektu v Areálu." />
+                      </span>
+                      <span class="field-tag">tour-difficulty</span>
+                    </label>
+                    <AppSelect v-model="form.difficulty" :options="TOUR_DIFFICULTY_OPTIONS" />
                   </div>
                 </div>
 
@@ -349,6 +396,54 @@ function onDuplicate() {
 
               <!-- Místo a Colosseum (místo konání + napojení na Colosseum) -->
               <TabsContent value="colosseum" class="space-y-5 outline-none">
+                <FormSection
+                  title="Dostupnost prohlídky"
+                  icon="ticket"
+                  tag="tour-availability"
+                  hint="Dva příznaky nad rámec zveřejnění. Zveřejněním by prohlídka z výpisu úplně zmizela — tyhle ji ve výpisu nechají a jen změní, co web nabídne."
+                >
+                  <div class="space-y-4">
+                    <!-- Dočasně nedostupné (06/06) -->
+                    <div class="rounded-md border border-steel-200 px-3.5 py-3">
+                      <div class="flex items-start justify-between gap-3">
+                        <AppSwitch
+                          v-model="unavailable"
+                          label="Dočasně nedostupné"
+                          hint="Prohlídka zůstane ve výpisu, karta zešedne a nejde koupit vstupenku."
+                        />
+                        <span class="field-tag shrink-0">tour-unavailable</span>
+                      </div>
+                      <div v-if="unavailable" class="mt-3 border-t border-steel-100 pt-3">
+                        <MlFieldHeader label="Poznámka k nedostupnosti" :lang="activeLang" tag="tour-unavailable_note" @translate="translateField('unavailableNote')" />
+                        <input v-model="unavailableNote[activeLang]" type="text" placeholder="Např. Prohlídka je do konce srpna pozastavená kvůli rekonstrukci." class="h-10 w-full rounded-md border border-steel-200 px-3 text-[13.5px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
+                      </div>
+                    </div>
+
+                    <!-- Bez termínů / vstup kdykoli (06/07) -->
+                    <div class="rounded-md border border-steel-200 px-3.5 py-3">
+                      <div class="flex items-start justify-between gap-3">
+                        <AppSwitch
+                          v-model="undated"
+                          label="Bez termínů (vstup kdykoli)"
+                          hint="Celodenní vstupy a balíčky nemají termíny — web ukáže platnost vstupenky a tlačítko „Koupit vstupenku“ místo výběru termínu."
+                        />
+                        <span class="field-tag shrink-0">tour-undated</span>
+                      </div>
+                      <div v-if="undated" class="mt-3 border-t border-steel-100 pt-3">
+                        <label class="mb-1.5 flex items-center justify-between">
+                          <span class="text-[13px] font-600 text-graphite-800">Platnost vstupenky</span>
+                          <span class="field-tag">tour-ticket_validity</span>
+                        </label>
+                        <input v-model="ticketValidity" type="text" placeholder="např. 30 dnů" class="h-10 w-full max-w-[220px] rounded-md border border-steel-200 px-3 text-[13.5px] text-graphite-800 placeholder:text-steel-400 focus:border-brand-500 focus:outline-none" />
+                        <p class="mt-2 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-steel-500">
+                          <Icon name="calendar" :size="13" class="mt-0.5 shrink-0" />
+                          Nejbližší termíny z Colossea se u nedatované prohlídky na webu nezobrazují.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </FormSection>
+
                 <FormSection
                   title="Místo konání"
                   icon="map"
@@ -474,6 +569,12 @@ function onDuplicate() {
       <!-- PRAVÝ rail -->
       <aside class="space-y-5 xl:sticky xl:top-[76px] xl:self-start">
         <PublishCard :published="form.published" :langs="publishRows" updated-by="Jana Svobodová" @toggle-lang="onToggleLang" />
+
+        <!-- Štítky (ruční — web je dřív dopočítával z textu; rozhodnutí 00/12) -->
+        <FormSection title="Štítky" icon="filter" tag="tour-tags" hint="Ruční štítky pro filtr na webu. Typ a náročnost se neduplikují — ty jsou vlastní pole.">
+          <TagPicker v-model="form.tags" :options="PREDEFINED_TOUR_TAGS" />
+        </FormSection>
+
         <BackRefsCard :groups="backRefsForTour(form.id)" entity-label="tuto prohlídku" />
       </aside>
     </div>

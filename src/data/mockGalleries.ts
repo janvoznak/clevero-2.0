@@ -1,5 +1,5 @@
 import { imageFor } from './mockNews'
-import type { ML, GalleryImage, ContentBlock, LangCode } from './types'
+import type { ML, GalleryImage, LangCode } from './types'
 
 /* ============================================================
    Modul Galerie.
@@ -36,10 +36,9 @@ function makePhotos(count: number, seed = 0): GalleryImage[] {
 export interface GallerySection {
   id: string
   name: ML
-  /** Popis sekce (richtext) — úvodní text nad výpisem alb. */
-  description: ML
-  /** Náhledový obrázek sekce. */
-  cover: string
+  /* Popis ani náhledový obrázek sekce tu nejsou: sekce je na webu jen
+     filtrovací záložka nad výpisem, vlastní stránku nemá (rozhodnutí 00/41,
+     nálezy 03/05 a 03/12). Publikace po jazycích zůstává. */
   published: boolean
   /** Které jazykové mutace jdou živě na web (undefined = všechny vyplněné). */
   publishedLangs?: LangCode[]
@@ -56,15 +55,17 @@ export interface Gallery {
       Vlastníkem této vazby je modul Galerie (nastavuje se zde) — Areál ji jen
       zrcadlí (read-only). */
   areaId: string
+  /** Akce, ze které album je ('' = není z akce). Vazbu vlastní album —
+      v Kalendáři akcí se needituje, jen zrcadlí (rozhodnutí 00/44, nález 03/08). */
+  eventId: string
   name: ML
   /** Část URL (slug) — ML. Titulek/meta se odvozují automaticky. */
   slug?: ML
-  /** Popis alba (richtext). */
-  description: ML
-  /** Obsah galerie jako bloky (ContentBuilder) — jednotná sekce „Obsah". */
-  contentBlocks?: ContentBlock[]
-  /** Datum pořízení / konání (nejazykové). null = neuvedeno. */
-  date: string | null
+  /** Perex albumu — věta pod názvem; web z ní plní i popisek pro vyhledávače
+      (rozhodnutí 00/04 a 00/45). Nahradil blokový editor v záložce Obsah. */
+  perex: ML
+  /** Pořadí ve výpisu sekce na webu (nižší = dřív) — mění se přetažením. */
+  order: number
   photos: GalleryImage[]
   published: boolean
   /** Které jazykové mutace jdou živě na web (undefined = všechny vyplněné). */
@@ -72,25 +73,18 @@ export interface Gallery {
   /** Průřezové štítky (sdílí paletu s Aktualitami). */
   tags: string[]
   /* SEO (ML) */
-  metaTitle: ML
-  metaDescription: ML
-  metaKeywords: ML
-  ogImage: string | null
+  /* SEO pole tu nejsou — titulek i popisek web odvozuje z názvu a perexu
+     (rozhodnutí 00/24, nález 03/13). */
 }
 
 /* ---------- Mock: sekce ---------- */
-type RawSection = Omit<GallerySection, 'name' | 'description'> & {
-  name: ML
-  description: ML
-}
+type RawSection = GallerySection
 
 const RAW_SECTIONS: RawSection[] = [
   {
     id: 'sec-atraktivity',
     // EN mutace je vyplněná, ale záměrně skrytá z webu → amber „připraveno".
     name: { cs: 'Fotografie atraktivit', en: 'Photos of attractions', de: '', pl: '' },
-    description: ml('<p>Prohlídkové okruhy, expozice a dominanty areálu Dolní Vítkovice na fotografiích.</p>'),
-    cover: imageFor(4),
     published: true,
     publishedLangs: ['cs'],
     order: 1,
@@ -98,24 +92,18 @@ const RAW_SECTIONS: RawSection[] = [
   {
     id: 'sec-akce',
     name: ml('Fotografie z akcí'),
-    description: ml('<p>Festivaly, koncerty a doprovodný program v areálu.</p>'),
-    cover: imageFor(7),
     published: true,
     order: 2,
   },
   {
     id: 'sec-areal',
     name: ml('Areál z výšky'),
-    description: ml('<p>Letecké a panoramatické snímky celého areálu.</p>'),
-    cover: imageFor(1),
     published: true,
     order: 3,
   },
   {
     id: 'sec-sluzby',
     name: ml('Ubytování a gastronomie'),
-    description: ml('<p>Restaurace, kavárny a ubytovací kapacity v areálu.</p>'),
-    cover: imageFor(9),
     published: false,
     order: 4,
   },
@@ -130,13 +118,16 @@ type RawGallery = {
   sectionId: string
   /** Objekt v Areálu, pro který je galerie určená (viz Gallery.areaId). */
   areaId?: string
+  /** Akce, ze které album je (viz Gallery.eventId). */
+  eventId?: string
+  /** Perex albumu (jen CZ — ostatní mutace doplní překlad). */
+  perex?: string
   name: string
   /** Vyplněná anglická mutace názvu (pro demo jazykových mutací). */
   nameEn?: string
   count: number
   seed: number
   published?: boolean
-  date?: string | null
   tags?: string[]
   /** Explicitně zveřejněné mutace (undefined = všechny vyplněné jdou živě). */
   publishedLangs?: LangCode[]
@@ -144,33 +135,30 @@ type RawGallery = {
 
 const RAW_GALLERIES: RawGallery[] = [
   // EN mutace názvu je vyplněná, ale skrytá z webu (publishedLangs bez 'en') → amber „připraveno".
-  { id: 'g-u6', sectionId: 'sec-atraktivity', areaId: 'v-u6', name: 'Malý svět techniky U6', nameEn: 'Small World of Technology U6', count: 24, seed: 4, date: '2026-05-18', tags: ['Pro rodiny'], publishedLangs: ['cs'] },
-  { id: 'g-bolt', sectionId: 'sec-atraktivity', areaId: 'v-bolt', name: 'Bolt Tower', count: 18, seed: 0, date: '2026-06-02', tags: ['Sezónní'] },
-  { id: 'g-hlubina', sectionId: 'sec-atraktivity', areaId: 'v-hlubina', name: 'Důl Hlubina', count: 31, seed: 5, date: '2026-04-11', tags: ['Prohlídky'] },
-  { id: 'g-gong', sectionId: 'sec-atraktivity', areaId: 'v-gong', name: 'Gong — multifunkční aula', count: 15, seed: 8, date: '2026-03-22' },
-  { id: 'g-technika', sectionId: 'sec-atraktivity', areaId: 'v-u6', name: 'Velký svět techniky', count: 27, seed: 13, date: '2026-05-30', tags: ['Pro rodiny', 'Výstava'] },
-  { id: 'g-galerie', sectionId: 'sec-akce', areaId: 'v-galerie', name: 'Galerie Gong — výstavy', count: 20, seed: 3, date: '2026-06-14', tags: ['Výstava'] },
-  { id: 'g-akce', sectionId: 'sec-akce', areaId: 'v-areal', name: 'Akce a festivaly', count: 56, seed: 7, date: '2026-07-19', tags: ['Festival', 'Akce'] },
-  { id: 'g-areal', sectionId: 'sec-areal', areaId: 'v-areal', name: 'Areál DOV — letecké snímky', count: 42, seed: 1, date: '2026-05-05' },
-  { id: 'g-hotel', sectionId: 'sec-sluzby', areaId: 'v-hotel', name: 'Ubytování v areálu', count: 12, seed: 6, published: false, date: null },
-  { id: 'g-gastro', sectionId: 'sec-sluzby', areaId: 'v-marycka', name: 'Restaurace a kavárny', count: 19, seed: 9, date: '2026-04-28' },
+  { id: 'g-u6', perex: 'Interaktivní expozice v historické VI. energetické ústředně.', sectionId: 'sec-atraktivity', areaId: 'v-u6', name: 'Malý svět techniky U6', nameEn: 'Small World of Technology U6', count: 24, seed: 4, tags: ['Pro rodiny'], publishedLangs: ['cs'] },
+  { id: 'g-bolt', perex: 'Nejvyšší vyhlídka v Ostravě — 80 m nad areálem.', sectionId: 'sec-atraktivity', areaId: 'v-bolt', name: 'Bolt Tower', count: 18, seed: 0, tags: ['Sezónní'] },
+  { id: 'g-hlubina', perex: 'Původní provozy dolu Hlubina a těžní věž.', sectionId: 'sec-atraktivity', areaId: 'v-hlubina', name: 'Důl Hlubina', count: 31, seed: 5, tags: ['Prohlídky'] },
+  { id: 'g-gong', sectionId: 'sec-atraktivity', areaId: 'v-gong', name: 'Gong — multifunkční aula', count: 15, seed: 8 },
+  { id: 'g-technika', sectionId: 'sec-atraktivity', areaId: 'v-u6', name: 'Velký svět techniky', count: 27, seed: 13, tags: ['Pro rodiny', 'Výstava'] },
+  { id: 'g-galerie', sectionId: 'sec-akce', areaId: 'v-galerie', name: 'Galerie Gong — výstavy', count: 20, seed: 3, tags: ['Výstava'] },
+  { id: 'g-akce', eventId: 'e-plameny', perex: 'Fotografie z festivalu Ostrava v plamenech.', sectionId: 'sec-akce', areaId: 'v-areal', name: 'Akce a festivaly', count: 56, seed: 7, tags: ['Festival', 'Akce'] },
+  { id: 'g-areal', perex: 'Letecké snímky celého areálu Dolních Vítkovic.', sectionId: 'sec-areal', areaId: 'v-areal', name: 'Areál DOV — letecké snímky', count: 42, seed: 1 },
+  { id: 'g-hotel', sectionId: 'sec-sluzby', areaId: 'v-hotel', name: 'Ubytování v areálu', count: 12, seed: 6, published: false },
+  { id: 'g-gastro', sectionId: 'sec-sluzby', areaId: 'v-marycka', name: 'Restaurace a kavárny', count: 19, seed: 9 },
 ]
 
-export const MOCK_GALLERIES: Gallery[] = RAW_GALLERIES.map((r) => ({
+export const MOCK_GALLERIES: Gallery[] = RAW_GALLERIES.map((r, i) => ({
   id: r.id,
   sectionId: r.sectionId,
   areaId: r.areaId ?? '',
+  eventId: r.eventId ?? '',
   name: { cs: r.name, en: r.nameEn ?? '', de: '', pl: '' },
-  description: emptyML(),
-  date: r.date === undefined ? null : r.date,
+  perex: r.perex ? ml(r.perex) : emptyML(),
+  order: i + 1,
   photos: makePhotos(r.count, r.seed),
   published: r.published ?? true,
   publishedLangs: r.publishedLangs,
   tags: r.tags ?? [],
-  metaTitle: emptyML(),
-  metaDescription: emptyML(),
-  metaKeywords: emptyML(),
-  ogImage: null,
 }))
 
 /* ---------- Odvozovací helpery ---------- */
@@ -189,6 +177,10 @@ export function galleriesInSection(sectionId: string): Gallery[] {
 /** Galerie určené pro daný objekt v Areálu (zrcadlo vazby — Areál je read-only). */
 export function galleriesForVenue(venueId: string): Gallery[] {
   return MOCK_GALLERIES.filter((g) => g.areaId === venueId)
+}
+/** Alba z dané akce (zrcadlo vazby — Kalendář akcí je read-only). */
+export function galleriesForEvent(eventId: string): Gallery[] {
+  return MOCK_GALLERIES.filter((g) => g.eventId === eventId)
 }
 export function gallery(id: string): Gallery | undefined {
   return MOCK_GALLERIES.find((g) => g.id === id)
@@ -218,8 +210,6 @@ export function blankSection(): GallerySection {
   return {
     id: 'nová',
     name: emptyML(),
-    description: emptyML(),
-    cover: '',
     published: false,
     order: MOCK_SECTIONS.length + 1,
   }
@@ -229,16 +219,13 @@ export function blankGallery(sectionId = ''): Gallery {
     id: 'nové',
     sectionId: sectionId || MOCK_SECTIONS[0]?.id || '',
     areaId: '',
+    eventId: '',
     name: emptyML(),
-    description: emptyML(),
-    date: null,
+    perex: emptyML(),
+    order: MOCK_GALLERIES.length + 1,
     photos: [],
     published: false,
     tags: [],
-    metaTitle: emptyML(),
-    metaDescription: emptyML(),
-    metaKeywords: emptyML(),
-    ogImage: null,
   }
 }
 

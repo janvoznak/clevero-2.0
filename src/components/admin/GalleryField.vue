@@ -19,8 +19,11 @@ withDefaults(
     linkTag?: string
     /** field-tag chip u přímo nahraných fotek, např. „news-gallery". */
     photosTag?: string
+    /** Skrýt kartu „Připojené galerie" — modul, kde vazba na Galerie nemá využití
+        (např. produkty, rozhodnutí 00/38). Zůstanou jen vlastní fotografie. */
+    linked?: boolean
   }>(),
-  { linkTag: '', photosTag: '' },
+  { linkTag: '', photosTag: '', linked: true },
 )
 
 const galleries = defineModel<string[]>('galleries', { default: () => [] })
@@ -31,8 +34,9 @@ const galleryItems = galleryOptionsList()
 
 <template>
   <div class="space-y-5">
-    <!-- 1) Připojené galerie z modulu Galerie -->
+    <!-- 1) Připojené galerie z modulu Galerie (lze vypnout přes `linked`) -->
     <FormSection
+      v-if="linked"
       title="Připojené galerie z modulu Galerie"
       icon="gallery"
       hint="Vyber existující galerie z modulu Galerie — fotky se nahrávají tam, tady se jen připojí a zobrazí na webu."
