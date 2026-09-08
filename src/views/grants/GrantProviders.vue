@@ -6,7 +6,7 @@
  * takže patří sem, ne k jednotlivému projektu — nahraje se jednou.
  * Prototyp — nahrávání i ukládání jsou předstírané.
  */
-import { computed, reactive, ref } from 'vue'
+import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { DialogRoot, DialogPortal, DialogOverlay, DialogContent, DialogTitle, DialogDescription } from 'reka-ui'
 import Icon from '@/components/ui/Icon.vue'
@@ -48,7 +48,6 @@ function save() {
   saved.value = true
   window.setTimeout(() => (saved.value = false), 2200)
 }
-const missingLogo = computed(() => rows.filter((p) => !p.logo).length)
 </script>
 
 <template>
@@ -63,10 +62,6 @@ const missingLogo = computed(() => rows.filter((p) => !p.logo).length)
         <h1 class="font-display text-[26px] font-700 leading-none tracking-tight text-graphite-900">
           Poskytovatelé a loga
         </h1>
-        <p class="mt-1 max-w-[70ch] text-[13px] text-steel-500">
-          Podle poskytovatele se projekty na webu seskupují a od něj se bere logo. Loga jsou povinná publicita —
-          nahrávají se jednou tady, ne u každého projektu zvlášť.
-        </p>
       </div>
       <div class="flex items-center gap-2">
         <AppButton variant="secondary" @click="router.push({ name: 'grants-list' })">
@@ -79,18 +74,7 @@ const missingLogo = computed(() => rows.filter((p) => !p.logo).length)
       </div>
     </div>
 
-    <div
-      v-if="missingLogo"
-      class="mb-4 flex items-start gap-2.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3"
-    >
-      <Icon name="image" :size="16" class="mt-0.5 shrink-0 text-amber-600" />
-      <p class="text-[12.5px] leading-relaxed text-amber-700">
-        <span class="font-600">{{ missingLogo }} {{ missingLogo === 1 ? 'poskytovatel nemá' : 'poskytovatelů nemá' }} nahrané logo.</span>
-        U dotací bývá zobrazení loga podmínkou — do té doby web ukáže jen název.
-      </p>
-    </div>
 
-    <!-- Tabulka poskytovatelů -->
     <div class="overflow-hidden rounded-lg border border-steel-200 bg-white">
       <table class="w-full border-collapse text-left">
         <thead>

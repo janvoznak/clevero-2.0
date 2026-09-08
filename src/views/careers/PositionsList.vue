@@ -99,10 +99,6 @@ function fmtDate(iso: string | null): string {
           <span class="font-mono text-[11px] text-steel-400">/admin/careers/positions</span>
         </div>
         <h1 class="font-display text-[26px] font-700 leading-none tracking-tight text-graphite-900">Pozice</h1>
-        <p class="mt-1 text-[13px] text-steel-500">
-          Volné pozice na webu. Z formuláře u pozice padají přihlášky do
-          <RouterLink :to="{ name: 'applicants-list' }" class="font-600 text-brand-600 hover:underline">Uchazečů</RouterLink>.
-        </p>
       </div>
       <AppButton variant="primary" @click="router.push({ name: 'position-new' })">
         <Icon name="plus" :size="17" />

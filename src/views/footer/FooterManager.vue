@@ -107,9 +107,6 @@ function save() {
           <span class="font-mono text-[11px] text-steel-400">/admin/footer</span>
         </div>
         <h1 class="font-display text-[26px] font-700 leading-none tracking-tight text-graphite-900">Patička</h1>
-        <p class="mt-1 max-w-[74ch] text-[13px] text-steel-500">
-          Obsah patičky webu. Odkazy se vybírají stejně jako v Navigaci — drží stránku nebo modul, ne hotovou adresu.
-        </p>
       </div>
       <div class="flex items-center gap-3">
         <LangBar v-model="activeLang" :filled="filledLangs" class="hidden lg:block" />
@@ -398,10 +395,6 @@ function save() {
 
         <!-- Partneři -->
         <TabsContent value="partners" class="p-5 outline-none">
-          <p class="mb-4 max-w-[74ch] text-[12.5px] leading-relaxed text-steel-500">
-            Loga partnerů v patičce. Web jich dnes ukazuje přes šedesát — proto je tu prostý seznam a ne galerie:
-            přidat partnera musí být otázka na dvě políčka.
-          </p>
           <ul class="space-y-2">
             <li v-for="(p, i) in form.partners" :key="p.id" class="flex flex-wrap items-center gap-2">
               <button

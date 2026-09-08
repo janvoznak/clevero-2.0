@@ -173,9 +173,6 @@ function fmtDate(iso: string | null): string {
           <span class="font-mono text-[11px] text-steel-400">/admin/users</span>
         </div>
         <h1 class="font-display text-[26px] font-700 leading-none tracking-tight text-graphite-900">Uživatelé</h1>
-        <p class="mt-1 text-[13px] text-steel-500">
-          Účty do administrace a jejich oprávnění. Zákaznické účty e-shopu jsou jinde — tyhle jsou pro redakci.
-        </p>
       </div>
       <AppButton variant="primary" @click="goNew">
         <Icon name="plus" :size="17" />

@@ -172,10 +172,6 @@ function save() {
           <span class="font-mono text-[11px] text-steel-400">/admin/navigation</span>
         </div>
         <h1 class="font-display text-[26px] font-700 leading-none tracking-tight text-graphite-900">Navigace</h1>
-        <p class="mt-1 max-w-[74ch] text-[13px] text-steel-500">
-          Menu webu. Položka drží odkaz na stránku nebo modul, ne hotovou adresu — když se stránce změní URL,
-          menu se nerozbije. Pořadí a zanoření se mění přetažením.
-        </p>
       </div>
       <div class="flex items-center gap-3">
         <LangBar v-model="activeLang" :filled="filledLangs" class="hidden lg:block" />
@@ -320,12 +316,5 @@ function save() {
       </TabsRoot>
     </div>
 
-    <FormSection class="mt-5" title="Co menu neřídí" icon="help" tag="navigation-note">
-      <p class="text-[12.5px] leading-relaxed text-steel-600">
-        Přepínač jazyků a vyhledávání jsou pevné prvky hlavičky, nenastavují se tady.
-        Informační pruh nad menu má vlastní modul
-        <RouterLink :to="{ name: 'infobar' }" class="font-600 text-brand-600 hover:underline">Informační lišta</RouterLink>.
-      </p>
-    </FormSection>
   </div>
 </template>

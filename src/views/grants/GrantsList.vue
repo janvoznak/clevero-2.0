@@ -59,13 +59,6 @@ const visible = computed(() =>
     }),
 )
 
-/** Kolik projektů je v které fázi — dlaždice odpovídají záložkám na webu. */
-const counts = computed(() =>
-  GRANT_PHASE_OPTIONS.map((p) => ({ ...p, count: rows.value.filter((g) => g.phase === p.value).length })),
-)
-/** Projekty s prošlým termínem, které zůstaly mezi aktuálními. */
-const mismatched = computed(() => rows.value.filter((g) => phaseMismatch(g)))
-
 /* ---------- Akce ---------- */
 const rowActions = [
   { key: 'edit', label: 'Otevřít projekt', icon: 'edit' },
@@ -98,10 +91,6 @@ function lps(field: Record<LangCode, string>, published: LangCode[] | undefined,
           <span class="font-mono text-[11px] text-steel-400">/admin/grants</span>
         </div>
         <h1 class="font-display text-[26px] font-700 leading-none tracking-tight text-graphite-900">Dotační projekty</h1>
-        <p class="mt-1 max-w-[70ch] text-[13px] text-steel-500">
-          Povinně zveřejňované údaje o čerpaných dotacích. Na webu z nich vzniká výpis rozdělený podle fáze
-          a seskupený podle poskytovatele — úvodní text stránky se píše v modulu Stránky.
-        </p>
       </div>
       <div class="flex items-center gap-2">
         <AppButton variant="secondary" @click="router.push({ name: 'grant-providers' })">
@@ -115,43 +104,7 @@ function lps(field: Record<LangCode, string>, published: LangCode[] | undefined,
       </div>
     </div>
 
-    <!-- Počty po fázích = záložky na webu -->
-    <div class="mb-4 grid gap-3 sm:grid-cols-3">
-      <button
-        v-for="p in counts"
-        :key="p.value"
-        type="button"
-        class="rounded-lg border bg-white px-4 py-3 text-left outline-none transition-colors"
-        :class="filterPhase === p.value ? 'border-brand-400 ring-1 ring-brand-400' : 'border-steel-200 hover:border-steel-300'"
-        @click="filterPhase = filterPhase === p.value ? 'all' : p.value"
-      >
-        <span class="flex items-center gap-1.5 text-[11.5px] font-600 uppercase tracking-wider text-steel-500">
-          <span class="h-1.5 w-1.5 rounded-full" :class="GRANT_PHASE_META[p.value].dot" />
-          {{ GRANT_PHASE_META[p.value].short }}
-        </span>
-        <span class="mt-1 block font-display text-[24px] font-700 leading-none text-graphite-900 tabular-nums">
-          {{ p.count }}
-        </span>
-      </button>
-    </div>
 
-    <!-- Upozornění na prošlý termín u aktuálně čerpaného projektu -->
-    <div
-      v-if="mismatched.length"
-      class="mb-4 flex items-start gap-2.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3"
-    >
-      <Icon name="clock" :size="16" class="mt-0.5 shrink-0 text-amber-600" />
-      <p class="text-[12.5px] leading-relaxed text-amber-700">
-        <span class="font-600">
-          {{ mismatched.length }}
-          {{ mismatched.length === 1 ? 'projektu' : 'projektům' }}
-          skončil termín řešení, ale zůstal mezi aktuálně čerpanými.
-        </span>
-        Zkontrolujte, jestli nemá přejít do udržitelnosti nebo mezi ukončené.
-      </p>
-    </div>
-
-    <!-- Filtr -->
     <div class="mb-4 rounded-lg border border-steel-200 bg-white p-3">
       <div class="flex flex-wrap items-end gap-x-3 gap-y-3">
         <div>
